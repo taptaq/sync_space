@@ -5,9 +5,7 @@ import {
   Brain,
   ChevronRight,
   CloudSun,
-  HandHeart,
   Sparkles,
-  ShieldAlert,
   User,
   Baby,
 } from "lucide-react";
@@ -34,18 +32,6 @@ const NEURO_OPTIONS: {
     label: "ADHD",
     desc: "注意力起伏 · 多巴胺电量不稳定 · 启动困难",
     icon: Sparkles,
-  },
-  {
-    key: "hsp",
-    label: "HSP",
-    desc: "情绪吸收强 · 环境刺激影响大 · 边界易模糊",
-    icon: HandHeart,
-  },
-  {
-    key: "ptsd",
-    label: "PTSD",
-    desc: "侵入性记忆 · 回避反应 · 唤起度高",
-    icon: ShieldAlert,
   },
   {
     key: "other",
@@ -256,7 +242,7 @@ export default function Onboarding() {
                   不太确定？做一份自评更了解自己
                 </p>
                 <p className="text-xs text-ink-muted">
-                  AQ-10 / ASRS-5 / HSPS / PCL-5 · 非诊断
+                  AQ-10 / ASRS-5 · 非诊断
                 </p>
               </div>
               <ChevronRight size={14} className="shrink-0 text-ink-faint" />

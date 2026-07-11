@@ -1,14 +1,15 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { CalendarDays, CloudSun, History } from "lucide-react";
+import { CalendarDays, CloudSun, History, Layers } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store/useStore";
 import CrisisSupport from "@/components/common/CrisisSupport";
 
-// 主布局 + 底部三 Tab（PRD §05：底部 Tab 今日·气候·回看，结构固定不变）
+// 主布局 + 底部四 Tab（今日·气候·协议·回看 · 职责单一降低注意力疲劳）
 const tabs = [
   { to: "/today", label: "今日", icon: CalendarDays },
   { to: "/climate", label: "气候", icon: CloudSun },
+  { to: "/protocol", label: "协议", icon: Layers },
   { to: "/review", label: "回看", icon: History },
 ];
 

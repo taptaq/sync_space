@@ -7,6 +7,7 @@ import ProtocolTrigger from "@/components/protocol/ProtocolTrigger";
 import Onboarding from "@/pages/Onboarding";
 import Today from "@/pages/Today";
 import Climate from "@/pages/Climate";
+import Protocol from "@/pages/Protocol";
 import Review from "@/pages/Review";
 import ReviewDetail from "@/pages/ReviewDetail";
 import ProtocolNew from "@/pages/ProtocolNew";
@@ -60,6 +61,14 @@ function AnimatedRoutes() {
           element={
             <RequireOnboard>
               <PageWrapper><Climate /></PageWrapper>
+            </RequireOnboard>
+          }
+        />
+        <Route
+          path="/protocol"
+          element={
+            <RequireOnboard>
+              <PageWrapper><Protocol /></PageWrapper>
             </RequireOnboard>
           }
         />

@@ -309,4 +309,5 @@ export const SCALE_QUESTIONS: Record<ScaleId, ScaleQuestion[]> = {
 };
 
 // 量表列表（用于选择页）
-export const SCALE_LIST: ScaleMeta[] = [SCALES.aq10, SCALES.asrs6, SCALES.hsps12, SCALES.pcl5];
+// 初期聚焦 ASD + ADHD（HSPS/PCL-5 量表数据保留但暂不展示 · 后续扩展时取消注释）
+export const SCALE_LIST: ScaleMeta[] = [SCALES.aq10, SCALES.asrs6];

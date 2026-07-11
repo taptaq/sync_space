@@ -4,9 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
   Brain,
-  HandHeart,
   Sparkles,
-  ShieldAlert,
   ChevronRight,
   Check,
   Info,
@@ -26,8 +24,6 @@ type Phase = "select" | "quiz" | "result";
 const NEURO_ICON: Record<string, typeof Brain> = {
   asd: Brain,
   adhd: Sparkles,
-  hsp: HandHeart,
-  ptsd: ShieldAlert,
 };
 
 export default function Screen() {
