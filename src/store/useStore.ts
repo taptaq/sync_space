@@ -1,0 +1,487 @@
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type {
+  AIObservation,
+  AppMode,
+  CheckIn,
+  CollaboratorRole,
+  CrashMark,
+  NeuroType,
+  Protocol,
+  ProtocolExecution,
+  ScaleResult,
+  ToastMessage,
+  TraitProfile,
+  WeatherSnapshot,
+} from "@/types";
+import { generateWeather, defaultWeather } from "@/lib/weatherEngine";
+import { matchTriggers } from "@/lib/triggerEngine";
+import { detectPhase } from "@/lib/stageEngine";
+import { genId } from "@/lib/format";
+import {
+  mockCheckIns,
+  mockCrashMarks,
+  mockExecutions,
+  mockObservation,
+  mockProtocols,
+} from "@/lib/mockData";
+
+// 协议触发推送状态
+export interface ActiveTrigger {
+  protocol: Protocol;
+  reason: string;
+  triggeredAt: string;
+}
+
+interface StoreState {
+  // 用户状态
+  onboarded: boolean;
+  neuroType: NeuroType;
+  appMode: AppMode; // 自主签到 / 家长代理签到
+  checkinTimes: { morning: string; noon: string; evening: string };
+
+  // 数据
+  checkins: CheckIn[];
+  protocols: Protocol[];
+  executions: ProtocolExecution[];
+  crashMarks: CrashMark[];
+  observation: AIObservation | null;
+
+  // 当前天气卡
+  currentWeather: WeatherSnapshot;
+
+  // 协议触发（PRD §07：每日上限 3 次）
+  activeTrigger: ActiveTrigger | null;
+  triggerCountToday: number;
+  triggerDateKey: string; // 用于每日重置
+
+  // 神经特质自评画像（PRD §11 非诊断 · 补充画像）
+  traitProfile: TraitProfile | null;
+
+  // 协议参与者（PRD §02 自主性阶段 · "谁参与你的协议"）
+  // "self" → 半自主阶段（当前 Demo 形态）；其他 → 共管阶段（架构已支持）
+  collaborator: CollaboratorRole;
+
+  // Qwen 多模态功能开关（语音签到/语音补记/环境扫描/智能建议）
+  // 合规：不涉及生物识别（人脸表情/声纹情绪），仅 ASR + 环境图片 + 文本语义
+  qwenEnabled: boolean;
+
+  // 低感官模式（PRD §03 感官安全 · 神经多样性友好设计）
+  // 开启后降级装饰性动效、降低色彩饱和度、减少阴影
+  // 对光敏感/前庭敏感/HSP 用户尤为重要（WCAG 2.3.3 · Microsoft Inclusive Design）
+  lowSensoryMode: boolean;
+
+  // 协议执行效果反馈（PRD §09 反馈闭环 · 执行后延时询问是否有效）
+  pendingFeedbackExecId: string | null;
+
+  // Toast（PRD §09：所有保存/操作成功或失败都有轻量 toast）
+  toasts: ToastMessage[];
+
+  // 操作
+  setOnboarded: (neuroType: NeuroType) => void;
+  setCollaborator: (role: CollaboratorRole) => void;
+  setAppMode: (mode: AppMode) => void;
+  setQwenEnabled: (enabled: boolean) => void;
+  setLowSensoryMode: (enabled: boolean) => void;
+  addCheckIn: (
+    sensory: number,
+    social: number,
+    predictability: number,
+    hesitationMs: number,
+    extras?: { note?: string; early_signals?: string[] },
+  ) => CheckIn;
+  addProtocol: (
+    protocol: Omit<Protocol, "id" | "execution_count" | "last_executed_at" | "created_at">,
+  ) => void;
+  updateProtocol: (id: string, updates: Partial<Protocol>) => void;
+  toggleProtocolStatus: (id: string) => void;
+  acceptCandidateProtocol: (id: string) => void;
+  deleteProtocol: (id: string) => void;
+  executeProtocol: (id: string) => void;
+  postponeProtocol: (id: string) => void;
+  dismissTrigger: () => void;
+  setActiveTrigger: (trigger: ActiveTrigger) => void;
+  submitFeedback: (
+    execId: string,
+    feedback: "helpful" | "neutral" | "unhelpful",
+  ) => void;
+  dismissFeedback: () => void;
+  getMinutesSinceLastCheckin: () => number;
+  addCrashMark: (
+    voiceText?: string,
+    extras?: {
+      crash_type?: import("@/types").CrashType;
+      trigger_cues?: { type: import("@/types").TriggerCueType; description: string }[];
+    },
+  ) => string;
+  updateCrashMark: (id: string, updates: Partial<CrashMark>) => void;
+  acceptObservation: () => void;
+  ignoreObservation: () => void;
+  setObservation: (obs: AIObservation) => void;
+  saveTraitResult: (result: ScaleResult) => void;
+  pushToast: (type: ToastMessage["type"], text: string) => void;
+  dismissToast: (id: string) => void;
+  resetAll: () => void;
+}
+
+function todayKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+export const useStore = create<StoreState>()(
+  persist(
+    (set, get) => ({
+      onboarded: false,
+      neuroType: "asd",
+      appMode: "self",
+      checkinTimes: { morning: "09:00", noon: "14:00", evening: "20:00" },
+
+      checkins: mockCheckIns,
+      protocols: mockProtocols,
+      executions: mockExecutions,
+      crashMarks: mockCrashMarks,
+      observation: mockObservation,
+
+      currentWeather: defaultWeather(),
+
+      activeTrigger: null,
+      triggerCountToday: 0,
+      triggerDateKey: todayKey(),
+
+      traitProfile: null,
+
+      collaborator: "self",
+
+      qwenEnabled: false,
+
+      lowSensoryMode: false,
+
+      pendingFeedbackExecId: null,
+
+      toasts: [],
+
+      setOnboarded: (neuroType) => {
+        set({ onboarded: true, neuroType });
+        get().pushToast("success", "设置完成，欢迎来到你的内在气候");
+      },
+
+      setCollaborator: (role) => set({ collaborator: role }),
+
+      setAppMode: (mode) => set({ appMode: mode }),
+
+      setQwenEnabled: (enabled) => set({ qwenEnabled: enabled }),
+
+      setLowSensoryMode: (enabled) => set({ lowSensoryMode: enabled }),
+
+      addCheckIn: (sensory, social, predictability, hesitationMs, extras) => {
+        const neuroType = get().neuroType;
+        const weather = generateWeather(sensory, social, predictability, neuroType);
+        // 模拟响应延迟：当前时间与最近一次签到通知的差
+        const responseDelay = Math.floor(Math.random() * 30) + 5;
+        const checkin: CheckIn = {
+          id: genId("chk"),
+          axis_sensory: sensory,
+          axis_social: social,
+          axis_predictability: predictability,
+          hesitation_ms: hesitationMs,
+          checkin_at: new Date().toISOString(),
+          response_delay_minutes: responseDelay,
+          weather_snapshot: weather,
+          note: extras?.note,
+          early_signals: extras?.early_signals,
+        };
+        set((state) => ({
+          checkins: [...state.checkins, checkin],
+          currentWeather: weather,
+        }));
+
+        // 触发引擎：检查协议是否命中（PRD §07）
+        const { protocols, triggerCountToday, triggerDateKey } = get();
+        const key = todayKey();
+        const countToday = key === triggerDateKey ? triggerCountToday : 0;
+
+        if (countToday < 3) {
+          const currentPhase = detectPhase(
+            weather.climate,
+            get().crashMarks,
+          );
+          const result = matchTriggers(protocols, checkin, neuroType, currentPhase);
+          if (result.matched && result.protocol) {
+            set({
+              activeTrigger: {
+                protocol: result.protocol,
+                reason: result.reason,
+                triggeredAt: new Date().toISOString(),
+              },
+              triggerCountToday: countToday + 1,
+              triggerDateKey: key,
+            });
+          }
+        }
+
+        return checkin;
+      },
+
+      addProtocol: (protocol) => {
+        const newProtocol: Protocol = {
+          ...protocol,
+          id: genId("protocol"),
+          execution_count: 0,
+          last_executed_at: null,
+          created_at: new Date().toISOString(),
+        };
+        set((state) => ({ protocols: [newProtocol, ...state.protocols] }));
+        get().pushToast("success", "协议已保存");
+      },
+
+      updateProtocol: (id, updates) => {
+        set((state) => ({
+          protocols: state.protocols.map((p) =>
+            p.id === id ? { ...p, ...updates } : p,
+          ),
+        }));
+        get().pushToast("success", "协议已更新");
+      },
+
+      toggleProtocolStatus: (id) => {
+        set((state) => ({
+          protocols: state.protocols.map((p) =>
+            p.id === id
+              ? {
+                  ...p,
+                  status: p.status === "active" ? "paused" : "active",
+                }
+              : p,
+          ),
+        }));
+        const p = get().protocols.find((x) => x.id === id);
+        get().pushToast(
+          "success",
+          p?.status === "paused" ? "协议已暂停" : "协议已恢复",
+        );
+      },
+
+      acceptCandidateProtocol: (id) => {
+        set((state) => ({
+          protocols: state.protocols.map((p) =>
+            p.id === id ? { ...p, status: "active" } : p,
+          ),
+        }));
+        get().pushToast("success", "协议候选已接受，已加入你的协议库");
+      },
+
+      deleteProtocol: (id) => {
+        set((state) => ({
+          protocols: state.protocols.filter((p) => p.id !== id),
+        }));
+        get().pushToast("success", "协议已删除");
+      },
+
+      executeProtocol: (id) => {
+        const now = new Date().toISOString();
+        const protocol = get().protocols.find((p) => p.id === id);
+        if (!protocol) return;
+        const execution: ProtocolExecution = {
+          id: genId("exec"),
+          protocol_id: id,
+          triggered_at: get().activeTrigger?.triggeredAt ?? now,
+          executed_at: now,
+          action_taken: "executed",
+          duration_actual_minutes: protocol.action.duration_minutes,
+        };
+        set((state) => ({
+          executions: [execution, ...state.executions],
+          protocols: state.protocols.map((p) =>
+            p.id === id
+              ? {
+                  ...p,
+                  execution_count: p.execution_count + 1,
+                  last_executed_at: now,
+                }
+              : p,
+          ),
+          activeTrigger: null,
+        }));
+        get().pushToast(
+          "success",
+          `协议已执行，开始 ${protocol.action.duration_minutes} 分钟计时`,
+        );
+        // 3 秒后弹出效果反馈（PRD §09 反馈闭环 · 不打断执行，仅轻量提示）
+        setTimeout(() => {
+          set({ pendingFeedbackExecId: execution.id });
+        }, 3000);
+      },
+
+      postponeProtocol: (id) => {
+        set((state) => ({
+          executions: [
+            {
+              id: genId("exec"),
+              protocol_id: id,
+              triggered_at: state.activeTrigger?.triggeredAt ?? new Date().toISOString(),
+              executed_at: new Date().toISOString(),
+              action_taken: "postponed" as const,
+              duration_actual_minutes: 0,
+            },
+            ...state.executions,
+          ],
+          activeTrigger: null,
+        }));
+        get().pushToast("info", "已推迟，30 分钟后再提醒你");
+      },
+
+      dismissTrigger: () => set({ activeTrigger: null }),
+
+      setActiveTrigger: (trigger) => set({ activeTrigger: trigger }),
+
+      submitFeedback: (execId, feedback) => {
+        set((state) => ({
+          executions: state.executions.map((e) =>
+            e.id === execId ? { ...e, feedback } : e,
+          ),
+          pendingFeedbackExecId: null,
+        }));
+        get().pushToast("success", "已记录，帮你下次更准");
+      },
+
+      dismissFeedback: () => set({ pendingFeedbackExecId: null }),
+
+      getMinutesSinceLastCheckin: () => {
+        const checkins = get().checkins;
+        if (checkins.length === 0) return Infinity;
+        const last = checkins[checkins.length - 1];
+        const diff = Date.now() - new Date(last.checkin_at).getTime();
+        return Math.floor(diff / 60_000);
+      },
+
+      addCrashMark: (voiceText, extras) => {
+        const id = genId("crash");
+        const now = new Date().toISOString();
+        const crash: CrashMark = {
+          id,
+          marked_at: now,
+          voice_text: voiceText,
+          reviewed: false,
+          weather_snapshot: get().currentWeather,
+          crash_type: extras?.crash_type,
+          trigger_cues: extras?.trigger_cues,
+        };
+        set((state) => ({ crashMarks: [crash, ...state.crashMarks] }));
+        get().pushToast("success", "已记录，你随时可以晚点再来整理");
+        return id;
+      },
+
+      updateCrashMark: (id, updates) => {
+        set((state) => ({
+          crashMarks: state.crashMarks.map((c) =>
+            c.id === id ? { ...c, ...updates } : c,
+          ),
+        }));
+      },
+
+      acceptObservation: () => {
+        const obs = get().observation;
+        if (!obs) return;
+        const newProtocol: Protocol = {
+          id: genId("protocol"),
+          trigger: {
+            type: "behavior",
+            description: obs.suggested_protocol.trigger_description,
+          },
+          action: {
+            description: obs.suggested_protocol.action_description,
+            duration_minutes: 0,
+            timer: false,
+          },
+          source: "ai_suggestion",
+          status: "candidate",
+          execution_count: 0,
+          last_executed_at: null,
+          created_at: new Date().toISOString(),
+        };
+        set((state) => ({
+          protocols: [newProtocol, ...state.protocols],
+          observation: { ...obs, status: "accepted" },
+        }));
+        get().pushToast("success", "已生成协议候选，待你确认");
+      },
+
+      ignoreObservation: () => {
+        const obs = get().observation;
+        if (!obs) return;
+        set({ observation: { ...obs, status: "ignored" } });
+        get().pushToast("info", "已忽略，下次观察不受影响");
+      },
+
+      setObservation: (obs) => set({ observation: obs }),
+
+      // 保存特质自评结果（PRD §11 非诊断 · 同量表重做则覆盖旧结果）
+      saveTraitResult: (result) => {
+        const existing = get().traitProfile;
+        const otherResults = existing?.results.filter(
+          (r) => r.scale_id !== result.scale_id,
+        ) ?? [];
+        const profile: TraitProfile = {
+          results: [...otherResults, result],
+          last_updated: new Date().toISOString(),
+        };
+        set({ traitProfile: profile });
+        get().pushToast("success", "自评结果已保存到你的特质画像");
+      },
+
+      pushToast: (type, text) => {
+        const toast: ToastMessage = { id: genId("toast"), type, text };
+        set((state) => ({ toasts: [...state.toasts, toast] }));
+        // 3 秒自动消失（PRD §09）
+        setTimeout(() => {
+          get().dismissToast(toast.id);
+        }, 3000);
+      },
+
+      dismissToast: (id) => {
+        set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) }));
+      },
+
+      resetAll: () => {
+        set({
+          onboarded: false,
+          neuroType: "asd",
+          appMode: "self",
+          checkins: mockCheckIns,
+          protocols: mockProtocols,
+          executions: mockExecutions,
+          crashMarks: mockCrashMarks,
+          observation: mockObservation,
+          currentWeather: defaultWeather(),
+          activeTrigger: null,
+          triggerCountToday: 0,
+          triggerDateKey: todayKey(),
+          traitProfile: null,
+          collaborator: "self",
+          qwenEnabled: false,
+          lowSensoryMode: false,
+          toasts: [],
+        });
+      },
+    }),
+    {
+      name: "syncspace-store",
+      partialize: (state) => ({
+        onboarded: state.onboarded,
+        neuroType: state.neuroType,
+        appMode: state.appMode,
+        checkins: state.checkins,
+        protocols: state.protocols,
+        executions: state.executions,
+        crashMarks: state.crashMarks,
+        observation: state.observation,
+        currentWeather: state.currentWeather,
+        traitProfile: state.traitProfile,
+        collaborator: state.collaborator,
+        qwenEnabled: state.qwenEnabled,
+        lowSensoryMode: state.lowSensoryMode,
+      }),
+    },
+  ),
+);

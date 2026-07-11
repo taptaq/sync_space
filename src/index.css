@@ -1,0 +1,212 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+:root {
+  /* 设计 token（PRD §09） */
+  --color-base: #faf7f2;
+  --color-primary: #6b5fa0;
+  --color-sage: #6b9e8a;
+  --color-clay: #c4956a;
+  --color-ink: #3a352f;
+  --color-ink-muted: #8a8074;
+  --color-warn: #c4715a;
+  --color-edge: #e0d9cc;
+
+  font-family: "Outfit", system-ui, sans-serif;
+  line-height: 1.8;
+  font-weight: 400;
+  color: var(--color-ink);
+  background-color: var(--color-base);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-base);
+  color: var(--color-ink);
+}
+
+/* 标题用柔和衬线体，圆润不尖锐 */
+h1,
+h2,
+h3,
+h4 {
+  font-family: "Instrument Serif", Georgia, serif;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: var(--color-ink);
+}
+
+/* 气候类型柔和渐变背景（PRD §09 天气卡气候类型映射） */
+.climate-stuffy_rain {
+  background: linear-gradient(135deg, #e8e4f2 0%, #d4cbe6 50%, #c9bee0 100%);
+}
+.climate-clear_breeze {
+  background: linear-gradient(135deg, #e4efe8 0%, #cfe4d6 50%, #bdd9c8 100%);
+}
+.climate-warm_fog {
+  background: linear-gradient(135deg, #f2e6d6 0%, #e8d4bc 50%, #ddc4a4 100%);
+}
+.climate-storm_warning {
+  background: linear-gradient(135deg, #f2ddd4 0%, #e4bca8 50%, #d8a288 100%);
+}
+
+/* 五阶段警醒色调（PRD §09 阶段分层 · 不同阶段不同情绪色调） */
+/* 平稳期：薄荷绿 · 生机安稳 */
+.phase-stable {
+  background: linear-gradient(135deg, #e8f0ea 0%, #d4e6d8 50%, #c2dcc8 100%);
+}
+/* 累积期：暖陶土 · 温和提醒 */
+.phase-accumulating {
+  background: linear-gradient(135deg, #f4ead8 0%, #ecd8b8 50%, #e0c89e 100%);
+}
+/* 预警期：琥珀金 · 提高警觉 */
+.phase-warning {
+  background: linear-gradient(135deg, #f4e0c8 0%, #ecc8a0 50%, #e0b078 100%);
+}
+/* 过载期：暮霞橙红 · 紧急警示 */
+.phase-overload {
+  background: linear-gradient(135deg, #f2d4c8 0%, #e4a888 50%, #d88c6a 100%);
+}
+/* 恢复期：雾紫月光 · 温柔低饱和 */
+.phase-recovery {
+  background: linear-gradient(135deg, #ece8f4 0%, #dcd4ec 50%, #ccc0e4 100%);
+}
+
+/* 柔和滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-edge);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-muted);
+}
+
+/* 输入框聚焦柔和样式 */
+input,
+textarea,
+button {
+  font-family: inherit;
+}
+
+input:focus,
+textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(107, 95, 160, 0.12);
+}
+
+/* 滑块自定义样式（三轴签到） */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-edge);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -7px;
+  height: 20px;
+  width: 20px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(107, 95, 160, 0.3);
+  border: 2px solid #fff;
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-edge);
+}
+
+input[type="range"]::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(107, 95, 160, 0.3);
+  border: 2px solid #fff;
+}
+
+/* 候选协议虚线边框（PRD §05 协议列表） */
+.border-dashed-candidate {
+  border: 1.5px dashed var(--color-primary-soft, #9a8fc4);
+}
+
+/* ===== 感官安全工程（WCAG 2.3.3 · Microsoft Inclusive Design · 神经多样性友好） ===== */
+
+/* 系统级降低动效偏好：禁用所有装饰性运动动画（保留信息性过渡如 opacity/颜色变化） */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 低感官模式：用户主动开启的降级方案（光敏感/前庭敏感/HSP/ASD 友好） */
+/* 降低色彩饱和度、减少阴影、禁用装饰性动效 */
+.low-sensory-mode {
+  --color-base: #f5f3ef;
+  filter: saturate(0.75) brightness(0.98);
+}
+
+.low-sensory-mode .shadow-soft {
+  box-shadow: none;
+}
+
+.low-sensory-mode .shadow-glow {
+  box-shadow: none;
+}
+
+/* 低感官模式下禁用无限循环动画（颗粒漂浮/光束移动/录音波形等） */
+.low-sensory-mode [class*="animate-"] {
+  animation: none !important;
+}
+
+/* 低感官模式下降低 backdrop-blur（减少 GPU 合成层的视觉负荷） */
+.low-sensory-mode .backdrop-blur-md,
+.low-sensory-mode .backdrop-blur-sm,
+.low-sensory-mode .backdrop-blur {
+  backdrop-filter: none;
+}
