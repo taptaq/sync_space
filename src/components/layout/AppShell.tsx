@@ -28,7 +28,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <main
         className={cn(
           "flex-1 px-5",
-          hideNav ? "pb-5" : "pb-28",
+          hideNav ? "pb-5" : "pb-32",
         )}
       >
         {children}

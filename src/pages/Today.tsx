@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import { ChevronDown, Mic, Sliders, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronDown, Mic, Sliders, Sparkles, RotateCcw } from "lucide-react";
 import WeatherCard from "@/components/weather/WeatherCard";
 import CheckInCard from "@/components/checkin/CheckInCard";
 import ParentCheckInCard from "@/components/checkin/ParentCheckInCard";
@@ -12,6 +12,7 @@ import CrashButton from "@/components/crash/CrashButton";
 import AttentionBanner from "@/components/today/AttentionBanner";
 import RecommendedProtocolsCard from "@/components/today/RecommendedProtocolsCard";
 import FeedbackPrompt from "@/components/today/FeedbackPrompt";
+import NeuroTypeSelector, { useNeuroTypeSelector } from "@/components/common/NeuroTypeSelector";
 import FocusStartCard from "@/components/today/FocusStartCard";
 import ASDRegulationCard from "@/components/today/ASDRegulationCard";
 import { useStore } from "@/store/useStore";
@@ -36,6 +37,7 @@ export default function Today() {
   const setLowSensoryMode = useStore((s) => s.setLowSensoryMode);
   const pushToast = useStore((s) => s.pushToast);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const { showSelector, openSelector, closeSelector } = useNeuroTypeSelector();
   // 签到方式切换：滑块 / 语音（仅 qwenEnabled 且自主模式时可用）
   const [checkinMode, setCheckinMode] = useState<"slider" | "voice">("slider");
 
@@ -246,9 +248,39 @@ export default function Today() {
             <p className="px-4 text-center text-[11px] leading-relaxed text-ink-faint">
               降低色彩饱和度、减少动效和阴影。如果你对光/动效敏感，或正在过载恢复期，这个模式可能更舒适。
             </p>
+
+            {/* 更改神经特质入口（非 Onboarding · 轻量选择 · 即时生效） */}
+            <button
+              onClick={openSelector}
+              className="mx-auto flex items-center gap-2 rounded-full border border-edge bg-white/40 px-4 py-2 text-xs text-ink-muted transition-all duration-250 hover:bg-white/60"
+            >
+              <RotateCcw size={12} />
+              更改神经特质
+            </button>
+            <p className="px-4 text-center text-[11px] leading-relaxed text-ink-faint">
+              切换后，气候模型、疗法协议推荐会按新特质重新计算。不影响已有签到数据。
+            </p>
           </motion.div>
         )}
       </div>
+
+      {/* 神经特质选择器弹窗（非 Onboarding · 即时生效） */}
+      <AnimatePresence>
+        {showSelector && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/20 sm:items-center"
+            onClick={closeSelector}
+          >
+            <div onClick={(e) => e.stopPropagation()} className="mb-20 w-full max-w-sm px-4">
+              <NeuroTypeSelector onClose={closeSelector} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 协议执行效果反馈（延时轻量 bottom sheet） */}
       <FeedbackPrompt />
