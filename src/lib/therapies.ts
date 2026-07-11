@@ -27,13 +27,14 @@ export const CATEGORY_LABELS: Record<TherapyCategory, { label: string; icon: str
   executive: { label: "执行功能", icon: "🎯" },
 };
 
-// 精选疗法库（每个特质 5-6 条 · 覆盖不同阶段和类别）
+// 精选疗法库（每条含完整步骤+原理+文献 · 覆盖5阶段 · 初期聚焦ASD+ADHD）
+// 设计原则：每条至少覆盖3个阶段，主流人群的全阶段均有覆盖
 export const THERAPIES: Therapy[] = [
   // ========== ASD ==========
   {
     id: "asd_deep_pressure",
     neuroTypes: ["asd", "hsp"],
-    phases: ["warning", "overload"],
+    phases: ["warning", "overload", "recovery"],
     name: "深压觉自我拥抱",
     category: "sensory",
     duration_minutes: 5,
@@ -50,7 +51,7 @@ export const THERAPIES: Therapy[] = [
   {
     id: "asd_54321_grounding",
     neuroTypes: ["asd", "adhd", "ptsd"],
-    phases: ["warning", "overload"],
+    phases: ["warning", "overload", "recovery"],
     name: "5-4-3-2-1 感官接地法",
     category: "sensory",
     duration_minutes: 5,
@@ -88,7 +89,7 @@ export const THERAPIES: Therapy[] = [
   {
     id: "asd_unmasking_break",
     neuroTypes: ["asd"],
-    phases: ["accumulating", "warning"],
+    phases: ["accumulating", "warning", "recovery"],
     name: "伪装卸载微休息",
     category: "social",
     duration_minutes: 5,
@@ -145,7 +146,7 @@ export const THERAPIES: Therapy[] = [
   {
     id: "adhd_2min_rule",
     neuroTypes: ["adhd"],
-    phases: ["accumulating", "warning"],
+    phases: ["accumulating", "warning", "overload"],
     name: "2 分钟启动法则",
     category: "executive",
     duration_minutes: 5,
@@ -182,7 +183,7 @@ export const THERAPIES: Therapy[] = [
   {
     id: "adhd_body_double",
     neuroTypes: ["adhd", "asd"],
-    phases: ["stable", "accumulating"],
+    phases: ["stable", "accumulating", "overload"],
     name: "身体加倍（Body Doubling）",
     category: "social",
     duration_minutes: 15,
@@ -232,6 +233,44 @@ export const THERAPIES: Therapy[] = [
     ],
     principle: "外部时间框架替代 ADHD 缺陷的内在时间感知，降低启动焦虑；固定时长创造可预期终点。",
     evidence: "Cirillo, 2018; Knouse et al., Cogn Behav Pract, 2017",
+  },
+  {
+    id: "asd_stimming_reset",
+    neuroTypes: ["asd"],
+    phases: ["accumulating", "warning", "overload", "recovery"],
+    name: "主动自我刺激重置",
+    category: "sensory",
+    duration_minutes: 5,
+    tools: ["无需工具（可选fidget玩具、压力球）"],
+    steps: [
+      "当感到感官过载信号出现时，主动安排 5 分钟 stimming 时间",
+      "选择适合当前环境的刺激方式：指尖按压、指尖搓揉、腿部轻晃、握拳松开",
+      "如果环境不允许，可使用隐蔽方式：脚趾在鞋内按压、舌头顶上颚",
+      "不加评判地允许自己重复动作，这是神经系统的自我调节而非失控",
+      "结束后做两次缓慢深呼吸，感受身体信号是否下降",
+      "内在确认：'我刚刚在照顾自己，这很正常'",
+    ],
+    principle: "Stimming 是 ASD 神经系统的天然自我调节机制。主动使用而非压抑，可在过载前降低累积负荷，预防功能性崩溃。",
+    evidence: "Kapp et al., Autism, 2019; Charlton et al., Qual Health Res, 2021",
+  },
+  {
+    id: "adhd_brain_dump",
+    neuroTypes: ["adhd"],
+    phases: ["stable", "accumulating", "warning", "overload"],
+    name: "大脑清空书写",
+    category: "executive",
+    duration_minutes: 10,
+    tools: ["纸笔或手机备忘录"],
+    steps: [
+      "感到脑中一团乱麻、无法集中时立即使用",
+      "设定 8 分钟，把所有脑中想法不加筛选地写下来",
+      "每条只写关键词，一句话以内，不追求逻辑",
+      "写完后圈出唯一一件'现在最重要'的事",
+      "把其余的放进'待办监狱'清单，允许自己暂时不想它们",
+      "只执行圈出的那一件，做 5 分钟就可以停",
+    ],
+    principle: "ADHD 工作记忆有限，未外化的任务持续占用认知资源。外化清空释放工作记忆带宽，让前额叶从监控模式切换到执行模式。",
+    evidence: "Safren et al., J Atten Disord, 2011; Meunier et al., J Atten Disord, 2022",
   },
 
   // ========== HSP ==========
@@ -447,8 +486,9 @@ export const THERAPIES: Therapy[] = [
   },
 ];
 
-// 按神经特质过滤
+// 按神经特质过滤（"other"返回全库作为通用池 · 确保不确定用户也有参考）
 export function getTherapiesByNeuroType(neuroType: NeuroType): Therapy[] {
+  if (neuroType === "other") return THERAPIES;
   return THERAPIES.filter((t) => t.neuroTypes.includes(neuroType));
 }
 

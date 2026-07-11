@@ -1,4 +1,4 @@
-// Qwen 多模态服务层（真实 API · 阿里云 MaaS OpenAI 兼容模式）
+// Qwen 多模态服务层（经应用服务端代理调用）
 // 3 个模型 × 5 个能力：
 //   全模态 qwen3.5-omni-plus-2026-03-15 → 语音签到 / 崩溃语音解读 / 环境图片分析
 //   大语言 qwen3.7-plus                  → 智能建议生成
@@ -11,18 +11,14 @@
 //   ❌ 人脸表情/情绪识别（生物识别红线，尤其涉及未成年人）
 //   ❌ 语音情绪/声纹分析（敏感个人信息）
 //
-// 降级策略：API Key 未配置或调用失败时，自动降级到模拟实现，保证 Demo 可用
+// 安全边界：浏览器中不保存供应商 API Key。代理未配置或调用失败时降级到模拟实现。
 
 import type { AIInterpretation, AxisKey, NeuroType, Phase } from "@/types";
 
 // ============ 配置 ============
 
-const BASE_URL =
-  "https://ws-vn60mld4siuoz0ej.cn-beijing.maas.aliyuncs.com/compatible-mode/v1";
-
-const API_KEY = import.meta.env.VITE_QWEN_API_KEY ?? "";
-const HAS_KEY =
-  API_KEY.length > 0 && API_KEY !== "your_api_key_here";
+const PROXY_URL = (import.meta.env.VITE_QWEN_PROXY_URL ?? "").replace(/\/$/, "");
+const HAS_BACKEND = PROXY_URL.length > 0;
 
 const QWEN_OMNI_MODEL = "qwen3.5-omni-plus-2026-03-15";
 const QWEN_TTS_MODEL = "qwen3-tts-vd-2026-01-26";
@@ -122,10 +118,11 @@ async function chatCompletion(
     body.response_format = { type: "json_object" };
   }
 
-  const res = await fetch(`${BASE_URL}/chat/completions`, {
+  if (!HAS_BACKEND) throw new Error("Qwen 服务端代理未配置");
+
+  const res = await fetch(`${PROXY_URL}/chat/completions`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${API_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
@@ -175,7 +172,7 @@ export async function voiceToCheckin(
   audioBlob: Blob | null,
   fallbackText?: string,
 ): Promise<VoiceCheckinResult> {
-  if (HAS_KEY) {
+  if (HAS_BACKEND) {
     try {
       return await realVoiceToCheckin(audioBlob, fallbackText);
     } catch (e) {
@@ -282,7 +279,7 @@ export async function interpretCrashVoice(
   audioBlob: Blob | null,
   fallbackText?: string,
 ): Promise<{ transcript: string; interpretation: AIInterpretation }> {
-  if (HAS_KEY) {
+  if (HAS_BACKEND) {
     try {
       return await realInterpretCrashVoice(audioBlob, fallbackText);
     } catch (e) {
@@ -373,7 +370,7 @@ export async function analyzeEnvironment(
   imageBlob: Blob | null,
   neuroType: NeuroType,
 ): Promise<EnvAnalysisResult> {
-  if (HAS_KEY && imageBlob) {
+  if (HAS_BACKEND && imageBlob) {
     try {
       return await realAnalyzeEnvironment(imageBlob, neuroType);
     } catch (e) {
@@ -467,7 +464,7 @@ export async function generateSmartGuidance(
   neuroType: NeuroType,
   recentTrend: "improving" | "stable" | "declining",
 ): Promise<SmartGuidanceResult> {
-  if (HAS_KEY) {
+  if (HAS_BACKEND) {
     try {
       return await realGenerateSmartGuidance(phase, neuroType, recentTrend);
     } catch (e) {
@@ -540,7 +537,7 @@ function parseSmartGuidanceResult(
 // ============ 5. 文本转语音（TTS） ============
 
 export async function textToSpeech(text: string): Promise<TTSResult> {
-  if (HAS_KEY) {
+  if (HAS_BACKEND) {
     try {
       return await realTextToSpeech(text);
     } catch (e) {
@@ -553,10 +550,11 @@ export async function textToSpeech(text: string): Promise<TTSResult> {
 }
 
 async function realTextToSpeech(text: string): Promise<TTSResult> {
-  const res = await fetch(`${BASE_URL}/audio/speech`, {
+  if (!HAS_BACKEND) throw new Error("Qwen 服务端代理未配置");
+
+  const res = await fetch(`${PROXY_URL}/audio/speech`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${API_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -848,4 +846,4 @@ function getPhaseLabel(phase: Phase): string {
 
 // ============ 导出配置状态 ============
 
-export const qwenApiConfigured = HAS_KEY;
+export const qwenApiConfigured = HAS_BACKEND;

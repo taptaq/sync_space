@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, Zap } from "lucide-react";
 import type { Protocol } from "@/types";
@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 
 // 阶段匹配协议推荐（行动层 · 当前阶段优先推适用协议 + 一键触发）
 export default function RecommendedProtocolsCard() {
+  const [expanded, setExpanded] = useState(false);
   const protocols = useStore((s) => s.protocols);
   const currentWeather = useStore((s) => s.currentWeather);
   const crashMarks = useStore((s) => s.crashMarks);
@@ -68,7 +69,7 @@ export default function RecommendedProtocolsCard() {
       <p className="mb-3 text-xs text-ink-muted">{phaseCfg.measureTone}</p>
 
       <div className="space-y-2">
-        {recommended.map((p) => (
+        {(expanded ? recommended : recommended.slice(0, 1)).map((p) => (
           <button
             key={p.id}
             onClick={() => handleTrigger(p)}
@@ -96,6 +97,15 @@ export default function RecommendedProtocolsCard() {
           </button>
         ))}
       </div>
+      {recommended.length > 1 && (
+        <button
+          type="button"
+          onClick={() => setExpanded((value) => !value)}
+          className="mt-3 w-full py-1 text-xs text-ink-muted"
+        >
+          {expanded ? "收起其他选择" : `还有 ${recommended.length - 1} 个选择`}
+        </button>
+      )}
     </motion.section>
   );
 }

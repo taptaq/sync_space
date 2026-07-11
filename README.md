@@ -1,57 +1,185 @@
-# React + TypeScript + Vite
+# SyncSpace
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+SyncSpace 是一款面向神经多样性人群的日常状态观察与自我支持工具。
 
-Currently, two official plugins are available:
+它帮助你记录当下的感官、能量与执行状态，把难以描述的体验转化为更容易理解的“内在气候”，并在需要时提供简短、具体、可以立即执行的支持方案。
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+SyncSpace 目前重点支持 ASD、ADHD 等神经特质，也适用于暂时不确定自身特质、希望更好理解日常状态的人。
 
-## Expanding the ESLint configuration
+> SyncSpace 不是医疗或诊断工具，不能替代医生、心理咨询师或其他专业支持。
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 你可以用它做什么
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+- 快速记录当前状态，不需要写长篇日记。
+- 看见感官负载、社交电量、注意力或启动阻力的变化。
+- 在过载、卡住或难以表达时，直接选择一个具体支持动作。
+- 建立自己的“当……就……”支持协议。
+- 回看状态变化、协议执行和过载事件，寻找个人规律。
+- 根据自己的感官需要减少动画、阴影和视觉刺激。
+
+## 整体使用流程
+
+### 1. 选择适合自己的使用方式
+
+首次进入时，可以选择：
+
+- **我自己用**：由使用者自主签到和管理协议。
+- **帮孩子用**：由家长根据可观察行为代理记录，并获得相应的支持提示。
+
+还可以选择当前更相关的神经特质。这个选择只用于调整界面语言和支持方式，不代表诊断结果。
+
+### 2. 完成一次快速签到
+
+首页签到通过三个维度记录状态。维度会根据所选特质调整，例如：
+
+- **ASD**：感官负载、社交电量、可预测性。
+- **ADHD**：注意力聚焦、行动电量、启动阻力。
+- **其他模式**：心情、能量、稳定感等通用维度。
+
+签到可以继承上一次的数值，也可以直接选择“和上次差不多”，减少重复操作。
+
+### 3. 查看自己的“内在气候”
+
+签到后，SyncSpace 会把状态呈现为内在气候，并区分五个阶段：
+
+1. **平稳期**：适合建设日常节奏和支持系统。
+2. **累积期**：压力正在增加，适合提前减载。
+3. **预警期**：接近临界点，应减少任务和刺激。
+4. **过载期**：优先保证安全、退出刺激环境和休息。
+5. **恢复期**：降低要求，给身体和注意力恢复时间。
+
+这些阶段不是好坏评价，而是帮助你选择更合适的行动。
+
+### 4. 执行一个支持协议
+
+协议采用简单的 WHEN / THEN 结构：
+
+> 当某个信号出现时，我就执行一个提前约定好的动作。
+
+例如：
+
+> 当环境声音开始让我难以思考时，就戴上降噪耳机并离开五分钟。
+
+系统会优先展示与当前阶段更匹配的协议。协议可以立即执行、推迟、暂停或修改，控制权始终属于使用者。
+
+### 5. 回看与调整
+
+“气候”和“回看”页面用于观察：
+
+- 最近状态如何变化。
+- 哪些事件经常出现在过载之前。
+- 哪些协议真正有帮助。
+- 当前需要增加、修改或停用哪些支持方式。
+
+回看的目标不是追责或要求自己表现得更好，而是逐步建立更适合自己的生活环境。
+
+## 功能模块
+
+### 今日
+
+日常使用的主要页面，包括：
+
+- 当前内在气候和阶段。
+- 三轴快速签到。
+- 当前阶段的协议推荐。
+- 过载或崩溃事件标记。
+- 今日记录和轻量反馈。
+
+### ASD 即时减载
+
+ASD 模式会优先提供不依赖复杂语言的支持入口：
+
+- **刺激太多**：先减少声音、光线或人群中的一个刺激。
+- **现在不想说话**：允许暂时不解释，并提供明确的沟通表达。
+- **变化让我不安**：只确认接下来的一步、地点和参与者。
+- **简化页面**：快速降低动画、饱和度和视觉装饰。
+
+系统不会根据表情、声音或“看起来是否平静”推断真实状态。
+
+### ADHD 启动支持
+
+ADHD 模式提供“把第一步缩到 5 分钟”的单任务入口：
+
+- 把抽象目标改写成一个具体动作。
+- 使用可暂停、可重置的五分钟计时。
+- 不要求做完，时间结束后可以停止。
+- 第一动作自动保存在本机，减少工作记忆负担。
+
+这里没有连续签到、失败惩罚或强制完成机制。
+
+### 气候
+
+展示状态趋势、阶段变化和多次签到之间的差异，帮助识别正在累积的压力，而不是只在过载后复盘。
+
+### 协议
+
+管理个人支持方案，包括：
+
+- 从模板库选择常见方案。
+- 创建自己的触发条件和行动。
+- 设置适用阶段与计时长度。
+- 暂停、恢复或删除不再适用的协议。
+
+### 回看
+
+整理签到、协议执行和过载事件。对于创伤或强烈情绪相关内容，SyncSpace 优先记录客观线索，不强迫重复描述痛苦细节。
+
+### 家长代理模式
+
+家长可以根据可观察行为完成签到，并查看更适合当前阶段的支持建议。该模式用于帮助理解和调整环境，不用于替孩子下诊断或解释其主观感受。
+
+### 可选的智能能力
+
+配置安全的服务端 AI 代理后，可以使用：
+
+- 语音签到与文字整理。
+- 过载事件语音补记。
+- 环境光线、视觉杂乱和潜在感官刺激提示。
+- 基于当前阶段的智能建议。
+- 文字转语音。
+
+未配置服务端代理时，应用会自动使用演示数据，不影响其他核心功能。
+
+## ASD、ADHD 与重叠特质
+
+ASD 和 ADHD 使用同一套记录、阶段和协议基础，但即时支持方式不同：
+
+- ADHD 更关注工作记忆外置、任务启动、时间边界和注意力切换。
+- ASD 更关注感官调节、可预测性、变化过渡和低语言沟通。
+
+两者可能同时存在。SyncSpace 不认为用户必须被固定在单一标签中，后续将进一步支持组合画像和按“此刻最主要的障碍”切换支持模块。
+
+## 隐私与安全
+
+- 签到、协议和回看数据默认保存在当前浏览器本地。
+- 应用不进行人脸表情识别、声纹识别或语音情绪识别。
+- 环境扫描只分析环境，不应上传包含他人面孔或敏感信息的图片。
+- 第三方模型的 API Key 不应放入任何 `VITE_` 环境变量或浏览器代码中。
+- 如需启用真实 AI 能力，应由自己的服务端代理安全保存供应商密钥。
+
+如果你或身边的人正面临自伤、伤人或其他紧急危险，请优先联系当地急救、危机干预服务或可信任的专业人士。
+
+## 本地运行
+
+需要 Node.js 18 或更高版本。
+
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+常用检查命令：
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config({
-  extends: [
-    // other configs...
-    // Enable lint rules for React
-    reactX.configs['recommended-typescript'],
-    // Enable lint rules for React DOM
-    reactDom.configs.recommended,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```bash
+npm run check
+npm run lint
+npm run build
 ```
+
+如需接入自己的服务端 AI 代理，可参考 `.env.example` 配置：
+
+```bash
+VITE_QWEN_PROXY_URL="https://your-server.example.com/qwen"
+```
+
+供应商 API Key 必须保存在服务端，不能写入前端 `.env`。

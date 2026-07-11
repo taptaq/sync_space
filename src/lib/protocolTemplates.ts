@@ -354,8 +354,9 @@ export const PROTOCOL_TEMPLATES: ProtocolTemplate[] = [
   },
 ];
 
-// 按神经特质过滤模板
+// 按神经特质过滤模板（"other"返回全库作为通用池）
 export function getTemplatesByNeuroType(neuroType: NeuroType): ProtocolTemplate[] {
+  if (neuroType === "other") return PROTOCOL_TEMPLATES;
   return PROTOCOL_TEMPLATES.filter((t) => t.neuroTypes.includes(neuroType));
 }
 

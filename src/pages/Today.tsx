@@ -12,6 +12,8 @@ import CrashButton from "@/components/crash/CrashButton";
 import AttentionBanner from "@/components/today/AttentionBanner";
 import RecommendedProtocolsCard from "@/components/today/RecommendedProtocolsCard";
 import FeedbackPrompt from "@/components/today/FeedbackPrompt";
+import FocusStartCard from "@/components/today/FocusStartCard";
+import ASDRegulationCard from "@/components/today/ASDRegulationCard";
 import { useStore } from "@/store/useStore";
 import { formatTime, isToday } from "@/lib/format";
 import { getAxisProfile } from "@/lib/axisConfig";
@@ -83,11 +85,8 @@ export default function Today() {
         />
       </div>
 
-      {/* 今日关注横幅（主动反馈：签到提醒 / 趋势预警 / 待处理事项） */}
-      <AttentionBanner />
-
-      {/* 阶段匹配协议推荐（当前阶段优先推适用协议） */}
-      <RecommendedProtocolsCard />
+      {/* ASD 支持：先处理环境、沟通和变化，不强迫命名情绪 */}
+      {!isParentProxy && neuroType === "asd" && <ASDRegulationCard />}
 
       {/* 今日签到 · 根据模式切换：自主签到 / 家长代理签到 / 语音签到 */}
       {isParentProxy ? (
@@ -132,6 +131,15 @@ export default function Today() {
           </button>
         </div>
       )}
+
+      {/* ADHD 启动支持：单任务、明确第一步、低承诺计时 */}
+      {!isParentProxy && neuroType === "adhd" && <FocusStartCard />}
+
+      {/* 今日关注横幅（主动反馈：签到提醒 / 趋势预警 / 待处理事项） */}
+      <AttentionBanner />
+
+      {/* 阶段匹配协议推荐（默认仅展示最相关的一项） */}
+      <RecommendedProtocolsCard />
 
       {/* 家长引导卡片（仅家长代理模式显示） */}
       {isParentProxy && <ParentGuidanceCard />}
