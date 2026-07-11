@@ -1,11 +1,13 @@
-import { motion } from "framer-motion";
-import { Check, Clock, Pause, Play, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Check, Clock, Pause, Play, PlayCircle, Trash2 } from "lucide-react";
 import type { Protocol } from "@/types";
 import { useStore } from "@/store/useStore";
 import { relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { getAxisProfile, getBandLabel } from "@/lib/axisConfig";
 import { PHASE_MAP } from "@/lib/stageEngine";
+import ProtocolRehearsal from "./ProtocolRehearsal";
 
 const SOURCE_LABEL: Record<Protocol["source"], string> = {
   manual: "手动创建",
@@ -19,6 +21,8 @@ export default function ProtocolCard({ protocol }: { protocol: Protocol }) {
   const acceptCandidate = useStore((s) => s.acceptCandidateProtocol);
   const deleteProtocol = useStore((s) => s.deleteProtocol);
   const neuroType = useStore((s) => s.neuroType);
+  const pushToast = useStore((s) => s.pushToast);
+  const [rehearsing, setRehearsing] = useState(false);
 
   const isCandidate = protocol.status === "candidate";
   const isPaused = protocol.status === "paused";
@@ -108,6 +112,12 @@ export default function ProtocolCard({ protocol }: { protocol: Protocol }) {
               <Check size={15} /> 接受
             </button>
             <button
+              onClick={() => setRehearsing(true)}
+              className="flex items-center gap-1.5 rounded-full border border-edge px-4 py-2 text-small text-ink-muted transition-all duration-250 hover:bg-white/50 active:scale-[0.98]"
+            >
+              <PlayCircle size={15} /> 演练
+            </button>
+            <button
               onClick={() => deleteProtocol(protocol.id)}
               className="rounded-full border border-edge px-4 py-2 text-small text-ink-muted transition-all duration-250 hover:bg-white/50"
             >
@@ -131,6 +141,12 @@ export default function ProtocolCard({ protocol }: { protocol: Protocol }) {
               )}
             </button>
             <button
+              onClick={() => setRehearsing(true)}
+              className="flex items-center gap-1.5 rounded-full border border-edge px-4 py-2 text-small text-ink-muted transition-all duration-250 hover:bg-white/50 active:scale-[0.98]"
+            >
+              <PlayCircle size={15} /> 演练
+            </button>
+            <button
               onClick={() => deleteProtocol(protocol.id)}
               className="rounded-full border border-edge px-4 py-2 text-small text-ink-muted transition-all duration-250 hover:bg-warn-mist/40 hover:text-warn"
             >
@@ -139,6 +155,23 @@ export default function ProtocolCard({ protocol }: { protocol: Protocol }) {
           </>
         )}
       </div>
+
+      {/* 协议演练模式（纯模拟 · 不写入 executions） */}
+      <AnimatePresence>
+        {rehearsing && (
+          <ProtocolRehearsal
+            protocol={protocol}
+            onExit={() => setRehearsing(false)}
+            onFeedback={(helpful) => {
+              pushToast(
+                "info",
+                helpful ? "已记录你的感受" : "可以随时调整协议",
+              );
+              setRehearsing(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </motion.article>
   );
 }

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import type { CrashMark, PhasePoint, WeatherSnapshot } from "@/types";
+import type { CrashMark, Phase, PhasePoint, WeatherSnapshot } from "@/types";
 import ClimateFamiliar from "@/components/weather/ClimateFamiliar";
 import { CheckinDiff } from "@/lib/checkinCompare";
 import { detectPhase, getPhaseConfig } from "@/lib/stageEngine";
@@ -8,21 +8,27 @@ import { cn } from "@/lib/utils";
 // 内在天气卡（PRD §05 F-01 + §09 气候类型映射 + 五阶段分层）
 // 背景色调按当前阶段切换（阶段色调优先于气候色调）
 // 支持 Before/After 签到对比 + 阶段移动迷你轨迹
+// 气压计：常驻渐变条，用户随时看到离临界点多远（原创交互 · 非推送惊吓）
 export default function WeatherCard({
   weather,
   updatedAt,
   crashMarks,
   diff,
   trajectory,
+  pressureValue,
 }: {
   weather: WeatherSnapshot;
   updatedAt?: string;
   crashMarks?: CrashMark[];
   diff?: CheckinDiff | null;
   trajectory?: PhasePoint[];
+  // 气压值 0-100，由三轴均值或阶段映射计算传入
+  pressureValue?: number;
 }) {
   const phase = detectPhase(weather.climate, crashMarks ?? []);
   const phaseCfg = getPhaseConfig(phase);
+  const pressure = pressureValue ?? phaseToPressure(phase);
+  const pressureLabel = pressure < 30 ? "平稳" : pressure < 55 ? "有些信号在累积" : pressure < 80 ? "接近临界" : "已经到顶了";
 
   return (
     <motion.section
@@ -69,6 +75,38 @@ export default function WeatherCard({
           {phaseCfg.narrative}
         </p>
         <p className="mt-1.5 text-xs text-ink-muted">{phaseCfg.measureTone}</p>
+      </div>
+
+      {/* 气压计（常驻渐变条 · 用户随时看到离临界点多远 · 非推送惊吓） */}
+      <div className="mt-4 px-2">
+        <div className="mb-1.5 flex items-center justify-between">
+          <span className="text-[10px] uppercase tracking-wider text-ink-muted">气压</span>
+          <span className="text-[10px] text-ink-muted">{pressureLabel}</span>
+        </div>
+        <div className="relative h-2 overflow-hidden rounded-full bg-white/40">
+          {/* 渐变底色：鼠尾草绿 → 陶土黄 → 警示橙红 */}
+          <div
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: "linear-gradient(to right, #a8c5a8 0%, #d4b896 45%, #c9785e 75%, #a8523c 100%)",
+            }}
+          />
+          {/* 当前位置指示器 */}
+          <motion.div
+            className="absolute top-1/2 -translate-y-1/2"
+            initial={{ left: "0%" }}
+            animate={{ left: `${Math.min(pressure, 100)}%` }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            style={{ transform: "translateX(-50%)" }}
+          >
+            <div className="h-3.5 w-3.5 rounded-full border-2 border-white bg-white shadow-sm" />
+          </motion.div>
+          {/* 半透明遮罩压暗未达到的部分 */}
+          <div
+            className="absolute inset-y-0 right-0 bg-white/30"
+            style={{ width: `${100 - pressure}%`, left: `${pressure}%` }}
+          />
+        </div>
       </div>
 
       {/* Before/After 签到对比 */}
@@ -158,5 +196,24 @@ function getPhaseDotColor(phase: string): string {
       return "bg-primary-soft";
     default:
       return "bg-ink-faint";
+  }
+}
+
+// 阶段映射到气压值（0-100）
+// stable=15, accumulating=45, warning=70, overload=92, recovery=35
+function phaseToPressure(phase: Phase): number {
+  switch (phase) {
+    case "stable":
+      return 15;
+    case "accumulating":
+      return 45;
+    case "warning":
+      return 70;
+    case "overload":
+      return 92;
+    case "recovery":
+      return 35;
+    default:
+      return 20;
   }
 }

@@ -50,7 +50,9 @@ export default function TrendChart({
     const y =
       padding.top +
       (1 - value / 10) * (height - padding.top - padding.bottom);
-    return { x, y, value, time: c.checkin_at };
+    // 犹豫时长映射到透明度（>3秒明显不确定 · 原创交互：让被动信号可见）
+    const hesitationOpacity = Math.min(c.hesitation_ms / 8000, 0.7);
+    return { x, y, value, time: c.checkin_at, hesitation: c.hesitation_ms, hesitationOpacity };
   });
 
   // 平滑曲线路径
@@ -142,20 +144,35 @@ export default function TrendChart({
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           />
 
-          {/* 数据点 */}
+          {/* 数据点（犹豫热力图 · 犹豫时间长的点带柔和外圈光晕 + 半透明） */}
           {points.map((p, i) => (
-            <motion.circle
+            <motion.g
               key={i}
-              cx={p.x}
-              cy={p.y}
-              r="3"
-              fill="#FAF7F2"
-              stroke={config.stroke}
-              strokeWidth="2"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.3 + i * 0.04, duration: 0.2 }}
-            />
+            >
+              {/* 犹豫光晕（hesitation > 2s 时显现） */}
+              {p.hesitation > 2000 && (
+                <circle
+                  cx={p.x}
+                  cy={p.y}
+                  r={5 + p.hesitationOpacity * 6}
+                  fill={config.stroke}
+                  opacity={p.hesitationOpacity * 0.25}
+                />
+              )}
+              {/* 数据点本体（犹豫时间长的降低透明度） */}
+              <circle
+                cx={p.x}
+                cy={p.y}
+                r="3"
+                fill="#FAF7F2"
+                stroke={config.stroke}
+                strokeWidth="2"
+                opacity={1 - p.hesitationOpacity * 0.5}
+              />
+            </motion.g>
           ))}
 
           {/* 协议执行标记：在最近签到时间点画三角标记 */}
@@ -217,9 +234,15 @@ export default function TrendChart({
         </svg>
       )}
 
-      <p className="mt-3 text-xs text-ink-muted">
-        {recent.length} 次签到 · 第一周纯记录回放，让你自己看趋势
-      </p>
+      <div className="mt-3 space-y-1">
+        <p className="text-xs text-ink-muted">
+          {recent.length} 次签到 · 第一周纯记录回放，让你自己看趋势
+        </p>
+        <p className="flex items-center gap-1 text-[10px] text-ink-faint">
+          <span className="inline-block h-2 w-2 rounded-full bg-clay/30" />
+          光晕越大 = 签到时越不确定自己的状态 · 这是被动信号，不用刻意
+        </p>
+      </div>
     </div>
   );
 }
