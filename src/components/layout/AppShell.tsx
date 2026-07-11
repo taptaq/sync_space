@@ -24,19 +24,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     location.pathname.startsWith("/review/");
 
   return (
-    <div className={cn("mx-auto flex min-h-screen max-w-md flex-col bg-base", lowSensoryMode && "low-sensory-mode")}>
-      <main
-        className={cn(
-          "flex-1 px-5",
-          hideNav ? "pb-5" : "pb-32",
-        )}
-      >
+    <div className={cn("mx-auto flex h-screen max-w-md flex-col bg-base", lowSensoryMode && "low-sensory-mode")}>
+      <main className="flex-1 overflow-y-auto px-5 pb-5">
         {children}
       </main>
 
       {!hideNav && (
         <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-md border-t border-edge bg-base/90 backdrop-blur-md">
-          {/* 常驻危机支持入口（伦理底线 · 低刺激可发现 · 不占用 Tab 位） */}
           <div className="absolute -top-16 right-3">
             <CrisisSupport compact />
           </div>
@@ -78,6 +72,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </nav>
       )}
+
+      {hideNav || <div className="h-20 shrink-0" />}
     </div>
   );
 }
