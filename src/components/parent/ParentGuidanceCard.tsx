@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import type { ParentGuidancePack } from "@/types";
 import { useStore } from "@/store/useStore";
-import { detectPhase, getPhaseConfig } from "@/lib/stageEngine";
+import { detectPhase, getPhaseConfigForType } from "@/lib/stageEngine";
 import { getParentGuidance } from "@/lib/parentGuidance";
 import { cn } from "@/lib/utils";
 
@@ -17,36 +17,37 @@ import { cn } from "@/lib/utils";
 // 措施卡片 / 话术卡片 / 不要做清单 / 环境调整建议
 // 可折叠分区，默认展开当前阶段最相关的（过载/预警期默认展开"不要做"）
 
-type TabKey = "measures" | "scripts" | "avoid" | "environment";
+type TabKey = "measures" | "scripts" | "avoidList" | "environment";
 
 const TABS: { key: TabKey; label: string; icon: typeof HeartHandshake }[] = [
   { key: "measures", label: "可以这样做", icon: HeartHandshake },
   { key: "scripts", label: "可以这样说", icon: MessageCircleHeart },
-  { key: "avoid", label: "不要做", icon: Ban },
+  { key: "avoidList", label: "不要做", icon: Ban },
   { key: "environment", label: "环境调整", icon: Home },
 ];
 
 export default function ParentGuidanceCard() {
   const currentWeather = useStore((s) => s.currentWeather);
   const crashMarks = useStore((s) => s.crashMarks);
+  const neuroType = useStore((s) => s.neuroType);
 
   const phase = detectPhase(currentWeather.climate, crashMarks);
-  const phaseCfg = getPhaseConfig(phase);
+  const phaseCfg = getPhaseConfigForType(phase, neuroType);
   const pack: ParentGuidancePack = getParentGuidance(phase);
 
   // 预警/过载期默认看"不要做"，其他默认看"措施"
   const [activeTab, setActiveTab] = useState<TabKey>(
-    phase === "warning" || phase === "overload" ? "avoid" : "measures",
+    phase === "warning" || phase === "overload" ? "avoidList" : "measures",
   );
 
-  const items = pack[activeTab];
+  const items = pack[activeTab] ?? [];
 
   return (
     <motion.section
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-      className="rounded-card border border-edge bg-white/60 p-5 shadow-soft"
+      className="glass-card rounded-card border border-edge/60 p-5"
     >
       {/* 头部：阶段标签 + 叙事 */}
       <div className="mb-4">
@@ -72,7 +73,7 @@ export default function ParentGuidanceCard() {
       {/* 标签切换 */}
       <div className="mb-4 flex gap-1.5 overflow-x-auto">
         {TABS.map(({ key, label, icon: Icon }) => {
-          const count = pack[key].length;
+          const count = (pack[key] ?? []).length;
           const isActive = activeTab === key;
           return (
             <button
@@ -81,7 +82,7 @@ export default function ParentGuidanceCard() {
               className={cn(
                 "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-250",
                 isActive
-                  ? key === "avoid"
+                  ? key === "avoidList"
                     ? "bg-warn-mist/60 text-warn"
                     : "bg-primary-mist/60 text-primary"
                   : "bg-white/50 text-ink-muted hover:bg-white/70",
@@ -105,14 +106,20 @@ export default function ParentGuidanceCard() {
           transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
           className="space-y-2"
         >
-          {items.map((item, i) => (
-            <GuidanceItem
-              key={i}
-              text={item.text}
-              variant={activeTab}
-              index={i}
-            />
-          ))}
+          {items.length === 0 ? (
+            <p className="rounded-xl border border-edge bg-white/40 px-3 py-2 text-xs text-ink-muted">
+              暂无此类建议
+            </p>
+          ) : (
+            items.map((item, i) => (
+              <GuidanceItem
+                key={i}
+                text={item.text}
+                variant={activeTab}
+                index={i}
+              />
+            ))
+          )}
         </motion.div>
       </AnimatePresence>
 
@@ -144,13 +151,13 @@ function GuidanceItem({
   return (
     <div
       className={cn(
-        "rounded-xl border p-3 transition-colors",
-        variant === "avoid"
-          ? "border-warn/20 bg-warn-mist/20"
-          : variant === "scripts"
-            ? "border-primary/20 bg-primary-mist/20"
-            : "border-edge bg-white/40",
-      )}
+          "rounded-xl border p-3 transition-colors",
+          variant === "avoidList"
+            ? "border-warn/20 bg-warn-mist/20"
+            : variant === "scripts"
+              ? "border-primary/20 bg-primary-mist/20"
+              : "border-edge bg-white/40",
+        )}
     >
       <button
         onClick={() => isLong && setExpanded((v) => !v)}
@@ -162,7 +169,7 @@ function GuidanceItem({
         <span
           className={cn(
             "mt-0.5 text-xs font-mono",
-            variant === "avoid" ? "text-warn/60" : "text-ink-faint",
+            variant === "avoidList" ? "text-warn/60" : "text-ink-faint",
           )}
         >
           {String(index + 1).padStart(2, "0")}

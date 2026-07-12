@@ -5,6 +5,7 @@ import type { Protocol } from "@/types";
 import { useStore } from "@/store/useStore";
 import { detectPhase, getPhaseConfig, phasePriority } from "@/lib/stageEngine";
 import { cn } from "@/lib/utils";
+import { useVoice } from "@/lib/i18n";
 
 // 阶段匹配协议推荐（行动层 · 当前阶段优先推适用协议 + 一键触发）
 export default function RecommendedProtocolsCard() {
@@ -13,6 +14,7 @@ export default function RecommendedProtocolsCard() {
   const currentWeather = useStore((s) => s.currentWeather);
   const crashMarks = useStore((s) => s.crashMarks);
   const setActiveTrigger = useStore((s) => s.setActiveTrigger);
+  const { t } = useVoice();
 
   const currentPhase = detectPhase(currentWeather.climate, crashMarks);
   const phaseCfg = getPhaseConfig(currentPhase);
@@ -32,7 +34,7 @@ export default function RecommendedProtocolsCard() {
   const handleTrigger = (protocol: Protocol) => {
     setActiveTrigger({
       protocol,
-      reason: `当前处于${phaseCfg.label}，${phaseCfg.label}匹配的协议优先推给你。`,
+      reason: `当前处于${phaseCfg.label}，${phaseCfg.label}匹配的协议优先推给${t.you}。`,
       triggeredAt: new Date().toISOString(),
     });
   };

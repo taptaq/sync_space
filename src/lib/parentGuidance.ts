@@ -141,7 +141,18 @@ export const PARENT_GUIDANCE: Record<Phase, ParentGuidancePack> = {
   },
 };
 
-// 取某阶段的家长引导包
+// 取某阶段的家长引导包（带兜底 · 防止非法 stage 导致 undefined）
 export function getParentGuidance(phase: Phase): ParentGuidancePack {
-  return PARENT_GUIDANCE[phase];
+  const pack = PARENT_GUIDANCE[phase];
+  if (!pack) {
+    return {
+      phase,
+      phaseLabel: "观察期",
+      measures: [],
+      scripts: [],
+      avoidList: [],
+      environment: [],
+    };
+  }
+  return pack;
 }

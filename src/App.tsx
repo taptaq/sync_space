@@ -12,6 +12,7 @@ import Review from "@/pages/Review";
 import ReviewDetail from "@/pages/ReviewDetail";
 import ProtocolNew from "@/pages/ProtocolNew";
 import Screen from "@/pages/Screen";
+import Connection from "@/pages/Connection";
 
 // 页面切换过渡：左右滑入呼应 PRD §09 方向一致动效
 const pageVariants = {
@@ -61,6 +62,14 @@ function AnimatedRoutes() {
           element={
             <RequireOnboard>
               <PageWrapper><Climate /></PageWrapper>
+            </RequireOnboard>
+          }
+        />
+        <Route
+          path="/connect"
+          element={
+            <RequireOnboard>
+              <PageWrapper><Connection /></PageWrapper>
             </RequireOnboard>
           }
         />

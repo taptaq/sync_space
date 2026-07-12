@@ -2,11 +2,13 @@ import { motion } from "framer-motion";
 import type { CrashMark, Phase, PhasePoint, WeatherSnapshot } from "@/types";
 import ClimateFamiliar from "@/components/weather/ClimateFamiliar";
 import { CheckinDiff } from "@/lib/checkinCompare";
-import { detectPhase, getPhaseConfig } from "@/lib/stageEngine";
+import { detectPhase, getPhaseConfigForType } from "@/lib/stageEngine";
+import { useStore } from "@/store/useStore";
 import { cn } from "@/lib/utils";
 
 // 内在天气卡（PRD §05 F-01 + §09 气候类型映射 + 五阶段分层）
 // 背景色调按当前阶段切换（阶段色调优先于气候色调）
+// 阶段叙事按神经特质分化（ASD 侧重视官，ADHD 侧重执行功能）
 // 支持 Before/After 签到对比 + 阶段移动迷你轨迹
 // 气压计：常驻渐变条，用户随时看到离临界点多远（原创交互 · 非推送惊吓）
 export default function WeatherCard({
@@ -16,6 +18,7 @@ export default function WeatherCard({
   diff,
   trajectory,
   pressureValue,
+  compact = false,
 }: {
   weather: WeatherSnapshot;
   updatedAt?: string;
@@ -24,9 +27,11 @@ export default function WeatherCard({
   trajectory?: PhasePoint[];
   // 气压值 0-100，由三轴均值或阶段映射计算传入
   pressureValue?: number;
+  compact?: boolean;
 }) {
+  const neuroType = useStore((s) => s.neuroType);
   const phase = detectPhase(weather.climate, crashMarks ?? []);
-  const phaseCfg = getPhaseConfig(phase);
+  const phaseCfg = getPhaseConfigForType(phase, neuroType);
   const pressure = pressureValue ?? phaseToPressure(phase);
   const pressureLabel = pressure < 30 ? "平稳" : pressure < 55 ? "有些信号在累积" : pressure < 80 ? "接近临界" : "已经到顶了";
 
@@ -36,7 +41,8 @@ export default function WeatherCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
       className={cn(
-        "relative overflow-hidden rounded-bowl p-7 shadow-soft",
+        "relative overflow-hidden rounded-bowl shadow-soft",
+        compact ? "rounded-card px-6 py-7" : "p-7",
         phaseCfg.toneClass,
       )}
     >
@@ -53,8 +59,8 @@ export default function WeatherCard({
       </div>
 
       {/* 气候精灵——"小小的我"（外化投射 · 不需要问感受，看一眼姿态就懂） */}
-      <div className="mb-4 flex justify-center">
-        <ClimateFamiliar phase={phase} size={72} />
+      <div className={cn("flex justify-center", compact ? "mb-3" : "mb-4")}>
+        <ClimateFamiliar phase={phase} size={compact ? 52 : 72} />
       </div>
 
       <div className="text-center">
@@ -64,21 +70,24 @@ export default function WeatherCard({
         <h2 className="mt-1 font-serif text-3xl text-ink">
           {weather.climate_label}
         </h2>
-        <p className="mx-auto mt-3 max-w-[18rem] text-small leading-relaxed text-ink-muted">
+        <p className={cn(
+          "mx-auto max-w-[18rem] text-small leading-relaxed text-ink-muted",
+          compact ? "mt-2" : "mt-3",
+        )}>
           {weather.description}
         </p>
       </div>
 
       {/* 阶段叙事 + 措施基调 */}
-      <div className="mt-5 rounded-card bg-white/40 px-4 py-3 text-center">
-        <p className="text-small leading-relaxed text-ink">
+      {!compact && <div className="mt-5 rounded-card bg-white/30 px-4 py-3 text-center backdrop-blur-sm">
+        <p className="font-handwriting text-lg leading-relaxed text-ink">
           {phaseCfg.narrative}
         </p>
         <p className="mt-1.5 text-xs text-ink-muted">{phaseCfg.measureTone}</p>
-      </div>
+      </div>}
 
       {/* 气压计（常驻渐变条 · 用户随时看到离临界点多远 · 非推送惊吓） */}
-      <div className="mt-4 px-2">
+      <div className={cn("px-2", compact ? "mt-5" : "mt-4")}>
         <div className="mb-1.5 flex items-center justify-between">
           <span className="text-[10px] uppercase tracking-wider text-ink-muted">气压</span>
           <span className="text-[10px] text-ink-muted">{pressureLabel}</span>
@@ -111,7 +120,7 @@ export default function WeatherCard({
 
       {/* Before/After 签到对比 */}
       {diff && diff.hasPrevious && (
-        <div className="mt-3 rounded-card bg-white/30 px-4 py-2.5">
+        <div className="mt-4 rounded-card bg-white/40 px-4 py-3">
           <p className="text-xs text-ink-muted">
             比 {diff.prevTime}，{diff.summary}
           </p>
@@ -119,7 +128,7 @@ export default function WeatherCard({
       )}
 
       {/* 阶段移动迷你轨迹 */}
-      {trajectory && trajectory.length > 1 && (
+      {!compact && trajectory && trajectory.length > 1 && (
         <div className="mt-4 flex items-center justify-center gap-1.5">
           {trajectory.map((point, i) => (
             <div key={i} className="flex items-center gap-1.5">
@@ -144,7 +153,7 @@ export default function WeatherCard({
       )}
 
       {/* 适合 / 不建议活动 */}
-      <div className="mt-5 space-y-3">
+      {!compact && <div className="mt-5 space-y-3">
         {weather.suitable.length > 0 && (
           <div className="flex flex-wrap items-center justify-center gap-2">
             {weather.suitable.map((item) => (
@@ -170,10 +179,10 @@ export default function WeatherCard({
             ))}
           </div>
         )}
-      </div>
+      </div>}
 
       {updatedAt && (
-        <p className="mt-5 text-center text-xs text-ink-muted/70">
+        <p className={cn("text-center text-xs text-ink-muted/70", compact ? "mt-6" : "mt-5")}>
           更新于 {updatedAt}
         </p>
       )}

@@ -21,6 +21,24 @@ export type Phase =
 // 签到三轴（ASD 维度）
 export type AxisKey = "sensory" | "social" | "predictability";
 
+// 个人规则：把反复出现的信号沉淀为可修订的自我理解
+export interface PersonalRule {
+  id: string;
+  signal: string;
+  understanding: string;
+  support: string;
+  evidence_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ConnectionMoment {
+  id: string;
+  rule_id: string;
+  mode: "self" | "other";
+  connected_at: string;
+}
+
 // 天气卡快照
 export interface WeatherSnapshot {
   climate: ClimateType;

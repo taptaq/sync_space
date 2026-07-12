@@ -1,16 +1,15 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Sparkles, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { ChevronRight, History, Layers, Sparkles, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import TrendChart from "@/components/climate/TrendChart";
-import ClimateWanderer from "@/components/climate/ClimateWanderer";
-import ClimateChromatography from "@/components/climate/ClimateChromatography";
-import AIObservationCard from "@/components/ai/AIObservationCard";
-import SmartGuidance from "@/components/qwen/SmartGuidance";
 import { useStore } from "@/store/useStore";
 import { SCALES } from "@/lib/scales";
 import { detectPhase, getPhaseConfig } from "@/lib/stageEngine";
 import { cn } from "@/lib/utils";
+import { useVoice, useT } from "@/lib/i18n";
+import RuleBook from "@/components/understand/RuleBook";
+import type { Phase } from "@/types";
 
 // 我的气候页 · 每周循环（PRD §05 页面2）
 // 趋势回放 + AI 观察 + 协议管理 + 神经特质自评 + 简易周报
@@ -19,9 +18,9 @@ export default function Climate() {
   const checkins = useStore((s) => s.checkins);
   const executions = useStore((s) => s.executions);
   const crashMarks = useStore((s) => s.crashMarks);
-  const observation = useStore((s) => s.observation);
   const traitProfile = useStore((s) => s.traitProfile);
-  const qwenEnabled = useStore((s) => s.qwenEnabled);
+  const { isParent } = useVoice();
+  const { tr } = useT();
 
   // 简易周报数据
   const weeklySummary = useMemo(() => {
@@ -41,7 +40,7 @@ export default function Climate() {
     const dominantPhase = Object.entries(phaseCounts).sort(
       (a, b) => b[1] - a[1],
     )[0][0];
-    const dominantCfg = getPhaseConfig(dominantPhase as any);
+    const dominantCfg = getPhaseConfig(dominantPhase as Phase);
 
     // 协议执行次数
     const weekExecutions = executions.filter(
@@ -67,19 +66,42 @@ export default function Climate() {
   }, [checkins, crashMarks, executions]);
 
   return (
-    <div className="space-y-6 pt-10">
+    <div className="space-y-7 pt-12">
       <motion.header
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
         className="px-1"
       >
-        <p className="text-xs uppercase tracking-widest text-primary">每周循环</p>
-        <h1 className="mt-1 font-serif text-3xl text-ink">我的气候</h1>
+        <p className="text-xs font-medium text-primary">{isParent ? tr("climate_label_parent") : tr("climate_label_self")}</p>
+        <h1 className="mt-1 font-serif text-3xl text-ink">{tr("climate_title")}</h1>
         <p className="mt-1 text-small text-ink-muted">
-          看见趋势 · 管理协议 · AI 发现规律
+          {isParent ? tr("climate_desc_parent") : tr("climate_desc_self")}
         </p>
       </motion.header>
+
+      <RuleBook />
+
+      <div className="grid grid-cols-2 gap-4">
+        <button
+          type="button"
+          onClick={() => navigate("/review")}
+          className="glass-card rounded-card border border-edge/60 p-5 text-left"
+        >
+          <History size={17} className="text-clay" />
+          <p className="mt-3 text-sm font-medium text-ink">经历证据</p>
+          <p className="mt-1 flex items-center text-xs text-ink-muted">查看时间线 <ChevronRight size={13} /></p>
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate("/protocol")}
+          className="glass-card rounded-card border border-edge/60 p-5 text-left"
+        >
+          <Layers size={17} className="text-primary" />
+          <p className="mt-3 text-sm font-medium text-ink">支持协议</p>
+          <p className="mt-1 flex items-center text-xs text-ink-muted">查看行动规则 <ChevronRight size={13} /></p>
+        </button>
+      </div>
 
       {/* 简易周报（让进步可见） */}
       {weeklySummary && (
@@ -87,10 +109,10 @@ export default function Climate() {
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="rounded-card border border-edge bg-white/60 p-5 shadow-soft"
+          className="glass-card rounded-card border border-edge/60 p-5"
         >
           <p className="mb-3 text-xs uppercase tracking-widest text-primary">
-            本周小结
+            最近七天的证据
           </p>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -134,18 +156,8 @@ export default function Climate() {
         </motion.div>
       )}
 
-      {/* 本周色谱（七天的颜色记忆 · 一眼看出情绪走向） */}
-      <ClimateChromatography checkins={checkins} crashMarks={crashMarks} />
-
-      {/* 趋势回放（叠加协议执行标记） */}
+      {/* 唯一趋势视图：为个人规则提供证据 */}
       <TrendChart checkins={checkins} executions={executions} />
-
-      {/* 气候游记（旅程地图 · 避雨亭 · 篝火） */}
-      <ClimateWanderer
-        checkins={checkins}
-        crashMarks={crashMarks}
-        executions={executions}
-      />
 
       {/* 已有特质画像展示（自评结果 · 非诊断） */}
       {traitProfile && traitProfile.results.length > 0 && (
@@ -155,7 +167,7 @@ export default function Climate() {
             return (
               <div
                 key={r.scale_id}
-                className="flex items-center justify-between rounded-card border border-edge bg-white/40 px-4 py-3"
+                className="flex items-center justify-between rounded-card border border-edge/60 bg-white/40 px-4 py-3"
               >
                 <div>
                   <p className="text-small font-medium text-ink">
@@ -175,14 +187,6 @@ export default function Climate() {
         </div>
       )}
 
-      {/* AI 观察 */}
-      {observation && observation.status === "pending" && (
-        <AIObservationCard observation={observation} />
-      )}
-
-      {/* Qwen 智能建议（基于阶段+趋势生成个性化引导 · 仅 qwenEnabled） */}
-      {qwenEnabled && <SmartGuidance />}
-
       {/* 神经特质自评 · 辅助入口（非主导航 · 了解自己补充画像） */}
       <button
         onClick={() => navigate("/screen")}
@@ -190,8 +194,10 @@ export default function Climate() {
       >
         <Sparkles size={12} />
         {traitProfile && traitProfile.results.length > 0
-          ? `特质画像 · 已完成 ${traitProfile.results.length} 份`
-          : "想更了解自己？做一份神经特质自评"}
+          ? `${tr("climate_trait_done")} ${traitProfile.results.length} 份`
+          : isParent
+            ? tr("climate_self_assess_parent")
+            : tr("climate_self_assess_self")}
       </button>
     </div>
   );

@@ -5,8 +5,10 @@ import type {
   AppMode,
   CheckIn,
   CollaboratorRole,
+  ConnectionMoment,
   CrashMark,
   NeuroType,
+  PersonalRule,
   Protocol,
   ProtocolExecution,
   ScaleResult,
@@ -17,6 +19,7 @@ import type {
 import { generateWeather, defaultWeather } from "@/lib/weatherEngine";
 import { matchTriggers } from "@/lib/triggerEngine";
 import { detectPhase } from "@/lib/stageEngine";
+import type { Lang } from "@/lib/translations";
 import { genId } from "@/lib/format";
 import {
   mockCheckIns,
@@ -46,6 +49,8 @@ interface StoreState {
   executions: ProtocolExecution[];
   crashMarks: CrashMark[];
   observation: AIObservation | null;
+  personalRules: PersonalRule[];
+  connectionMoments: ConnectionMoment[];
 
   // 当前天气卡
   currentWeather: WeatherSnapshot;
@@ -70,6 +75,7 @@ interface StoreState {
   // 开启后降级装饰性动效、降低色彩饱和度、减少阴影
   // 对光敏感/前庭敏感/HSP 用户尤为重要（WCAG 2.3.3 · Microsoft Inclusive Design）
   lowSensoryMode: boolean;
+  language: Lang;
 
   // 协议执行效果反馈（PRD §09 反馈闭环 · 执行后延时询问是否有效）
   pendingFeedbackExecId: string | null;
@@ -83,6 +89,7 @@ interface StoreState {
   setAppMode: (mode: AppMode) => void;
   setQwenEnabled: (enabled: boolean) => void;
   setLowSensoryMode: (enabled: boolean) => void;
+  setLanguage: (lang: Lang) => void;
   addCheckIn: (
     sensory: number,
     social: number,
@@ -118,6 +125,11 @@ interface StoreState {
   acceptObservation: () => void;
   ignoreObservation: () => void;
   setObservation: (obs: AIObservation) => void;
+  addPersonalRule: (rule: Pick<PersonalRule, "signal" | "understanding" | "support">) => void;
+  updatePersonalRule: (id: string, updates: Pick<PersonalRule, "signal" | "understanding" | "support">) => void;
+  reinforcePersonalRule: (id: string) => void;
+  deletePersonalRule: (id: string) => void;
+  recordConnection: (ruleId: string, mode: ConnectionMoment["mode"]) => void;
   saveTraitResult: (result: ScaleResult) => void;
   pushToast: (type: ToastMessage["type"], text: string) => void;
   dismissToast: (id: string) => void;
@@ -142,6 +154,8 @@ export const useStore = create<StoreState>()(
       executions: mockExecutions,
       crashMarks: mockCrashMarks,
       observation: mockObservation,
+      personalRules: [],
+      connectionMoments: [],
 
       currentWeather: defaultWeather(),
 
@@ -156,6 +170,7 @@ export const useStore = create<StoreState>()(
       qwenEnabled: false,
 
       lowSensoryMode: false,
+      language: "zh" as Lang,
 
       pendingFeedbackExecId: null,
 
@@ -173,6 +188,7 @@ export const useStore = create<StoreState>()(
       setQwenEnabled: (enabled) => set({ qwenEnabled: enabled }),
 
       setLowSensoryMode: (enabled) => set({ lowSensoryMode: enabled }),
+      setLanguage: (lang) => set({ language: lang }),
 
       addCheckIn: (sensory, social, predictability, hesitationMs, extras) => {
         const neuroType = get().neuroType;
@@ -206,7 +222,7 @@ export const useStore = create<StoreState>()(
             weather.climate,
             get().crashMarks,
           );
-          const result = matchTriggers(protocols, checkin, neuroType, currentPhase);
+          const result = matchTriggers(protocols, checkin, neuroType, currentPhase, get().checkins);
           if (result.matched && result.protocol) {
             set({
               activeTrigger: {
@@ -416,6 +432,79 @@ export const useStore = create<StoreState>()(
 
       setObservation: (obs) => set({ observation: obs }),
 
+      addPersonalRule: (rule) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          personalRules: [
+            {
+              ...rule,
+              id: genId("rule"),
+              evidence_count: 1,
+              created_at: now,
+              updated_at: now,
+            },
+            ...state.personalRules,
+          ],
+        }));
+        get().pushToast("success", "已加入你的个人规则");
+      },
+
+      updatePersonalRule: (id, updates) => {
+        set((state) => ({
+          personalRules: state.personalRules.map((rule) =>
+            rule.id === id
+              ? { ...rule, ...updates, updated_at: new Date().toISOString() }
+              : rule,
+          ),
+        }));
+        get().pushToast("success", "这条理解已更新");
+      },
+
+      reinforcePersonalRule: (id) => {
+        set((state) => ({
+          personalRules: state.personalRules.map((rule) =>
+            rule.id === id
+              ? {
+                  ...rule,
+                  evidence_count: rule.evidence_count + 1,
+                  updated_at: new Date().toISOString(),
+                }
+              : rule,
+          ),
+        }));
+        get().pushToast("success", "已记下：这次也符合");
+      },
+
+      deletePersonalRule: (id) => {
+        set((state) => ({
+          personalRules: state.personalRules.filter((rule) => rule.id !== id),
+        }));
+        get().pushToast("info", "已移除这条旧理解");
+      },
+
+      recordConnection: (ruleId, mode) => {
+        const now = new Date();
+        const dayKey = now.toLocaleDateString("zh-CN");
+        const alreadyRecorded = get().connectionMoments.some(
+          (moment) =>
+            moment.rule_id === ruleId &&
+            moment.mode === mode &&
+            new Date(moment.connected_at).toLocaleDateString("zh-CN") === dayKey,
+        );
+        if (alreadyRecorded) return;
+        set((state) => ({
+          connectionMoments: [
+            {
+              id: genId("connection"),
+              rule_id: ruleId,
+              mode,
+              connected_at: now.toISOString(),
+            },
+            ...state.connectionMoments,
+          ],
+        }));
+      },
+
       // 保存特质自评结果（PRD §11 非诊断 · 同量表重做则覆盖旧结果）
       saveTraitResult: (result) => {
         const existing = get().traitProfile;
@@ -453,6 +542,8 @@ export const useStore = create<StoreState>()(
           executions: mockExecutions,
           crashMarks: mockCrashMarks,
           observation: mockObservation,
+          personalRules: [],
+          connectionMoments: [],
           currentWeather: defaultWeather(),
           activeTrigger: null,
           triggerCountToday: 0,
@@ -461,6 +552,7 @@ export const useStore = create<StoreState>()(
           collaborator: "self",
           qwenEnabled: false,
           lowSensoryMode: false,
+          language: "zh" as Lang,
           toasts: [],
         });
       },
@@ -476,11 +568,14 @@ export const useStore = create<StoreState>()(
         executions: state.executions,
         crashMarks: state.crashMarks,
         observation: state.observation,
+        personalRules: state.personalRules,
+        connectionMoments: state.connectionMoments,
         currentWeather: state.currentWeather,
         traitProfile: state.traitProfile,
         collaborator: state.collaborator,
         qwenEnabled: state.qwenEnabled,
         lowSensoryMode: state.lowSensoryMode,
+        language: state.language,
       }),
     },
   ),

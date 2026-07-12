@@ -47,14 +47,28 @@ export function checkProtocolTrigger(
 }
 
 // 从签到匹配所有活跃协议，返回阶段优先级最高的命中（PRD：每日上限 3 次，由 store 控制）
+// 除了瞬时阈值触发，还检查累积条件（连续 N 次签到轴值偏低/偏高）
 export function matchTriggers(
   protocols: Protocol[],
   checkin: CheckIn,
   neuroType: NeuroType = "asd",
   currentPhase?: Phase,
+  recentCheckins: CheckIn[] = [],
 ): TriggerResult {
-  // 收集所有命中的协议
+  // 1. 瞬时阈值触发
   const hits = protocols.filter((p) => checkProtocolTrigger(p, checkin));
+
+  // 2. 累积条件触发：检查最近 N 次签到的趋势
+  // ADHD 场景：连续 3 次多巴胺/启动轴偏低 → 触发执行支持协议
+  // ASD 场景：连续 3 次感官轴偏高 → 触发感官降载协议
+  if (recentCheckins.length >= 3) {
+    const last3 = recentCheckins.slice(-3);
+    const cumulativeHit = checkCumulativeCondition(last3, protocols, neuroType);
+    if (cumulativeHit && !hits.some((h) => h.id === cumulativeHit.id)) {
+      hits.push(cumulativeHit);
+    }
+  }
+
   if (hits.length === 0) {
     return { matched: false, protocol: null, reason: "" };
   }
@@ -82,6 +96,43 @@ export function matchTriggers(
     ? `你的${axisLabel(p.trigger.axis, neuroType)}到了「${band}」——你和自己约定过：这时候${p.action.description}。现在去吗？`
     : `你的${axisLabel(p.trigger.axis, neuroType)}在升——你和自己约定过：这时候${p.action.description}。现在去吗？`;
   return { matched: true, protocol: p, reason };
+}
+
+// 累积条件检测：基于最近 N 次签到的趋势匹配协议
+// ASD：连续 3 次感官轴 raw ≥ 7 → 感官降载协议
+// ADHD：连续 3 次多巴胺/启动轴 raw ≤ 3 → 执行支持协议
+function checkCumulativeCondition(
+  recentCheckins: CheckIn[],
+  protocols: Protocol[],
+  neuroType: NeuroType,
+): Protocol | null {
+  if (neuroType === "asd") {
+    // ASD：连续 3 次感官偏高 → 推荐感官降载协议
+    const allHighSensory = recentCheckins.every((c) => c.axis_sensory >= 7);
+    if (allHighSensory) {
+      // 找到感官类协议（sensory 或 grounding 类）
+      const sensoryProtocol = protocols.find(
+        (p) =>
+          p.status === "active" &&
+          (p.trigger.axis === "sensory" || p.action.description.includes("感官")),
+      );
+      return sensoryProtocol ?? null;
+    }
+  } else if (neuroType === "adhd") {
+    // ADHD：连续 3 次启动/多巴胺偏低（predictability 轴对 ADHD = 启动阻力，低值=困难）
+    // ADHD 的 predictability 方向是 reverse，raw 低 = strain 高
+    const allLowDopamine = recentCheckins.every((c) => c.axis_predictability <= 3);
+    if (allLowDopamine) {
+      // 找到执行支持类协议
+      const execProtocol = protocols.find(
+        (p) =>
+          p.status === "active" &&
+          (p.trigger.axis === "predictability" || p.action.description.includes("启动")),
+      );
+      return execProtocol ?? null;
+    }
+  }
+  return null;
 }
 
 // 轴标签（按神经特质动态生成）

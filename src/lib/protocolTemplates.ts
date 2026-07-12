@@ -213,6 +213,66 @@ export const PROTOCOL_TEMPLATES: ProtocolTemplate[] = [
       "ADDitude Magazine, Getting started with ADHD, 2023; Dimidjian et al., JAMA, 2006（行为激活）",
   },
   {
+    id: "executive_dopamine_brake",
+    neuroTypes: ["adhd"],
+    phases: ["warning", "overload"],
+    name: "多巴胺紧急制动",
+    category: "executive",
+    trigger: {
+      description: "多巴胺电量见底或冲动行为加剧",
+      type: "threshold",
+    },
+    action: {
+      description:
+        "立即停止手头一切任务，关闭所有屏幕，躺下或坐着不动 10 分钟。不看手机、不做决定、不要求自己「有用」。允许发呆或闭眼。",
+      duration_minutes: 10,
+      timer: true,
+    },
+    why: "ADHD 过载期多巴胺耗竭，继续任务只会加剧崩溃。完全停止输入让前额叶从超载中冷却，类似感官撤退但针对执行功能。",
+    evidence:
+      "Barkley, ADHD and the Nature of Self-Regulation, 2023; ADDitude, ADHD burnout recovery, 2024",
+  },
+  {
+    id: "executive_body_reset",
+    neuroTypes: ["adhd"],
+    phases: ["overload", "recovery"],
+    name: "身体重置（高强度运动）",
+    category: "executive",
+    trigger: {
+      description: "过载期坐立不安或冲动难以控制",
+      type: "behavior",
+    },
+    action: {
+      description:
+        "做 5-10 分钟高强度身体活动：原地跑步、深蹲、跳跃或快走。让积压的冲动能量通过身体释放，给多巴胺系统一个物理出口。",
+      duration_minutes: 7,
+      timer: true,
+    },
+    why: "ADHD 过载常伴随高水平的身体冲动能量，高强度运动快速消耗肾上腺素并释放内啡肽，比静坐更有效地重置执行功能。",
+    evidence:
+      "Ratey, Spark: The Revolutionary New Science of Exercise and the Brain, 2013; Halasz et al., J Atten Disord, 2019",
+  },
+  {
+    id: "executive_externalize_brain",
+    neuroTypes: ["adhd"],
+    phases: ["warning", "overload"],
+    name: "大脑外化（清空纸张）",
+    category: "executive",
+    trigger: {
+      description: "脑内任务循环加剧或无法停止思考",
+      type: "behavior",
+    },
+    action: {
+      description:
+        "拿出一张纸，把脑中所有盘旋的任务、想法、冲动全部写下来，不整理不排序。写完后告诉自己「现在它们在纸上，不用记在脑里了」。",
+      duration_minutes: 5,
+      timer: false,
+    },
+    why: "ADHD 工作记忆容量有限，过载期脑内任务循环加剧焦虑。外化到纸面释放工作记忆负荷，降低前额叶认知负担。",
+    evidence:
+      "Barkley, Taking Charge of ADHD, 2020（外部化策略）; ADDitude, ADHD brain dumps, 2023",
+  },
+  {
     id: "executive_body_double",
     neuroTypes: ["adhd", "asd"],
     phases: ["stable", "accumulating"],
@@ -354,10 +414,17 @@ export const PROTOCOL_TEMPLATES: ProtocolTemplate[] = [
   },
 ];
 
-// 按神经特质过滤模板（"other"返回全库作为通用池）
+// 按神经特质过滤模板（严格隔离 · ASD 只看 ASD 专属 · ADHD 只看 ADHD 专属）
+// "other"返回全库作为通用池
 export function getTemplatesByNeuroType(neuroType: NeuroType): ProtocolTemplate[] {
   if (neuroType === "other") return PROTOCOL_TEMPLATES;
-  return PROTOCOL_TEMPLATES.filter((t) => t.neuroTypes.includes(neuroType));
+  const otherPrimary: NeuroType | null =
+    neuroType === "asd" ? "adhd" : neuroType === "adhd" ? "asd" : null;
+  return PROTOCOL_TEMPLATES.filter((t) => {
+    if (!t.neuroTypes.includes(neuroType)) return false;
+    if (otherPrimary && t.neuroTypes.includes(otherPrimary)) return false;
+    return true;
+  });
 }
 
 // 按阶段排序模板（当前阶段命中的排前面）

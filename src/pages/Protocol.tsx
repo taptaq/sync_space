@@ -1,11 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Plus } from "lucide-react";
+import { BookOpen, Plus, X } from "lucide-react";
 import ProtocolTemplateLibrary from "@/components/protocol/ProtocolTemplateLibrary";
-import TherapyLibrary from "@/components/therapy/TherapyLibrary";
 import ProtocolCard from "@/components/protocol/ProtocolCard";
 import { useStore } from "@/store/useStore";
+import { useVoice, useT } from "@/lib/i18n";
 
 // 协议页 · 集中管理协议与疗法（拆分自 Climate · 降低单页信息密度）
 // 三块：协议模板库（一键导入） / 循证疗法库（转协议） / 我的协议（管理）
@@ -13,6 +13,9 @@ export default function Protocol() {
   const navigate = useNavigate();
   const protocols = useStore((s) => s.protocols);
   const executions = useStore((s) => s.executions);
+  const { isParent } = useVoice();
+  const { tr } = useT();
+  const [showLibrary, setShowLibrary] = useState(false);
 
   // 排序：候选在前，按最近执行时间
   const sortedProtocols = useMemo(() => {
@@ -28,27 +31,23 @@ export default function Protocol() {
   const executedCount = executions.filter((e) => e.action_taken === "executed").length;
 
   return (
-    <div className="space-y-6 pt-10">
+    <div className="space-y-7 pt-12">
       <motion.header
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
         className="px-1"
       >
-        <p className="text-xs uppercase tracking-widest text-primary">协议与疗法</p>
-        <h1 className="mt-1 font-serif text-3xl text-ink">我的协议</h1>
+        <p className="text-xs uppercase tracking-widest text-primary">{tr("protocol_label")}</p>
+        <h1 className="mt-1 font-serif text-3xl text-ink">{isParent ? tr("protocol_title_parent") : tr("protocol_title_self")}</h1>
         <p className="mt-1 text-small text-ink-muted">
           {protocols.length > 0
-            ? `${protocols.length} 份协议 · 执行过 ${executedCount} 次`
-            : "从模板库选一个开始，或自己写一份"}
+            ? `${protocols.length} ${tr("protocol_subtitle")} ${executedCount} 次`
+            : isParent
+              ? tr("protocol_empty_parent")
+              : tr("protocol_empty_self")}
         </p>
       </motion.header>
-
-      {/* 协议模板库（循证预设 · 一键导入 · 降低配置认知门槛） */}
-      <ProtocolTemplateLibrary />
-
-      {/* 循证疗法库（按神经特质 + 阶段推荐 · 可一键转为协议） */}
-      <TherapyLibrary />
 
       {/* 我的协议 */}
       <section>
@@ -73,7 +72,7 @@ export default function Protocol() {
             <p className="text-small text-ink-muted">
               还没有协议。
               <br />
-              协议是"当 X 发生时，我给自己约定 Y"。
+              协议是"当 X 发生时，{isParent ? "我帮孩子" : "我给自己"}约定 Y"。
             </p>
             <button
               onClick={() => navigate("/protocol/new")}
@@ -85,10 +84,25 @@ export default function Protocol() {
         )}
       </section>
 
+      <section className="border-t border-edge/70 pt-5">
+        <button
+          type="button"
+          onClick={() => setShowLibrary((value) => !value)}
+          className="flex min-h-12 w-full items-center justify-between text-left"
+        >
+          <span className="flex items-center gap-2 text-sm font-medium text-ink">
+            {showLibrary ? <X size={16} /> : <BookOpen size={16} />}
+            {showLibrary ? "收起方法库" : "从方法库添加协议"}
+          </span>
+          <span className="text-xs text-ink-muted">按需打开</span>
+        </button>
+        {showLibrary && <div className="mt-3"><ProtocolTemplateLibrary /></div>}
+      </section>
+
       <p className="px-4 pb-4 text-center text-xs leading-relaxed text-ink-muted">
-        AI 永远不会修改协议，只能建议。
+        {tr("protocol_footer_1")}
         <br />
-        协议的触发、执行、暂停、删除全部由你决定。
+        {isParent ? tr("protocol_footer_2_parent") : tr("protocol_footer_2_self")}
       </p>
     </div>
   );

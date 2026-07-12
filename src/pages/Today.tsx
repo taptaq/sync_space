@@ -1,22 +1,20 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Mic, Sliders, Sparkles, RotateCcw } from "lucide-react";
+import { ChevronDown, Mic, Sliders } from "lucide-react";
 import WeatherCard from "@/components/weather/WeatherCard";
 import CheckInCard from "@/components/checkin/CheckInCard";
 import ParentCheckInCard from "@/components/checkin/ParentCheckInCard";
 import ParentGuidanceCard from "@/components/parent/ParentGuidanceCard";
 import VoiceCheckIn from "@/components/qwen/VoiceCheckIn";
-import VoiceCrashNote from "@/components/qwen/VoiceCrashNote";
-import EnvSensoryScan from "@/components/qwen/EnvSensoryScan";
-import CrashButton from "@/components/crash/CrashButton";
-import AttentionBanner from "@/components/today/AttentionBanner";
-import RecommendedProtocolsCard from "@/components/today/RecommendedProtocolsCard";
 import FeedbackPrompt from "@/components/today/FeedbackPrompt";
+import CheckInReward from "@/components/today/CheckInReward";
 import NeuroTypeSelector, { useNeuroTypeSelector } from "@/components/common/NeuroTypeSelector";
-import FocusStartCard from "@/components/today/FocusStartCard";
-import ASDRegulationCard from "@/components/today/ASDRegulationCard";
+import Toolbox from "@/components/today/Toolbox";
+import PhaseActionCard from "@/components/today/PhaseActionCard";
+import Disclaimer from "@/components/common/Disclaimer";
 import { useStore } from "@/store/useStore";
 import { formatTime, isToday } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import { getAxisProfile } from "@/lib/axisConfig";
 import {
   compareCheckins,
@@ -25,7 +23,9 @@ import {
 import { detectPhase } from "@/lib/stageEngine";
 import { cn } from "@/lib/utils";
 
-// 今日页 · 每日循环（PRD §05 页面1：90% 的使用场景）
+// 今日页 · 重构：单条主路径 + 可预测布局 + 低频功能折叠
+// ASD/ADHD 友好：不再根据神经类型显示/隐藏卡片 → 布局始终一致
+// 签到是 Today 的唯一核心动作；其他功能收进工具箱，默认收起
 export default function Today() {
   const currentWeather = useStore((s) => s.currentWeather);
   const checkins = useStore((s) => s.checkins);
@@ -33,17 +33,14 @@ export default function Today() {
   const neuroType = useStore((s) => s.neuroType);
   const appMode = useStore((s) => s.appMode);
   const qwenEnabled = useStore((s) => s.qwenEnabled);
-  const lowSensoryMode = useStore((s) => s.lowSensoryMode);
-  const setLowSensoryMode = useStore((s) => s.setLowSensoryMode);
-  const pushToast = useStore((s) => s.pushToast);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const { showSelector, openSelector, closeSelector } = useNeuroTypeSelector();
-  // 签到方式切换：滑块 / 语音（仅 qwenEnabled 且自主模式时可用）
   const [checkinMode, setCheckinMode] = useState<"slider" | "voice">("slider");
+  const [showRecords, setShowRecords] = useState(false);
+  const [showReward, setShowReward] = useState(false);
 
   const isParentProxy = appMode === "parent_proxy";
-  // 语音签到仅在平稳/累积/恢复期可用——预警/过载期 ASD 人士可能无法组织语言
-  // PRD §04：过载时"无法组织语言的状态"，此时语音输入是反同频的
+  const { tr } = useT();
   const currentPhase = detectPhase(currentWeather.climate, crashMarks);
   const voiceCheckinBlocked = currentPhase === "warning" || currentPhase === "overload";
   const canUseVoiceCheckin = qwenEnabled && !isParentProxy && !voiceCheckinBlocked;
@@ -55,216 +52,159 @@ export default function Today() {
 
   const todayCheckins = checkins
     .filter((c) => isToday(c.checkin_at))
-    .sort(
-      (a, b) =>
-        new Date(b.checkin_at).getTime() - new Date(a.checkin_at).getTime(),
-    );
+    .sort((a, b) => new Date(b.checkin_at).getTime() - new Date(a.checkin_at).getTime());
 
   const lastCheckinTime = todayCheckins[0]?.checkin_at;
 
-  // Before/After 对比：今天倒数第一次 vs 当前最新
   const diff = useMemo(() => {
     if (todayCheckins.length < 2) return null;
     return compareCheckins(todayCheckins[1], todayCheckins[0], neuroType);
   }, [todayCheckins, neuroType]);
 
-  // 最近 5 次签到的阶段轨迹（全局）
-  const trajectory = useMemo(
-    () => recentPhaseTrajectory(checkins, 5),
-    [checkins],
-  );
+  const trajectory = useMemo(() => recentPhaseTrajectory(checkins, 5), [checkins]);
+
+  // 连续签到天数
+  const streakDays = useMemo(() => {
+    if (checkins.length === 0) return 0;
+    const daySet = new Set(
+      checkins.map((c) => {
+        const d = new Date(c.checkin_at);
+        return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      }),
+    );
+    let count = 0;
+    const cursor = new Date();
+    for (let i = 0; i < 365; i++) {
+      const key = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
+      if (daySet.has(key)) {
+        count++;
+        cursor.setDate(cursor.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+    return count;
+  }, [checkins]);
+
+  // 签到提交后触发奖励
+  const handleCheckinSubmitted = () => {
+    setShowReward(true);
+  };
 
   return (
-    <div className="space-y-5">
-      {/* 顶部天气卡（无缝贴顶 · 五阶段色调 · 前后对比 + 轨迹） */}
-      <div className="-mx-5 -mt-5">
+    <div className="space-y-6">
+      {/* 1. 天气卡（顶部 · 可预测位置） */}
+      <div className="pt-5">
         <WeatherCard
           weather={currentWeather}
           updatedAt={lastCheckinTime ? formatTime(lastCheckinTime) : undefined}
           crashMarks={crashMarks}
           diff={diff}
           trajectory={trajectory}
+          compact
         />
       </div>
 
-      {/* ASD 支持：先处理环境、沟通和变化，不强迫命名情绪 */}
-      {!isParentProxy && neuroType === "asd" && <ASDRegulationCard />}
+      <div className="flex items-center justify-between border-b border-edge/70 px-1 pb-3">
+        <div>
+          <p className="text-xs font-medium text-primary">{tr("today_section_label")}</p>
+          <p className="mt-1 text-sm text-ink">{tr("today_section_desc")}</p>
+        </div>
+        <span className="rounded-full bg-white/55 px-2.5 py-1 text-xs text-ink-muted">
+          {todayCheckins.length} {tr("today_records_count")}
+        </span>
+      </div>
 
-      {/* 今日签到 · 根据模式切换：自主签到 / 家长代理签到 / 语音签到 */}
+      {/* 1.5 阶段行动衔接（天气→行动 · 单一建议 · 消除选择瘫痪） */}
+      {!isParentProxy && <PhaseActionCard />}
+
+      {/* 2. 核心动作：签到（自主 or 家长代理） */}
       {isParentProxy ? (
         <ParentCheckInCard />
       ) : canUseVoiceCheckin && effectiveCheckinMode === "voice" ? (
         <VoiceCheckIn />
       ) : (
-        <CheckInCard />
+        <CheckInCard onSubmitted={handleCheckinSubmitted} />
       )}
 
       {/* 语音被阶段屏蔽时的温和提示 */}
       {qwenEnabled && !isParentProxy && voiceCheckinBlocked && (
-        <p className="text-center text-xs text-ink-faint">
-          现在不太适合说话记录 · 用滑块就好
-        </p>
+        <p className="text-center text-xs text-ink-faint">{tr("today_voice_blocked")}</p>
       )}
 
-      {/* 签到方式切换（仅 qwenEnabled 且自主模式） */}
+      {/* 签到方式切换 */}
       {canUseVoiceCheckin && (
         <div className="flex justify-center gap-2">
           <button
             onClick={() => setCheckinMode("slider")}
             className={cn(
               "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-all duration-250",
-              checkinMode === "slider"
-                ? "bg-primary text-white"
-                : "bg-white/50 text-ink-muted hover:bg-white/70",
+              checkinMode === "slider" ? "bg-primary text-white" : "bg-white/50 text-ink-muted hover:bg-white/70",
             )}
           >
-            <Sliders size={12} /> 滑块
+            <Sliders size={12} /> {tr("today_slider")}
           </button>
           <button
             onClick={() => setCheckinMode("voice")}
             className={cn(
               "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-all duration-250",
-              checkinMode === "voice"
-                ? "bg-primary text-white"
-                : "bg-white/50 text-ink-muted hover:bg-white/70",
+              checkinMode === "voice" ? "bg-primary text-white" : "bg-white/50 text-ink-muted hover:bg-white/70",
             )}
           >
-            <Mic size={12} /> 语音
+            <Mic size={12} /> {tr("today_voice")}
           </button>
         </div>
       )}
 
-      {/* ADHD 启动支持：单任务、明确第一步、低承诺计时 */}
-      {!isParentProxy && neuroType === "adhd" && <FocusStartCard />}
-
-      {/* 今日关注横幅（主动反馈：签到提醒 / 趋势预警 / 待处理事项） */}
-      <AttentionBanner />
-
-      {/* 阶段匹配协议推荐（默认仅展示最相关的一项） */}
-      <RecommendedProtocolsCard />
-
-      {/* 家长引导卡片（仅家长代理模式显示） */}
+      {/* 家长引导卡片 */}
       {isParentProxy && <ParentGuidanceCard />}
 
-      {/* 崩溃标记 · qwenEnabled 时用语音补记版 */}
-      {qwenEnabled ? <VoiceCrashNote /> : <CrashButton />}
+      {/* 3. 唯一低频出口：过载补记 */}
+      <Toolbox qwenEnabled={qwenEnabled} />
 
-      {/* 环境感官友好度扫描（仅 qwenEnabled） */}
-      {qwenEnabled && <EnvSensoryScan />}
-
-      {/* 今日已签到记录 */}
+      {/* 4. 今日记录默认收起，避免和当前签到竞争 */}
       {todayCheckins.length > 0 && (
-        <motion.section
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.3 }}
-          className="rounded-card border border-edge bg-white/40 p-5"
-        >
-          <h3 className="mb-3 font-serif text-lg text-ink">今日已记录</h3>
-          <div className="space-y-3">
-            {todayCheckins.map((c) => (
-              <div
+        <section className="border-t border-edge/70 pt-1">
+          <button
+            type="button"
+            onClick={() => setShowRecords((value) => !value)}
+            className="flex min-h-12 w-full items-center justify-between text-sm text-ink-muted"
+          >
+            <span>{tr("today_recorded")} · {todayCheckins.length}</span>
+            <ChevronDown size={15} className={cn("transition-transform", showRecords && "rotate-180")} />
+          </button>
+          {showRecords && <div className="space-y-3 pb-3">
+            {todayCheckins.map((c, i) => (
+              <motion.div
                 key={c.id}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.2, delay: i * 0.04, ease: [0.16, 1, 0.3, 1] }}
                 className="flex items-center justify-between text-small"
               >
-                <span className="font-mono text-xs text-ink-muted">
-                  {formatTime(c.checkin_at)}
-                </span>
+                <span className="font-mono text-xs text-ink-muted">{formatTime(c.checkin_at)}</span>
                 <div className="flex gap-3 font-mono text-xs">
-                  <span className={axis1.color}>
-                    {axis1.label} {c.axis_sensory.toFixed(1)}
-                  </span>
-                  <span className={axis2.color}>
-                    {axis2.label} {c.axis_social.toFixed(1)}
-                  </span>
-                  <span className={axis3.color}>
-                    {axis3.label} {c.axis_predictability.toFixed(1)}
-                  </span>
+                  <span className={axis1.color}>{axis1.label} {c.axis_sensory.toFixed(1)}</span>
+                  <span className={axis2.color}>{axis2.label} {c.axis_social.toFixed(1)}</span>
+                  <span className={axis3.color}>{axis3.label} {c.axis_predictability.toFixed(1)}</span>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
-        </motion.section>
+          </div>}
+        </section>
       )}
 
-      {/* 非诊断声明（PRD §11：首页底部常驻此声明） */}
+      {/* 6. 底部声明 + 设置 */}
       <div className="pt-2">
-        <button
-          onClick={() => setShowDisclaimer((v) => !v)}
-          className="flex w-full items-center justify-center gap-1 text-xs text-ink-muted/70 transition-colors hover:text-ink-muted"
-        >
-          SyncSpace 不是医疗工具，不做任何诊断
-          <ChevronDown
-            size={12}
-            className={cn(
-              "transition-transform duration-250",
-              showDisclaimer && "rotate-180",
-            )}
-          />
-        </button>
-        {showDisclaimer && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-2 space-y-3"
-          >
-            <p className="px-4 text-center text-xs leading-relaxed text-ink-muted">
-              {isParentProxy ? (
-                <>
-                  家长引导建议是温柔的支持，不替代专业评估。
-                  <br />
-                  如孩子出现自伤或伤人倾向，请保护安全并联系专业人士。
-                  <br />
-                  孩子的所有数据仅存储在家长设备本地。
-                </>
-              ) : (
-                <>
-                  如果你正在经历严重困扰，请联系专业人士。
-                  <br />
-                  SyncSpace 面向能自主签到的人（建议 13+）。
-                  <br />
-                  你的所有数据仅存储在本地，只有你自己可见。
-                </>
-              )}
-            </p>
-            {/* 低感官模式切换（感官安全工程 · WCAG 2.3.3 · 光敏感/前庭敏感/HSP 友好） */}
-            <button
-              onClick={() => {
-                const next = !lowSensoryMode;
-                setLowSensoryMode(next);
-                pushToast("info", next ? "已开启低感官模式" : "已关闭低感官模式");
-              }}
-              className={cn(
-                "mx-auto flex items-center gap-2 rounded-full border px-4 py-2 text-xs transition-all duration-250",
-                lowSensoryMode
-                  ? "border-primary/30 bg-primary-mist/40 text-primary"
-                  : "border-edge bg-white/40 text-ink-muted hover:bg-white/60",
-              )}
-            >
-              <Sparkles size={12} />
-              {lowSensoryMode ? "低感官模式已开启" : "开启低感官模式"}
-            </button>
-            <p className="px-4 text-center text-[11px] leading-relaxed text-ink-faint">
-              降低色彩饱和度、减少动效和阴影。如果你对光/动效敏感，或正在过载恢复期，这个模式可能更舒适。
-            </p>
-
-            {/* 更改神经特质入口（非 Onboarding · 轻量选择 · 即时生效） */}
-            <button
-              onClick={openSelector}
-              className="mx-auto flex items-center gap-2 rounded-full border border-edge bg-white/40 px-4 py-2 text-xs text-ink-muted transition-all duration-250 hover:bg-white/60"
-            >
-              <RotateCcw size={12} />
-              更改神经特质
-            </button>
-            <p className="px-4 text-center text-[11px] leading-relaxed text-ink-faint">
-              切换后，气候模型、疗法协议推荐会按新特质重新计算。不影响已有签到数据。
-            </p>
-          </motion.div>
-        )}
+        <Disclaimer
+          showDisclaimer={showDisclaimer}
+          setShowDisclaimer={setShowDisclaimer}
+          isParentProxy={isParentProxy}
+          onOpenNeuroTypeSelector={openSelector}
+        />
       </div>
 
-      {/* 神经特质选择器弹窗（非 Onboarding · 即时生效） */}
+      {/* 神经特质选择器弹窗 */}
       <AnimatePresence>
         {showSelector && (
           <motion.div
@@ -282,8 +222,18 @@ export default function Today() {
         )}
       </AnimatePresence>
 
-      {/* 协议执行效果反馈（延时轻量 bottom sheet） */}
+      {/* 协议执行效果反馈 */}
       <FeedbackPrompt />
+
+      {/* 签到即时奖励（多巴胺回路 · 3 秒动画） */}
+      <CheckInReward
+        show={showReward}
+        phase={currentPhase}
+        streakDays={streakDays}
+        totalCheckins={checkins.length}
+        onComplete={() => setShowReward(false)}
+      />
+
     </div>
   );
 }

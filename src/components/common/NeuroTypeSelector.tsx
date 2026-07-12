@@ -7,10 +7,10 @@ import { cn } from "@/lib/utils";
 
 // 神经特质选择器（轻量 · 非 Onboarding · 让用户随时调整）
 // 选择后立即生效：气候模型 / 疗法库 / 协议模板全部按新特质重新计算
-const OPTIONS: { key: NeuroType; label: string; desc: string; icon: typeof Brain }[] = [
-  { key: "asd", label: "ASD", desc: "感官敏感 · 需要可预测性", icon: Brain },
-  { key: "adhd", label: "ADHD", desc: "注意力起伏 · 启动困难", icon: Sparkles },
-  { key: "other", label: "其他", desc: "我还不太确定", icon: CloudSun },
+const OPTIONS: { key: NeuroType; label: string; desc: string; icon: typeof Brain; switchHint: string }[] = [
+  { key: "asd", label: "ASD", desc: "感官敏感 · 需要可预测性", icon: Brain, switchHint: "已切换到 ASD 视角 · 侧重视官预算与可预测性" },
+  { key: "adhd", label: "ADHD", desc: "注意力起伏 · 启动困难", icon: Sparkles, switchHint: "已切换到 ADHD 视角 · 侧重执行功能与多巴胺电量" },
+  { key: "other", label: "其他", desc: "我还不太确定 · 两套工具都可见", icon: CloudSun, switchHint: "已切换到通用视角 · ASD 和 ADHD 的工具都可见，按需选用" },
 ];
 
 export default function NeuroTypeSelector({ onClose }: { onClose: () => void }) {
@@ -22,7 +22,8 @@ export default function NeuroTypeSelector({ onClose }: { onClose: () => void }) 
   const confirm = () => {
     if (selected !== neuroType) {
       setOnboarded(selected);
-      pushToast("success", `已切换到「${OPTIONS.find((o) => o.key === selected)?.label}」`);
+      const hint = OPTIONS.find((o) => o.key === selected)?.switchHint;
+      pushToast("success", hint ?? "已切换");
     }
     onClose();
   };

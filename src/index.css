@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@400;500&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -170,7 +170,51 @@ input[type="range"]::-moz-range-thumb {
   border: 1.5px dashed var(--color-primary-soft, #9a8fc4);
 }
 
-/* ===== 感官安全工程（WCAG 2.3.3 · Microsoft Inclusive Design · 神经多样性友好） ===== */
+/* 隐藏滚动条（全平台 · 内容可滚动但无视觉滚动条） */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============ 氛围背景层 ============ */
+/* 极淡噪点纹理 · 增加有机质感而不显嘈杂 */
+.ambient-noise {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' /%3E%3C/svg%3E");
+}
+
+/* 柔光晕 · 缓慢漂移呼吸 */
+.ambient-glow {
+  position: fixed;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 50%;
+  filter: blur(60px);
+  will-change: transform, opacity;
+}
+
+/* ============ 磨砂玻璃卡片 ============ */
+.glass-card {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(12px) saturate(1.1);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  box-shadow:
+    0 2px 12px rgba(58, 53, 47, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* 手写体 · 情感文案点缀 */
+.font-handwriting {
+  font-family: "Caveat", "Instrument Serif", cursive;
+  font-weight: 500;
+}
 
 /* 系统级降低动效偏好：禁用所有装饰性运动动画（保留信息性过渡如 opacity/颜色变化） */
 @media (prefers-reduced-motion: reduce) {
@@ -209,4 +253,17 @@ input[type="range"]::-moz-range-thumb {
 .low-sensory-mode .backdrop-blur-sm,
 .low-sensory-mode .backdrop-blur {
   backdrop-filter: none;
+}
+
+/* 低感官模式下隐藏氛围层 */
+.low-sensory-mode .ambient-noise,
+.low-sensory-mode .ambient-glow {
+  display: none;
+}
+
+/* 低感官模式下玻璃卡片退化为纯色 */
+.low-sensory-mode .glass-card {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }

@@ -16,6 +16,7 @@ export default function ReviewDetail() {
   const crashMarks = useStore((s) => s.crashMarks);
   const updateCrashMark = useStore((s) => s.updateCrashMark);
   const addProtocol = useStore((s) => s.addProtocol);
+  const addPersonalRule = useStore((s) => s.addPersonalRule);
 
   const crash = crashMarks.find((c) => c.id === crashId);
   const [text, setText] = useState("");
@@ -76,6 +77,11 @@ export default function ReviewDetail() {
       },
       source: "crash_reflection",
       status: "candidate",
+    });
+    addPersonalRule({
+      signal: interpretation.event,
+      understanding: interpretation.emotion,
+      support: interpretation.need,
     });
     setSettled(true);
     setTimeout(() => navigate("/climate"), 1200);
@@ -152,7 +158,7 @@ export default function ReviewDetail() {
           animate={{ opacity: 1 }}
           className="text-center text-small text-sage"
         >
-          已沉淀为协议候选，跳转到协议管理…
+          已沉淀为个人规则和协议候选，回到理解…
         </motion.p>
       )}
 

@@ -1,8 +1,9 @@
-import type { ClimateType, CrashMark, Phase } from "@/types";
+import type { ClimateType, CrashMark, NeuroType, Phase } from "@/types";
 
 // 五阶段模型（PRD §09 气候延伸 · 状态分层驱动措施与协议推荐）
 // 阶段由当前气候 + 崩溃标记共同判定，恢复期优先
 // 每个阶段有独立色调、叙事、措施基调和推荐协议标签
+// 叙事和措施基调按神经特质分化（ASD 侧重视官/可预测性，ADHD 侧重执行/多巴胺）
 // Phase 类型定义在 @/types，此处只做配置与判定
 
 export interface PhaseConfig {
@@ -12,13 +13,61 @@ export interface PhaseConfig {
   toneClass: string;
   // 阶段小标签的徽章色（tailwind 文字 + 背景类）
   badgeClass: string;
-  // 给用户的阶段叙事
+  // 给用户的阶段叙事（按特质分化的默认值在 PHASE_NARRATIVE_BY_TYPE）
   narrative: string;
-  // 措施基调（一句话告诉用户这个阶段该怎样对待自己）
+  // 措施基调（按特质分化的默认值在 PHASE_MEASURE_TONE_BY_TYPE）
   measureTone: string;
   // 该阶段优先推荐的协议阶段标签（顺序即优先级）
   recommendedTags: Phase[];
 }
+
+// 按特质分化的阶段叙事
+const PHASE_NARRATIVE_BY_TYPE: Record<Phase, Partial<Record<NeuroType, string>>> = {
+  stable: {
+    asd: "感官预算充足，环境在你的掌控中。这是充电、巩固日常的好时候。",
+    adhd: "多巴胺电量满格，脑子转得动。这是做你真正想做的事的好时候。",
+  },
+  accumulating: {
+    asd: "感官输入在累积。还来得及，提前降载比事后修复轻松得多。",
+    adhd: "任务切换和决策在累积疲劳。还来得及，提前减负比硬撑下去轻松得多。",
+  },
+  warning: {
+    asd: "离感官过载还有一步。现在执行协议，比硬撑过去更省力。",
+    adhd: "离执行功能崩溃还有一步。现在执行协议，比硬撑过去更省力。",
+  },
+  overload: {
+    asd: "感官电量已经见底。此刻不需要「应该」，只需要保护自己。",
+    adhd: "多巴胺电量已经见底。此刻不需要「应该」，只需要保护自己。",
+  },
+  recovery: {
+    asd: "刚经历过感官过载，正在回血。低电量是正常的，慢一点。",
+    adhd: "刚经历过执行崩溃，正在回血。低电量是正常的，别急着启动。",
+  },
+};
+
+// 按特质分化的措施基调
+const PHASE_MEASURE_TONE_BY_TYPE: Record<Phase, Partial<Record<NeuroType, string>>> = {
+  stable: {
+    asd: "可以做需要专注的事，也为未来储备感官预算。",
+    adhd: "可以做需要启动的事，也为未来储备多巴胺电量。",
+  },
+  accumulating: {
+    asd: "预防优先：取消非必要安排，给感官降载。",
+    adhd: "预防优先：减少任务切换，给执行功能降载。",
+  },
+  warning: {
+    asd: "立即执行已设协议，最小化决策，能撤就撤。",
+    adhd: "立即执行已设协议，最小化决策，降低启动门槛。",
+  },
+  overload: {
+    asd: "只做最低限度的保护动作，不要求自己「做好」。",
+    adhd: "只做最低限度的制动动作，不要求自己「做好」。",
+  },
+  recovery: {
+    asd: "温柔、不催促。允许低电量，多睡、少做、慢一点。",
+    adhd: "温柔、不催促。允许低电量，别给自己加任务。",
+  },
+};
 
 // 五阶段配置
 export const PHASE_MAP: Record<Phase, PhaseConfig> = {
@@ -101,9 +150,18 @@ export function detectPhase(
   }
 }
 
-// 获取阶段配置
+// 获取阶段配置（默认 · 无特质分化）
 export function getPhaseConfig(phase: Phase): PhaseConfig {
   return PHASE_MAP[phase];
+}
+
+// 获取按特质分化的阶段配置
+// ASD/ADHD 有专属叙事和措施基调；其他特质用默认值
+export function getPhaseConfigForType(phase: Phase, neuroType: NeuroType): PhaseConfig {
+  const base = PHASE_MAP[phase];
+  const narrative = PHASE_NARRATIVE_BY_TYPE[phase]?.[neuroType] ?? base.narrative;
+  const measureTone = PHASE_MEASURE_TONE_BY_TYPE[phase]?.[neuroType] ?? base.measureTone;
+  return { ...base, narrative, measureTone };
 }
 
 // 判断协议是否适用于某阶段

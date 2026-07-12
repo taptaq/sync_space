@@ -486,10 +486,18 @@ export const THERAPIES: Therapy[] = [
   },
 ];
 
-// 按神经特质过滤（"other"返回全库作为通用池 · 确保不确定用户也有参考）
+// 按神经特质过滤（严格隔离 · ASD 只看 ASD 专属 · ADHD 只看 ADHD 专属）
+// "other"返回全库作为通用池 · 确保不确定用户也有参考
 export function getTherapiesByNeuroType(neuroType: NeuroType): Therapy[] {
   if (neuroType === "other") return THERAPIES;
-  return THERAPIES.filter((t) => t.neuroTypes.includes(neuroType));
+  const otherPrimary: NeuroType | null =
+    neuroType === "asd" ? "adhd" : neuroType === "adhd" ? "asd" : null;
+  return THERAPIES.filter((t) => {
+    if (!t.neuroTypes.includes(neuroType)) return false;
+    // 排除同时标记了另一种主要特质的共享条目 · 实现严格隔离
+    if (otherPrimary && t.neuroTypes.includes(otherPrimary)) return false;
+    return true;
+  });
 }
 
 // 按阶段优先级排序（当前阶段匹配的优先）
