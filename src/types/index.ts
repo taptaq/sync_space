@@ -28,6 +28,8 @@ export interface PersonalRule {
   understanding: string;
   support: string;
   evidence_count: number;
+  last_feedback?: "helpful" | "unhelpful";
+  last_feedback_at?: string;
   created_at: string;
   updated_at: string;
 }
@@ -37,6 +39,17 @@ export interface ConnectionMoment {
   rule_id: string;
   mode: "self" | "other";
   connected_at: string;
+  feedback?: "helpful" | "unhelpful";
+}
+
+// ADHD 外部记忆：先统一收下，再一次处理一条
+export interface CaptureItem {
+  id: string;
+  text: string;
+  status: "inbox" | "focus" | "done";
+  created_at: string;
+  focus_started_at?: string;
+  completed_at?: string;
 }
 
 // 天气卡快照

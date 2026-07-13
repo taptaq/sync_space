@@ -89,6 +89,10 @@ export default {
           "80%": { opacity: "0.4" },
           "100%": { transform: "translateY(-60px) translateX(10px)", opacity: "0" },
         },
+        "pulse-slow": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.5" },
+        },
       },
       animation: {
         "fade-in": "fade-in 250ms cubic-bezier(0.16, 1, 0.3, 1)",
@@ -96,6 +100,7 @@ export default {
         breathe: "breathe 4s ease-in-out infinite",
         "glow-drift": "glow-drift 20s ease-in-out infinite",
         "float-particle": "float-particle 8s ease-in-out infinite",
+        "pulse-slow": "pulse-slow 2s ease-in-out infinite",
       },
     },
   },

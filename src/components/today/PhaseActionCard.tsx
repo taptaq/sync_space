@@ -1,7 +1,9 @@
 import { motion } from "framer-motion";
+import { Volume2, VolumeX, Music } from "lucide-react";
 import type { Phase } from "@/types";
 import { useStore } from "@/store/useStore";
 import { detectPhase } from "@/lib/stageEngine";
+import { soundScape, SOUND_OPTIONS, getPhaseSound } from "@/lib/soundEngine";
 import { cn } from "@/lib/utils";
 
 type ActionTone = "calm" | "gentle-urgent" | "urgent" | "recovery";
@@ -48,8 +50,38 @@ export default function PhaseActionCard() {
   const neuroType = useStore((state) => state.neuroType);
   const crashMarks = useStore((state) => state.crashMarks);
   const currentWeather = useStore((state) => state.currentWeather);
+  const soundScapeVolume = useStore((s) => s.soundScapeVolume);
+  const soundScapeType = useStore((s) => s.soundScapeType);
+  const soundScapeEnabled = useStore((s) => s.soundScapeEnabled);
+  const setSoundScape = useStore((s) => s.setSoundScape);
+  const stopSoundScape = useStore((s) => s.stopSoundScape);
+  const pushToast = useStore((s) => s.pushToast);
+
   const phase = detectPhase(currentWeather.climate, crashMarks);
   const action = getAction(phase, neuroType);
+  const phaseSound = getPhaseSound(phase, neuroType);
+
+  const recommendedLabel = phaseSound
+    ? SOUND_OPTIONS.find((o) => o.type === phaseSound.sound)?.label
+    : null;
+
+  const isRecommendedPlaying =
+    !!phaseSound &&
+    phaseSound.sound !== "silence" &&
+    soundScapeEnabled &&
+    soundScapeType === phaseSound.sound;
+
+  const handleToggleRecommend = () => {
+    if (!phaseSound || phaseSound.sound === "silence") return;
+    if (isRecommendedPlaying) {
+      soundScape.stop();
+      stopSoundScape();
+    } else {
+      soundScape.play(phaseSound.sound, soundScapeVolume);
+      setSoundScape(phaseSound.sound);
+      pushToast("info", "正在播放：" + (recommendedLabel ?? ""));
+    }
+  };
 
   return (
     <motion.section
@@ -61,6 +93,48 @@ export default function PhaseActionCard() {
       <p className="text-xs text-ink-muted">现在只做这一步</p>
       <p className="mt-1 text-base font-medium">{action.label}</p>
       <p className="mt-1 text-xs text-ink-muted">{action.subline}</p>
+
+      {phaseSound && recommendedLabel && (
+        <div className="mt-3 border-t border-current/15 pt-3">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/60 text-current">
+              {phaseSound.sound === "silence" ? (
+                <VolumeX size={13} />
+              ) : isRecommendedPlaying ? (
+                <Volume2 size={13} className="animate-pulse-slow" />
+              ) : (
+                <Music size={13} />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium leading-tight">
+                {phaseSound.sound === "silence"
+                  ? "此刻建议：静音"
+                  : isRecommendedPlaying
+                    ? "正在播放 · " + recommendedLabel
+                    : "试试 · " + recommendedLabel}
+              </p>
+              <p className="mt-0.5 text-[11px] leading-tight text-ink-muted">
+                {phaseSound.reason}
+              </p>
+            </div>
+            {phaseSound.sound !== "silence" && (
+              <button
+                onClick={handleToggleRecommend}
+                className={cn(
+                  "flex h-7 items-center gap-1 rounded-full px-3 text-[11px] font-medium transition-all duration-250",
+                  isRecommendedPlaying
+                    ? "bg-white/70 text-ink-muted hover:bg-white/90"
+                    : "bg-primary text-white hover:bg-primary-soft",
+                )}
+                aria-label={isRecommendedPlaying ? "停止音景" : "播放推荐音景"}
+              >
+                {isRecommendedPlaying ? "停止" : "播放"}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </motion.section>
   );
 }

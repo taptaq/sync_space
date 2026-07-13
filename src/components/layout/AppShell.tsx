@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { useStore } from "@/store/useStore";
 import { useT } from "@/lib/i18n";
 import CrisisSupport from "@/components/common/CrisisSupport";
+import SoundScape from "@/components/common/SoundScape";
 
 // 三段主循环：预警 → 理解 → 连接
 const TAB_KEYS = [
@@ -105,6 +106,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       {hideNav || <div className="h-20 shrink-0" />}
+
+      {/* 全局音景控制器（底栏左侧悬浮 · 不在 onboarding 等深度专注页显示） */}
+      {!hideNav && <SoundScape />}
     </div>
   );
 }

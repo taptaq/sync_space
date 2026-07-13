@@ -4,6 +4,7 @@ import type {
   AIObservation,
   AppMode,
   CheckIn,
+  CaptureItem,
   CollaboratorRole,
   ConnectionMoment,
   CrashMark,
@@ -20,6 +21,7 @@ import { generateWeather, defaultWeather } from "@/lib/weatherEngine";
 import { matchTriggers } from "@/lib/triggerEngine";
 import { detectPhase } from "@/lib/stageEngine";
 import type { Lang } from "@/lib/translations";
+import type { SoundType } from "@/lib/soundEngine";
 import { genId } from "@/lib/format";
 import {
   mockCheckIns,
@@ -51,6 +53,9 @@ interface StoreState {
   observation: AIObservation | null;
   personalRules: PersonalRule[];
   connectionMoments: ConnectionMoment[];
+  connectionPreferences: string[];
+  captureItems: CaptureItem[];
+  ruleSeed: string | null;
 
   // 当前天气卡
   currentWeather: WeatherSnapshot;
@@ -77,6 +82,11 @@ interface StoreState {
   lowSensoryMode: boolean;
   language: Lang;
 
+  // 音景偏好（Web Audio API · 零版权 · 程序生成）
+  soundScapeType: SoundType | null; // null = 未播放
+  soundScapeVolume: number; // 0-1
+  soundScapeEnabled: boolean;
+
   // 协议执行效果反馈（PRD §09 反馈闭环 · 执行后延时询问是否有效）
   pendingFeedbackExecId: string | null;
 
@@ -90,6 +100,9 @@ interface StoreState {
   setQwenEnabled: (enabled: boolean) => void;
   setLowSensoryMode: (enabled: boolean) => void;
   setLanguage: (lang: Lang) => void;
+  setSoundScape: (type: SoundType | null, volume?: number) => void;
+  setSoundScapeVolume: (volume: number) => void;
+  stopSoundScape: () => void;
   addCheckIn: (
     sensory: number,
     social: number,
@@ -130,6 +143,15 @@ interface StoreState {
   reinforcePersonalRule: (id: string) => void;
   deletePersonalRule: (id: string) => void;
   recordConnection: (ruleId: string, mode: ConnectionMoment["mode"]) => void;
+  setConnectionPreferences: (preferences: string[]) => void;
+  submitRuleFeedback: (ruleId: string, feedback: "helpful" | "unhelpful") => void;
+  addCapture: (text: string) => void;
+  focusCapture: (id: string) => void;
+  startCaptureTimer: (id: string) => void;
+  completeCapture: (id: string) => void;
+  returnCaptureToInbox: (id: string) => void;
+  seedRuleFromCapture: (id: string) => void;
+  clearRuleSeed: () => void;
   saveTraitResult: (result: ScaleResult) => void;
   pushToast: (type: ToastMessage["type"], text: string) => void;
   dismissToast: (id: string) => void;
@@ -156,6 +178,9 @@ export const useStore = create<StoreState>()(
       observation: mockObservation,
       personalRules: [],
       connectionMoments: [],
+      connectionPreferences: [],
+      captureItems: [],
+      ruleSeed: null,
 
       currentWeather: defaultWeather(),
 
@@ -171,6 +196,11 @@ export const useStore = create<StoreState>()(
 
       lowSensoryMode: false,
       language: "zh" as Lang,
+
+      // 音景初始状态：未播放，音量 0.3
+      soundScapeType: null,
+      soundScapeVolume: 0.3,
+      soundScapeEnabled: false,
 
       pendingFeedbackExecId: null,
 
@@ -189,6 +219,20 @@ export const useStore = create<StoreState>()(
 
       setLowSensoryMode: (enabled) => set({ lowSensoryMode: enabled }),
       setLanguage: (lang) => set({ language: lang }),
+
+      setSoundScape: (type, volume) => {
+        if (type === null) {
+          set({ soundScapeType: null, soundScapeEnabled: false });
+        } else {
+          set({
+            soundScapeType: type,
+            soundScapeEnabled: true,
+            ...(volume !== undefined ? { soundScapeVolume: volume } : {}),
+          });
+        }
+      },
+      setSoundScapeVolume: (volume) => set({ soundScapeVolume: volume }),
+      stopSoundScape: () => set({ soundScapeType: null, soundScapeEnabled: false }),
 
       addCheckIn: (sensory, social, predictability, hesitationMs, extras) => {
         const neuroType = get().neuroType;
@@ -505,6 +549,106 @@ export const useStore = create<StoreState>()(
         }));
       },
 
+      setConnectionPreferences: (connectionPreferences) => set({ connectionPreferences }),
+
+      submitRuleFeedback: (ruleId, feedback) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          personalRules: state.personalRules.map((rule) =>
+            rule.id === ruleId
+              ? {
+                  ...rule,
+                  evidence_count: feedback === "helpful" ? rule.evidence_count + 1 : rule.evidence_count,
+                  last_feedback: feedback,
+                  last_feedback_at: now,
+                  updated_at: now,
+                }
+              : rule,
+          ),
+          connectionMoments: state.connectionMoments.map((moment) =>
+            moment.rule_id === ruleId && !moment.feedback
+              ? { ...moment, feedback }
+              : moment,
+          ),
+        }));
+      },
+
+      addCapture: (text) => {
+        const value = text.trim();
+        if (!value) return;
+        set((state) => ({
+          captureItems: [
+            ...state.captureItems,
+            {
+              id: genId("capture"),
+              text: value,
+              status: "inbox",
+              created_at: new Date().toISOString(),
+            },
+          ],
+        }));
+      },
+
+      focusCapture: (id) => {
+        set((state) => ({
+          captureItems: state.captureItems.map((item) =>
+            item.id === id
+              ? { ...item, status: "focus", focus_started_at: undefined }
+              : item.status === "focus"
+                ? { ...item, status: "inbox", focus_started_at: undefined }
+                : item,
+          ),
+        }));
+      },
+
+      startCaptureTimer: (id) => {
+        set((state) => ({
+          captureItems: state.captureItems.map((item) =>
+            item.id === id ? { ...item, focus_started_at: new Date().toISOString() } : item,
+          ),
+        }));
+      },
+
+      completeCapture: (id) => {
+        set((state) => ({
+          captureItems: state.captureItems.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  status: "done",
+                  focus_started_at: undefined,
+                  completed_at: new Date().toISOString(),
+                }
+              : item,
+          ),
+        }));
+      },
+
+      returnCaptureToInbox: (id) => {
+        set((state) => ({
+          captureItems: state.captureItems.map((item) =>
+            item.id === id
+              ? { ...item, status: "inbox", focus_started_at: undefined }
+              : item,
+          ),
+        }));
+      },
+
+      seedRuleFromCapture: (id) => {
+        const item = get().captureItems.find((candidate) => candidate.id === id);
+        if (!item) return;
+        set((state) => ({
+          ruleSeed: item.text,
+          captureItems: state.captureItems.map((candidate) =>
+            candidate.id === id
+              ? { ...candidate, status: "done", completed_at: new Date().toISOString() }
+              : candidate,
+          ),
+        }));
+      },
+
+      clearRuleSeed: () => set({ ruleSeed: null }),
+
       // 保存特质自评结果（PRD §11 非诊断 · 同量表重做则覆盖旧结果）
       saveTraitResult: (result) => {
         const existing = get().traitProfile;
@@ -544,6 +688,9 @@ export const useStore = create<StoreState>()(
           observation: mockObservation,
           personalRules: [],
           connectionMoments: [],
+          connectionPreferences: [],
+          captureItems: [],
+          ruleSeed: null,
           currentWeather: defaultWeather(),
           activeTrigger: null,
           triggerCountToday: 0,
@@ -553,6 +700,9 @@ export const useStore = create<StoreState>()(
           qwenEnabled: false,
           lowSensoryMode: false,
           language: "zh" as Lang,
+          soundScapeType: null,
+          soundScapeVolume: 0.3,
+          soundScapeEnabled: false,
           toasts: [],
         });
       },
@@ -570,12 +720,17 @@ export const useStore = create<StoreState>()(
         observation: state.observation,
         personalRules: state.personalRules,
         connectionMoments: state.connectionMoments,
+        connectionPreferences: state.connectionPreferences,
+        captureItems: state.captureItems,
         currentWeather: state.currentWeather,
         traitProfile: state.traitProfile,
         collaborator: state.collaborator,
         qwenEnabled: state.qwenEnabled,
         lowSensoryMode: state.lowSensoryMode,
         language: state.language,
+        soundScapeType: state.soundScapeType,
+        soundScapeVolume: state.soundScapeVolume,
+        soundScapeEnabled: state.soundScapeEnabled,
       }),
     },
   ),

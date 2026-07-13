@@ -19,6 +19,7 @@ export default function WeatherCard({
   trajectory,
   pressureValue,
   compact = false,
+  statusLabel = "当前气候",
 }: {
   weather: WeatherSnapshot;
   updatedAt?: string;
@@ -28,6 +29,7 @@ export default function WeatherCard({
   // 气压值 0-100，由三轴均值或阶段映射计算传入
   pressureValue?: number;
   compact?: boolean;
+  statusLabel?: string;
 }) {
   const neuroType = useStore((s) => s.neuroType);
   const phase = detectPhase(weather.climate, crashMarks ?? []);
@@ -65,7 +67,7 @@ export default function WeatherCard({
 
       <div className="text-center">
         <p className="text-xs uppercase tracking-widest text-ink-muted">
-          当前气候
+          {statusLabel}
         </p>
         <h2 className="mt-1 font-serif text-3xl text-ink">
           {weather.climate_label}
@@ -183,7 +185,7 @@ export default function WeatherCard({
 
       {updatedAt && (
         <p className={cn("text-center text-xs text-ink-muted/70", compact ? "mt-6" : "mt-5")}>
-          更新于 {updatedAt}
+          {statusLabel === "当前气候" ? "更新于" : "记录于"} {updatedAt}
         </p>
       )}
     </motion.section>

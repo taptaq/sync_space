@@ -172,9 +172,9 @@ function TherapyPickCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.08, duration: 0.25 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: index * 0.04, duration: 0.2 }}
       className="rounded-xl border border-edge bg-white/50 p-3.5"
     >
       <div className="flex items-start justify-between gap-2">

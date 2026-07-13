@@ -1,9 +1,27 @@
-import { useState } from "react";
-import { Check, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, Check, ChevronRight, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import type { PersonalRule } from "@/types";
 import { useStore } from "@/store/useStore";
+import { cn } from "@/lib/utils";
 
 const EMPTY_RULE = { signal: "", understanding: "", support: "" };
+
+const ADHD_UNDERSTANDING_OPTIONS = [
+  "一直拖延，不等于故意逃避；时间和启动信号可能没有外显",
+  "想了很多，不等于什么都没做；我已经在规划，但第一步仍然太大",
+  "犯错，不等于我很差；它提示工作记忆或环境需要外部支持",
+  "焦虑，不等于没有能力；我在意结果，也需要把风险和截止点写出来",
+  "不想努力，不等于懒；当前精力可能与任务不匹配",
+];
+
+const ADHD_SUPPORT_OPTIONS = [
+  "把时间和截止点放到眼前",
+  "只做第一个毫无压力的小步骤",
+  "使用固定启动仪式，不等动力出现",
+  "把常用物品放回固定位置",
+  "请信任的人陪我开始，但不要催完成",
+  "完成一个小步骤后，立刻给自己喜欢的反馈",
+];
 
 export default function RuleBook() {
   const rules = useStore((state) => state.personalRules);
@@ -12,9 +30,21 @@ export default function RuleBook() {
   const updateRule = useStore((state) => state.updatePersonalRule);
   const reinforceRule = useStore((state) => state.reinforcePersonalRule);
   const deleteRule = useStore((state) => state.deletePersonalRule);
+  const ruleSeed = useStore((state) => state.ruleSeed);
+  const clearRuleSeed = useStore((state) => state.clearRuleSeed);
   const [creating, setCreating] = useState(rules.length === 0);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState(EMPTY_RULE);
+  const [formStep, setFormStep] = useState(0);
+
+  useEffect(() => {
+    if (!ruleSeed) return;
+    setCreating(true);
+    setEditingId(null);
+    setDraft({ ...EMPTY_RULE, signal: ruleSeed });
+    setFormStep(1);
+    clearRuleSeed();
+  }, [clearRuleSeed, ruleSeed]);
 
   const startEdit = (rule: PersonalRule) => {
     setEditingId(rule.id);
@@ -24,12 +54,14 @@ export default function RuleBook() {
       understanding: rule.understanding,
       support: rule.support,
     });
+    setFormStep(0);
   };
 
   const closeForm = () => {
     setCreating(false);
     setEditingId(null);
     setDraft(EMPTY_RULE);
+    setFormStep(0);
   };
 
   const save = () => {
@@ -71,6 +103,7 @@ export default function RuleBook() {
             onClick={() => {
               setCreating(true);
               setDraft(EMPTY_RULE);
+              setFormStep(0);
             }}
             className="flex min-h-10 items-center gap-1.5 rounded-full border border-edge bg-white/60 px-3 text-xs text-primary"
           >
@@ -89,7 +122,15 @@ export default function RuleBook() {
               <X size={18} />
             </button>
           </div>
-          {!editingId && !draft.signal && (
+          <div className="mb-4 flex items-center justify-between">
+            <span className="text-xs text-ink-muted">{formStep + 1} / 3</span>
+            <div className="flex gap-1" aria-hidden="true">
+              {[0, 1, 2].map((step) => (
+                <span key={step} className={cn("h-1.5 w-7 rounded-full", step <= formStep ? "bg-primary" : "bg-edge")} />
+              ))}
+            </div>
+          </div>
+          {!editingId && formStep === 0 && !draft.signal && (
             <button
               type="button"
               onClick={() => setDraft(starter)}
@@ -98,32 +139,86 @@ export default function RuleBook() {
               用一个例子开始
             </button>
           )}
-          <RuleInput
-            label="当我出现"
-            placeholder="例如：开始反复看同一个地方"
-            value={draft.signal}
-            onChange={(signal) => setDraft((value) => ({ ...value, signal }))}
-          />
-          <RuleInput
-            label="这通常意味着"
-            placeholder="例如：信息已经太多，不是不配合"
-            value={draft.understanding}
-            onChange={(understanding) => setDraft((value) => ({ ...value, understanding }))}
-          />
-          <RuleInput
-            label="对我有帮助的是"
-            placeholder="例如：停止提问，给我十分钟安静"
-            value={draft.support}
-            onChange={(support) => setDraft((value) => ({ ...value, support }))}
-          />
-          <button
-            type="button"
-            onClick={save}
-            disabled={!draft.signal.trim() || !draft.understanding.trim() || !draft.support.trim()}
-            className="mt-1 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-primary text-sm font-medium text-white disabled:bg-edge disabled:text-ink-faint"
-          >
-            <Check size={16} /> 保存这版理解
-          </button>
+          {formStep === 0 && (
+            <RuleInput
+              label="你观察到了什么？"
+              placeholder="只写看得见的信号，例如：回答变慢"
+              value={draft.signal}
+              onChange={(signal) => setDraft((value) => ({ ...value, signal }))}
+            />
+          )}
+          {formStep === 1 && (
+            <>
+              <RuleInput
+                label="这对你可能意味着什么？"
+                placeholder="可以只是一个猜测"
+                value={draft.understanding}
+                onChange={(understanding) => setDraft((value) => ({ ...value, understanding }))}
+              />
+              {neuroType === "adhd" && (
+                <RuleChoices
+                  label="把自责换成一个可验证的解释 · 不是找借口"
+                  options={ADHD_UNDERSTANDING_OPTIONS}
+                  value={draft.understanding}
+                  onSelect={(understanding) => setDraft((value) => ({ ...value, understanding }))}
+                />
+              )}
+              {!draft.understanding && (
+                <button type="button" onClick={() => setDraft((value) => ({ ...value, understanding: "我还不确定，需要继续观察" }))} className="mb-3 text-xs text-ink-muted underline underline-offset-4">
+                  暂时不确定
+                </button>
+              )}
+            </>
+          )}
+          {formStep === 2 && (
+            <>
+              <RuleInput
+                label="下次先怎样支持自己？"
+                placeholder="只写一个最小动作"
+                value={draft.support}
+                onChange={(support) => setDraft((value) => ({ ...value, support }))}
+              />
+              {neuroType === "adhd" && (
+                <RuleChoices
+                  label="只选一个下次最容易尝试的支持"
+                  options={ADHD_SUPPORT_OPTIONS}
+                  value={draft.support}
+                  onSelect={(support) => setDraft((value) => ({ ...value, support }))}
+                />
+              )}
+              {!draft.support && (
+                <button type="button" onClick={() => setDraft((value) => ({ ...value, support: "暂时降低要求，稍后再决定" }))} className="mb-3 text-xs text-ink-muted underline underline-offset-4">
+                  现在还不知道
+                </button>
+              )}
+            </>
+          )}
+          <div className="mt-1 flex gap-2">
+            {formStep > 0 && (
+              <button type="button" onClick={() => setFormStep((step) => step - 1)} className="flex min-h-11 items-center gap-1 rounded-full border border-edge px-4 text-sm text-ink-muted">
+                <ArrowLeft size={15} /> 上一步
+              </button>
+            )}
+            {formStep < 2 ? (
+              <button
+                type="button"
+                onClick={() => setFormStep((step) => step + 1)}
+                disabled={formStep === 0 ? !draft.signal.trim() : !draft.understanding.trim()}
+                className="flex min-h-11 flex-1 items-center justify-center gap-1 rounded-full bg-primary text-sm font-medium text-white disabled:bg-edge disabled:text-ink-faint"
+              >
+                下一步 <ChevronRight size={15} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={save}
+                disabled={!draft.support.trim()}
+                className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full bg-primary text-sm font-medium text-white disabled:bg-edge disabled:text-ink-faint"
+              >
+                <Check size={16} /> 保存这版理解
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -163,6 +258,42 @@ export default function RuleBook() {
         </button>
       )}
     </section>
+  );
+}
+
+function RuleChoices({
+  label,
+  options,
+  value,
+  onSelect,
+}: {
+  label: string;
+  options: string[];
+  value: string;
+  onSelect: (value: string) => void;
+}) {
+  return (
+    <div className="mb-4">
+      <p className="mb-2 text-xs text-ink-faint">{label}</p>
+      <div className="grid gap-2">
+        {options.map((option) => (
+          <button
+            key={option}
+            type="button"
+            aria-pressed={value === option}
+            onClick={() => onSelect(option)}
+            className={cn(
+              "min-h-10 rounded-lg border px-3 py-2 text-left text-xs leading-relaxed",
+              value === option
+                ? "border-primary bg-primary text-white"
+                : "border-edge bg-white/55 text-ink-muted",
+            )}
+          >
+            {option}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 

@@ -106,10 +106,10 @@ export default function Onboarding() {
         {step === 0 && (
           <motion.div
             key="intro"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-1 flex-col"
           >
             <h1 className="font-serif text-4xl leading-tight text-ink">
@@ -184,10 +184,10 @@ export default function Onboarding() {
         {step === 1 && (
           <motion.div
             key="neuro"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-1 flex-col"
           >
             <p className="text-xs uppercase tracking-widest text-primary">
@@ -262,10 +262,10 @@ export default function Onboarding() {
         {step === 2 && (
           <motion.div
             key="consent"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-1 flex-col"
           >
             <p className="text-xs uppercase tracking-widest text-primary">
@@ -378,10 +378,10 @@ export default function Onboarding() {
         {step === 3 && (
           <motion.div
             key="qwen"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-1 flex-col"
           >
             <p className="text-xs uppercase tracking-widest text-primary">
@@ -467,10 +467,10 @@ export default function Onboarding() {
         {step === 4 && (
           <motion.div
             key="first-protocol"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-1 flex-col"
           >
             <p className="text-xs uppercase tracking-widest text-primary">

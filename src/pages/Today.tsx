@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Mic, Sliders } from "lucide-react";
+import { ChevronDown, Mic, Sliders, Mail } from "lucide-react";
 import WeatherCard from "@/components/weather/WeatherCard";
 import CheckInCard from "@/components/checkin/CheckInCard";
 import ParentCheckInCard from "@/components/checkin/ParentCheckInCard";
@@ -8,9 +8,12 @@ import ParentGuidanceCard from "@/components/parent/ParentGuidanceCard";
 import VoiceCheckIn from "@/components/qwen/VoiceCheckIn";
 import FeedbackPrompt from "@/components/today/FeedbackPrompt";
 import CheckInReward from "@/components/today/CheckInReward";
+import ClimatePostcard from "@/components/today/ClimatePostcard";
+import { getClimateFingerprint } from "@/lib/climateFingerprint";
 import NeuroTypeSelector, { useNeuroTypeSelector } from "@/components/common/NeuroTypeSelector";
 import Toolbox from "@/components/today/Toolbox";
 import PhaseActionCard from "@/components/today/PhaseActionCard";
+import QuickCapture from "@/components/today/QuickCapture";
 import Disclaimer from "@/components/common/Disclaimer";
 import { useStore } from "@/store/useStore";
 import { formatTime, isToday } from "@/lib/format";
@@ -36,8 +39,9 @@ export default function Today() {
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const { showSelector, openSelector, closeSelector } = useNeuroTypeSelector();
   const [checkinMode, setCheckinMode] = useState<"slider" | "voice">("slider");
-  const [showRecords, setShowRecords] = useState(false);
   const [showReward, setShowReward] = useState(false);
+  const [showPostcard, setShowPostcard] = useState(false);
+  const [showRecords, setShowRecords] = useState(false);
 
   const isParentProxy = appMode === "parent_proxy";
   const { tr } = useT();
@@ -91,6 +95,12 @@ export default function Today() {
     setShowReward(true);
   };
 
+  // 气候指纹：签到 3+ 次后解锁明信片
+  const fingerprint = useMemo(
+    () => getClimateFingerprint(checkins, neuroType),
+    [checkins, neuroType],
+  );
+
   return (
     <div className="space-y-6">
       {/* 1. 天气卡（顶部 · 可预测位置） */}
@@ -102,6 +112,7 @@ export default function Today() {
           diff={diff}
           trajectory={trajectory}
           compact
+          statusLabel={lastCheckinTime ? "上次记录的气候" : "还没有状态记录"}
         />
       </div>
 
@@ -117,6 +128,9 @@ export default function Today() {
 
       {/* 1.5 阶段行动衔接（天气→行动 · 单一建议 · 消除选择瘫痪） */}
       {!isParentProxy && <PhaseActionCard />}
+
+      {/* ADHD：所有零散想法先进入同一个外部收件箱 */}
+      {!isParentProxy && neuroType === "adhd" && <QuickCapture />}
 
       {/* 2. 核心动作：签到（自主 or 家长代理） */}
       {isParentProxy ? (
@@ -162,6 +176,25 @@ export default function Today() {
       {/* 3. 唯一低频出口：过载补记 */}
       <Toolbox qwenEnabled={qwenEnabled} />
 
+      {/* 3.5 气候明信片入口（签到 3+ 次解锁） */}
+      {fingerprint && !isParentProxy && (
+        <motion.button
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          onClick={() => setShowPostcard(true)}
+          className="flex w-full items-center gap-3 rounded-card border border-edge/60 bg-white/40 px-4 py-3 text-left transition-all duration-250 hover:bg-white/60"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-mist/50">
+            <Mail size={15} className="text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-ink">生成气候明信片</p>
+            <p className="text-xs text-ink-muted">把此刻的气候做成图片，你可以自己决定分享到哪里</p>
+          </div>
+        </motion.button>
+      )}
+
       {/* 4. 今日记录默认收起，避免和当前签到竞争 */}
       {todayCheckins.length > 0 && (
         <section className="border-t border-edge/70 pt-1">
@@ -174,12 +207,12 @@ export default function Today() {
             <ChevronDown size={15} className={cn("transition-transform", showRecords && "rotate-180")} />
           </button>
           {showRecords && <div className="space-y-3 pb-3">
-            {todayCheckins.map((c, i) => (
+            {todayCheckins.map((c) => (
               <motion.div
                 key={c.id}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.2, delay: i * 0.04, ease: [0.16, 1, 0.3, 1] }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                 className="flex items-center justify-between text-small"
               >
                 <span className="font-mono text-xs text-ink-muted">{formatTime(c.checkin_at)}</span>
@@ -232,6 +265,15 @@ export default function Today() {
         streakDays={streakDays}
         totalCheckins={checkins.length}
         onComplete={() => setShowReward(false)}
+      />
+
+      {/* 气候明信片 */}
+      <ClimatePostcard
+        show={showPostcard}
+        onClose={() => setShowPostcard(false)}
+        checkins={checkins}
+        neuroType={neuroType}
+        currentWeather={currentWeather}
       />
 
     </div>

@@ -9,6 +9,7 @@ import { detectPhase, getPhaseConfig } from "@/lib/stageEngine";
 import { cn } from "@/lib/utils";
 import { useVoice, useT } from "@/lib/i18n";
 import RuleBook from "@/components/understand/RuleBook";
+import CaptureInbox from "@/components/understand/CaptureInbox";
 import type { Phase } from "@/types";
 
 // 我的气候页 · 每周循环（PRD §05 页面2）
@@ -19,6 +20,7 @@ export default function Climate() {
   const executions = useStore((s) => s.executions);
   const crashMarks = useStore((s) => s.crashMarks);
   const traitProfile = useStore((s) => s.traitProfile);
+  const neuroType = useStore((s) => s.neuroType);
   const { isParent } = useVoice();
   const { tr } = useT();
 
@@ -79,6 +81,8 @@ export default function Climate() {
           {isParent ? tr("climate_desc_parent") : tr("climate_desc_self")}
         </p>
       </motion.header>
+
+      {neuroType === "adhd" && <CaptureInbox />}
 
       <RuleBook />
 

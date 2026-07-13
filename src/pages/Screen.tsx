@@ -236,10 +236,10 @@ export default function Screen() {
         <AnimatePresence mode="wait">
           <motion.div
             key={questionIdx}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className="mt-10 flex flex-1 flex-col"
           >
             <p className="text-xs uppercase tracking-widest text-primary">
@@ -417,9 +417,9 @@ export default function Screen() {
               {result.recommended_protocols.map((proto, i) => (
                 <motion.div
                   key={i}
-                  initial={{ opacity: 0, x: 8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + i * 0.08, duration: 0.3 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: i * 0.05, duration: 0.25 }}
                   className="rounded-card border border-dashed-candidate bg-white/40 p-4"
                 >
                   <p className="font-mono text-xs text-primary">THEN</p>

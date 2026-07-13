@@ -27,6 +27,21 @@ const EMOJI_SLOTS = [
   { value: 8, emoji: "😊", label: "不错" },
 ];
 
+const OBSERVABLE_SIGNALS = {
+  adhd: [
+    { label: "开始不了", value: 3 },
+    { label: "反复切换", value: 4 },
+    { label: "停不下来", value: 4 },
+    { label: "还能聚焦", value: 7 },
+  ],
+  asd: [
+    { label: "声光变刺", value: 3 },
+    { label: "不想说话", value: 3 },
+    { label: "变化不安", value: 4 },
+    { label: "目前稳定", value: 7 },
+  ],
+} as const;
+
 // 早期预警信号 · 按特质分化（ASD 侧重感官/社交退缩，ADHD 侧重执行/冲动）
 const EARLY_SIGNALS_BY_TYPE: Record<NeuroType, string[]> = {
   asd: [
@@ -74,6 +89,10 @@ export default function CheckInCard({ onSubmitted }: CheckInCardProps) {
   const earlySignals = EARLY_SIGNALS_BY_TYPE[neuroType] ?? EARLY_SIGNALS_BY_TYPE.other;
 
   const [simpleMode, setSimpleMode] = useState(true);
+  const [simpleInputMode, setSimpleInputMode] = useState<"observable" | "feeling">(
+    neuroType === "adhd" || neuroType === "asd" ? "observable" : "feeling",
+  );
+  const [selectedObservable, setSelectedObservable] = useState<string | null>(null);
   const [overall, setOverall] = useState<number | null>(null);
   const [values, setValues] = useState<Record<AxisKey, number>>(() => {
     const last = checkins[checkins.length - 1];
@@ -203,27 +222,40 @@ export default function CheckInCard({ onSubmitted }: CheckInCardProps) {
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
           >
-            <p className="mb-3 text-sm text-ink-muted">现在整体感觉怎么样？</p>
-            <div className="flex justify-between gap-2">
-              {EMOJI_SLOTS.map((slot, i) => {
-                const selected = overall === slot.value;
+            <p className="mb-3 text-sm text-ink-muted">
+              {simpleInputMode === "observable" ? "现在最明显的信号是？" : "现在整体感觉怎么样？"}
+            </p>
+            <div className={cn("gap-2", simpleInputMode === "observable" ? "grid grid-cols-2" : "flex justify-between")}>
+              {(simpleInputMode === "observable" && (neuroType === "adhd" || neuroType === "asd")
+                ? OBSERVABLE_SIGNALS[neuroType]
+                : EMOJI_SLOTS
+              ).map((slot) => {
+                const isObservable = !("emoji" in slot);
+                const selected = overall === slot.value && (!isObservable || selectedObservable === slot.label);
                 return (
                   <motion.button
-                    key={slot.value}
-                    onClick={() => setOverall(slot.value)}
+                    key={isObservable ? slot.label : slot.value}
+                    onClick={() => {
+                      setOverall(slot.value);
+                      if (isObservable) {
+                        setSelectedObservable(slot.label);
+                        setSelectedSignals([slot.label]);
+                      }
+                    }}
                     disabled={done}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.25, delay: 0.3 + i * 0.05, ease: [0.16, 1, 0.3, 1] }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                     whileTap={{ scale: 0.92 }}
                     className={cn(
-                      "flex flex-1 flex-col items-center gap-1 rounded-xl border py-3 transition-all duration-250",
+                      "flex min-h-12 flex-1 items-center justify-center gap-1 rounded-xl border px-2 py-3 transition-all duration-250",
+                      !isObservable && "flex-col",
                       selected
                         ? "border-primary/40 bg-primary-mist/40 shadow-glow"
                         : "border-edge bg-white/40 hover:bg-white/70",
                     )}
                   >
-                    <span className="text-2xl leading-none">{slot.emoji}</span>
+                    {!isObservable && <span className="text-2xl leading-none">{slot.emoji}</span>}
                     <span className={cn("text-[11px]", selected ? "text-primary font-medium" : "text-ink-faint")}>
                       {slot.label}
                     </span>
@@ -231,6 +263,21 @@ export default function CheckInCard({ onSubmitted }: CheckInCardProps) {
                 );
               })}
             </div>
+
+            {(neuroType === "adhd" || neuroType === "asd") && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSimpleInputMode((mode) => mode === "observable" ? "feeling" : "observable");
+                  setOverall(null);
+                  setSelectedObservable(null);
+                  setSelectedSignals([]);
+                }}
+                className="mx-auto mt-3 block text-xs text-ink-faint underline underline-offset-4"
+              >
+                {simpleInputMode === "observable" ? "改用整体感受" : "改用可观察信号"}
+              </button>
+            )}
 
             {/* 提交按钮 */}
             <button
@@ -334,8 +381,8 @@ export default function CheckInCard({ onSubmitted }: CheckInCardProps) {
             {/* 冷却提示 */}
             {isCoolingDown && !done && (
               <motion.div
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 className="mt-3 flex items-center justify-center gap-1.5 text-xs text-ink-muted"
               >
                 <Clock size={12} className="text-ink-faint" />
