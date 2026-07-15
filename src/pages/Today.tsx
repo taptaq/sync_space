@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Mic, Sliders, Mail, RotateCcw, Languages, Users, User } from "lucide-react";
+import { ChevronDown, Mic, Sliders, Mail, RotateCcw, Languages, Users, User, Sparkles } from "lucide-react";
 import WeatherCard from "@/components/weather/WeatherCard";
 import CheckInCard from "@/components/checkin/CheckInCard";
 import ParentCheckInCard from "@/components/checkin/ParentCheckInCard";
@@ -39,6 +39,7 @@ export default function Today() {
   const appMode = useStore((s) => s.appMode);
   const setAppMode = useStore((s) => s.setAppMode);
   const qwenEnabled = useStore((s) => s.qwenEnabled);
+  const setQwenEnabled = useStore((s) => s.setQwenEnabled);
   const language = useStore((s) => s.language);
   const setLanguage = useStore((s) => s.setLanguage);
   const pushToast = useStore((s) => s.pushToast);
@@ -142,6 +143,23 @@ export default function Today() {
         >
           <RotateCcw size={11} />
           {tr("today_change_neurotype")}·{neuroType === "asd" ? "ASD" : neuroType === "adhd" ? (adhdSubtype === "inattentive" ? "ADHD·注意力缺陷" : adhdSubtype === "hyperactive" ? "ADHD·多动冲动" : adhdSubtype === "combined" ? "ADHD·混合" : "ADHD") : tr("onb_neuro_other")}
+        </button>
+        <button
+          onClick={() => {
+            const next = !qwenEnabled;
+            setQwenEnabled(next);
+            pushToast("info", next ? tr("today_ai_switched_on") : tr("today_ai_switched_off"));
+          }}
+          className={cn(
+            "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-all duration-250",
+            qwenEnabled
+              ? "border-primary/40 bg-primary-mist/40 text-primary hover:bg-primary-mist/60"
+              : "border-edge bg-white/40 text-ink-muted hover:bg-white/60",
+          )}
+          aria-label={qwenEnabled ? tr("today_ai_on") : tr("today_ai_off")}
+        >
+          <Sparkles size={11} />
+          {qwenEnabled ? tr("today_ai_on") : tr("today_ai_off")}
         </button>
       </div>
 
