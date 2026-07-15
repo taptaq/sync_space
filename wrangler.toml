@@ -1,14 +1,14 @@
 # 前端 Cloudflare Workers 静态资源配置
+# 纯静态资源 Worker（无入口脚本），部署 Vite 构建产物
 # 部署：npx wrangler deploy（在项目根目录执行）
-# 或在 Cloudflare Dashboard 连接 Git 仓库时自动识别
 
 name = "sync-space"
 compatibility_date = "2024-12-01"
 
 # 静态资源（Vite 构建输出）
+# assets-only Worker 不能有 binding，只用 directory + not_found_handling
 [assets]
 directory = "./dist"
-binding = "ASSETS"
 
 # SPA 路由 fallback：未匹配静态文件的路径返回 index.html
 # 替代 _redirects 的 /* /index.html 200（后者在 Workers 下会触发无限循环）
