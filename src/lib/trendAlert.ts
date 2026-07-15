@@ -1,4 +1,4 @@
-import type { CheckIn, NeuroType } from "@/types";
+import type { CheckIn, NeuroType, LocalText } from "@/types";
 import { getAxisProfile, toStrain, type AxisConfig } from "@/lib/axisConfig";
 
 // 趋势预警引擎（PRD §01 灵魂：在过载前而非过载后被推一把）
@@ -7,7 +7,7 @@ import { getAxisProfile, toStrain, type AxisConfig } from "@/lib/axisConfig";
 export interface TrendAlert {
   level: "hint" | "warning"; // hint = 轻微上升，warning = 接近临界
   axis: AxisConfig; // 哪条轴在升
-  message: string; // 预警文案
+  message: LocalText; // 预警文案
 }
 
 // 计算单次签到的三轴 strain（0-10，10=最差）
@@ -61,7 +61,10 @@ export function analyzeTrend(
       return {
         level: "warning",
         axis,
-        message: `${axis.label}在升高（${latest.toFixed(1)}/10）· 现在执行一个协议可能比硬撑更省力`,
+        message: {
+          zh: `${axis.label.zh}在升高（${latest.toFixed(1)}/10）· 现在执行一个协议可能比硬撑更省力`,
+          en: `${axis.label.en} is rising (${latest.toFixed(1)}/10) · Running a protocol now may take less effort than pushing through`,
+        },
       };
     }
 
@@ -70,7 +73,10 @@ export function analyzeTrend(
       return {
         level: "hint",
         axis,
-        message: `${axis.label}这两天在慢慢升高 · 留意一下，提前减负比事后修复轻松`,
+        message: {
+          zh: `${axis.label.zh}这两天在慢慢升高 · 留意一下，提前减负比事后修复轻松`,
+          en: `${axis.label.en} has been slowly rising these past two days · Take note; offloading proactively is easier than repairing afterward`,
+        },
       };
     }
   }

@@ -4,21 +4,23 @@ import { Check, Copy, Heart, Layers, MessageCircle, UserRound, Volume2 } from "l
 import { useStore } from "@/store/useStore";
 import { cn } from "@/lib/utils";
 import LoopProgressCard from "@/components/connection/LoopProgressCard";
+import { useT } from "@/lib/i18n";
+import type { StringKey } from "@/lib/translations";
 
 type ConnectionMode = "self" | "other";
 type ConnectionStyle = "short" | "voice" | "full";
 
-const PREFERENCE_OPTIONS = {
-  asd: ["请用文字", "请少说话", "请不要触碰", "等我主动联系"],
-  adhd: ["一次只说一件事", "允许我用语音回复", "请先问我要提醒还是陪伴", "忘记不代表我不在乎"],
-  other: ["请说得直接一点", "给我一点时间", "请先不要追问", "等我主动联系"],
+const PREFERENCE_OPTIONS: Record<"asd" | "adhd" | "other", StringKey[]> = {
+  asd: ["connection_pref_asd_0", "connection_pref_asd_1", "connection_pref_asd_2", "connection_pref_asd_3"],
+  adhd: ["connection_pref_adhd_0", "connection_pref_adhd_1", "connection_pref_adhd_2", "connection_pref_adhd_3"],
+  other: ["connection_pref_other_0", "connection_pref_other_1", "connection_pref_other_2", "connection_pref_other_3"],
 };
 
-const ADHD_REQUESTS = [
-  "陪我开始第一步",
-  "只提醒我一次",
-  "帮我确认截止时间",
-  "先别催，等我回复",
+const ADHD_REQUESTS: StringKey[] = [
+  "connection_adhd_req_0",
+  "connection_adhd_req_1",
+  "connection_adhd_req_2",
+  "connection_adhd_req_3",
 ];
 
 export default function Connection() {
@@ -30,9 +32,10 @@ export default function Connection() {
   const preferences = useStore((state) => state.connectionPreferences);
   const setPreferences = useStore((state) => state.setConnectionPreferences);
   const submitRuleFeedback = useStore((state) => state.submitRuleFeedback);
+  const { tr } = useT();
   const [mode, setMode] = useState<ConnectionMode>("self");
   const [connectionStyle, setConnectionStyle] = useState<ConnectionStyle>(neuroType === "adhd" ? "short" : "full");
-  const [adhdRequest, setAdhdRequest] = useState(ADHD_REQUESTS[0]);
+  const [adhdRequest, setAdhdRequest] = useState<StringKey>(ADHD_REQUESTS[0]);
   const [selectedRuleId, setSelectedRuleId] = useState(rules[0]?.id ?? "");
   const [copied, setCopied] = useState(false);
   const [awaitingFeedback, setAwaitingFeedback] = useState(false);
@@ -40,24 +43,50 @@ export default function Connection() {
   const selectedRule = rules.find((rule) => rule.id === selectedRuleId) ?? rules[0];
 
   const message = useMemo(() => {
-    if (!selectedRule) return "先在“理解”里写下一条属于你的个人规则。";
+    if (!selectedRule) return tr("connection_msg_no_rule");
     if (mode === "self") {
       if (neuroType === "adhd") {
-        return `先不判自己。出现“${selectedRule.signal}”，不等于我不够好；它可能说明：${selectedRule.understanding}。现在只做：${selectedRule.support}。做一点也算有效。`;
+        return tr("connection_msg_self_adhd", {
+          signal: selectedRule.signal,
+          understanding: selectedRule.understanding,
+          support: selectedRule.support,
+        });
       }
-      return `我注意到：${selectedRule.signal}。这通常意味着：${selectedRule.understanding}。现在先做：${selectedRule.support}。`;
+      return tr("connection_msg_self", {
+        signal: selectedRule.signal,
+        understanding: selectedRule.understanding,
+        support: selectedRule.support,
+      });
     }
-    const preferenceText = preferences.length > 0 ? ` 另外：${preferences.join("；")}。` : "";
+    const translatedPrefs = preferences.map((p) => tr(p as StringKey));
+    const preferenceText = translatedPrefs.length > 0
+      ? tr("connection_prefs_prefix", { prefs: translatedPrefs.join(tr("connection_prefs_join")) })
+      : "";
     if (neuroType === "adhd" && connectionStyle === "short") {
-      return `我现在有点卡在“${selectedRule.signal}”。可以${adhdRequest}吗？不用催我做完。${preferenceText}`;
+      return tr("connection_msg_other_adhd_short", {
+        signal: selectedRule.signal,
+        request: tr(adhdRequest),
+        prefs: preferenceText,
+      });
     }
     if (neuroType === "adhd" && connectionStyle === "voice") {
-      return `我想简单说明一下：\n现在的信号是：${selectedRule.signal}。\n这通常不是不在意，而是：${selectedRule.understanding}。\n我现在需要你：${adhdRequest}。\n${preferenceText || "不用替我解决全部，陪我过第一步就可以。"}`;
+      const extra = preferenceText || tr("connection_msg_other_adhd_voice_default");
+      return tr("connection_msg_other_adhd_voice", {
+        signal: selectedRule.signal,
+        understanding: selectedRule.understanding,
+        request: tr(adhdRequest),
+        extra,
+      });
     }
-    return `我现在出现了这个信号：${selectedRule.signal}。对我来说，这通常意味着：${selectedRule.understanding}。请先这样支持我：${selectedRule.support}。${preferenceText}我恢复后会再连接。`;
-  }, [adhdRequest, connectionStyle, mode, neuroType, preferences, selectedRule]);
+    return tr("connection_msg_other_full", {
+      signal: selectedRule.signal,
+      understanding: selectedRule.understanding,
+      support: selectedRule.support,
+      prefs: preferenceText,
+    });
+  }, [adhdRequest, connectionStyle, mode, neuroType, preferences, selectedRule, tr]);
 
-  const preferenceOptions = neuroType === "asd"
+  const preferenceOptions: StringKey[] = neuroType === "asd"
     ? PREFERENCE_OPTIONS.asd
     : neuroType === "adhd"
       ? PREFERENCE_OPTIONS.adhd
@@ -78,7 +107,7 @@ export default function Connection() {
       setCopied(true);
       setAwaitingFeedback(true);
       setLastFeedback(null);
-      pushToast("success", "已记下这次自我连接");
+      pushToast("success", tr("connection_toast_self_recorded"));
       window.setTimeout(() => setCopied(false), 2000);
       return;
     }
@@ -88,10 +117,10 @@ export default function Connection() {
       setCopied(true);
       setAwaitingFeedback(true);
       setLastFeedback(null);
-      pushToast("success", "连接卡已复制");
+      pushToast("success", tr("connection_toast_card_copied"));
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      pushToast("error", "复制失败，请长按文字复制");
+      pushToast("error", tr("connection_toast_copy_failed"));
     }
   };
 
@@ -100,25 +129,25 @@ export default function Connection() {
     submitRuleFeedback(selectedRule.id, feedback);
     setAwaitingFeedback(false);
     setLastFeedback(feedback);
-    pushToast("success", feedback === "helpful" ? "已记下：这次有帮助" : "已记下：这条理解需要调整");
+    pushToast("success", feedback === "helpful" ? tr("connection_toast_helpful") : tr("connection_toast_unhelpful"));
   };
 
   return (
     <div className="space-y-6 pt-10">
       <header className="px-1">
-        <p className="text-xs font-medium text-primary">03 · 重新建立联系</p>
-        <h1 className="mt-1 font-serif text-3xl text-ink">连接</h1>
-        <p className="mt-1 text-sm text-ink-muted">先照顾自己，再让别人知道怎样靠近你。</p>
+        <p className="text-xs font-medium text-primary">{tr("connection_section_label")}</p>
+        <h1 className="mt-1 font-serif text-3xl text-ink">{tr("connection_title")}</h1>
+        <p className="mt-1 text-sm text-ink-muted">{tr("connection_desc")}</p>
       </header>
 
       <div className="grid grid-cols-2 rounded-lg border border-edge bg-white/45 p-1">
-        <ModeButton active={mode === "self"} icon={Heart} label="连接自己" onClick={() => setMode("self")} />
-        <ModeButton active={mode === "other"} icon={MessageCircle} label="连接他人" onClick={() => setMode("other")} />
+        <ModeButton active={mode === "self"} icon={Heart} label={tr("connection_mode_self")} onClick={() => setMode("self")} />
+        <ModeButton active={mode === "other"} icon={MessageCircle} label={tr("connection_mode_other")} onClick={() => setMode("other")} />
       </div>
 
       {rules.length > 0 && (
         <label className="block">
-          <span className="mb-1.5 block text-xs text-ink-muted">这次使用哪条理解</span>
+          <span className="mb-1.5 block text-xs text-ink-muted">{tr("connection_label_rule")}</span>
           <select
             value={selectedRule?.id ?? ""}
             onChange={(event) => setSelectedRuleId(event.target.value)}
@@ -136,15 +165,15 @@ export default function Connection() {
           {neuroType === "adhd" && (
             <>
               <div>
-                <p className="mb-2 text-xs text-ink-muted">这次怎样表达最省力</p>
+                <p className="mb-2 text-xs text-ink-muted">{tr("connection_label_style")}</p>
                 <div className="grid grid-cols-3 rounded-lg border border-edge bg-white/45 p-1">
-                  <StyleButton active={connectionStyle === "short"} label="短消息" onClick={() => setConnectionStyle("short")} />
-                  <StyleButton active={connectionStyle === "voice"} label="语音提纲" onClick={() => setConnectionStyle("voice")} />
-                  <StyleButton active={connectionStyle === "full"} label="完整说明" onClick={() => setConnectionStyle("full")} />
+                  <StyleButton active={connectionStyle === "short"} label={tr("connection_style_short")} onClick={() => setConnectionStyle("short")} />
+                  <StyleButton active={connectionStyle === "voice"} label={tr("connection_style_voice")} onClick={() => setConnectionStyle("voice")} isVoice />
+                  <StyleButton active={connectionStyle === "full"} label={tr("connection_style_full")} onClick={() => setConnectionStyle("full")} />
                 </div>
               </div>
               <div>
-                <p className="mb-2 text-xs text-ink-muted">希望对方具体做什么 · 只选一个</p>
+                <p className="mb-2 text-xs text-ink-muted">{tr("connection_label_request")}</p>
                 <div className="grid grid-cols-2 gap-2">
                   {ADHD_REQUESTS.map((request) => (
                     <button
@@ -157,7 +186,7 @@ export default function Connection() {
                         adhdRequest === request ? "border-primary bg-primary text-white" : "border-edge bg-white/55 text-ink-muted",
                       )}
                     >
-                      {request}
+                      {tr(request)}
                     </button>
                   ))}
                 </div>
@@ -165,7 +194,7 @@ export default function Connection() {
             </>
           )}
           <div>
-          <p className="mb-2 text-xs text-ink-muted">稳定的沟通偏好 · 会保留在本机</p>
+          <p className="mb-2 text-xs text-ink-muted">{tr("connection_label_prefs")}</p>
           <div className="flex flex-wrap gap-2">
             {preferenceOptions.map((preference) => {
               const selected = preferences.includes(preference);
@@ -180,7 +209,7 @@ export default function Connection() {
                     selected ? "border-primary bg-primary text-white" : "border-edge bg-white/55 text-ink-muted",
                   )}
                 >
-                  {preference}
+                  {tr(preference)}
                 </button>
               );
             })}
@@ -192,7 +221,7 @@ export default function Connection() {
       <section className={cn("border-l-4 px-5 py-4", mode === "self" ? "border-sage bg-sage-mist/20" : "border-primary bg-primary-mist/20")}>
         <div className="mb-3 flex items-center gap-2 text-xs font-medium text-ink-muted">
           {mode === "self" ? <UserRound size={15} /> : <MessageCircle size={15} />}
-          {mode === "self" ? "给此刻的自己" : "给我信任的人"}
+          {mode === "self" ? tr("connection_section_self") : tr("connection_section_other")}
         </div>
         <p className="whitespace-pre-line text-base leading-8 text-ink">{message}</p>
         {selectedRule && (
@@ -203,21 +232,21 @@ export default function Connection() {
           >
             {copied ? <Check size={16} /> : <Copy size={16} />}
             {copied
-              ? mode === "self" ? "已完成" : "已复制"
-              : mode === "self" ? "完成这次连接" : "复制连接卡"}
+              ? mode === "self" ? tr("connection_btn_done") : tr("connection_btn_copied")
+              : mode === "self" ? tr("connection_btn_complete_self") : tr("connection_btn_copy_card")}
           </button>
         )}
       </section>
 
       {selectedRule && awaitingFeedback && (
         <section className="border-l-2 border-sage pl-4">
-          <p className="text-sm font-medium text-ink">这次有帮助吗？</p>
+          <p className="text-sm font-medium text-ink">{tr("connection_feedback_q")}</p>
           <div className="mt-3 flex gap-2">
             <button type="button" onClick={() => handleFeedback("helpful")} className="min-h-11 flex-1 rounded-full bg-sage text-sm text-white">
-              有帮助
+              {tr("connection_feedback_helpful")}
             </button>
             <button type="button" onClick={() => handleFeedback("unhelpful")} className="min-h-11 flex-1 rounded-full border border-edge bg-white/55 text-sm text-ink-muted">
-              不适合我
+              {tr("connection_feedback_unhelpful")}
             </button>
           </div>
         </section>
@@ -225,33 +254,33 @@ export default function Connection() {
 
       {selectedRule && lastFeedback === "unhelpful" && (
         <button type="button" onClick={() => navigate("/climate")} className="w-full text-left text-sm text-primary underline underline-offset-4">
-          去理解页修正这条规则
+          {tr("connection_link_fix_rule")}
         </button>
       )}
 
       {rules.length === 0 && (
         <button type="button" onClick={() => navigate("/climate")} className="w-full rounded-card border border-primary/20 bg-white/55 p-5 text-left">
-          <p className="text-sm font-medium text-ink">先形成第一条个人规则</p>
-          <p className="mt-1 text-xs text-ink-muted">从一次真实经历开始，不需要一次想明白。</p>
+          <p className="text-sm font-medium text-ink">{tr("connection_empty_title")}</p>
+          <p className="mt-1 text-xs text-ink-muted">{tr("connection_empty_desc")}</p>
         </button>
       )}
 
       <section className="grid grid-cols-2 gap-3">
         <button type="button" onClick={() => navigate("/protocol")} className="min-h-24 rounded-card border border-edge bg-white/50 p-4 text-left">
           <Layers size={18} className="text-primary" />
-          <p className="mt-3 text-sm font-medium text-ink">支持协议</p>
-          <p className="mt-1 text-xs text-ink-muted">把连接变成行动</p>
+          <p className="mt-3 text-sm font-medium text-ink">{tr("connection_card_protocols")}</p>
+          <p className="mt-1 text-xs text-ink-muted">{tr("connection_card_protocols_desc")}</p>
         </button>
         <button type="button" onClick={() => navigate("/review")} className="min-h-24 rounded-card border border-edge bg-white/50 p-4 text-left">
           <MessageCircle size={18} className="text-sage" />
-          <p className="mt-3 text-sm font-medium text-ink">回看经历</p>
-          <p className="mt-1 text-xs text-ink-muted">带着新理解再看</p>
+          <p className="mt-3 text-sm font-medium text-ink">{tr("connection_card_review")}</p>
+          <p className="mt-1 text-xs text-ink-muted">{tr("connection_card_review_desc")}</p>
         </button>
       </section>
 
       <LoopProgressCard />
 
-      <p className="px-5 text-center text-xs leading-relaxed text-ink-faint">连接卡由你决定是否分享，也可以只留给自己。</p>
+      <p className="px-5 text-center text-xs leading-relaxed text-ink-faint">{tr("connection_footer")}</p>
     </div>
   );
 }
@@ -264,10 +293,10 @@ function ModeButton({ active, icon: Icon, label, onClick }: { active: boolean; i
   );
 }
 
-function StyleButton({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+function StyleButton({ active, label, onClick, isVoice }: { active: boolean; label: string; onClick: () => void; isVoice?: boolean }) {
   return (
     <button type="button" onClick={onClick} className={cn("flex min-h-10 items-center justify-center gap-1 rounded-md text-xs", active ? "bg-white text-primary shadow-sm" : "text-ink-muted")}>
-      {label === "语音提纲" && <Volume2 size={13} />} {label}
+      {isVoice && <Volume2 size={13} />} {label}
     </button>
   );
 }

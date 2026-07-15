@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type {
   AIObservation,
+  ADHDSubtype,
   AppMode,
   CheckIn,
   CaptureItem,
@@ -23,13 +24,7 @@ import { detectPhase } from "@/lib/stageEngine";
 import type { Lang } from "@/lib/translations";
 import type { SoundType } from "@/lib/soundEngine";
 import { genId } from "@/lib/format";
-import {
-  mockCheckIns,
-  mockCrashMarks,
-  mockExecutions,
-  mockObservation,
-  mockProtocols,
-} from "@/lib/mockData";
+import { clearCloudData } from "@/lib/db";
 
 // 协议触发推送状态
 export interface ActiveTrigger {
@@ -42,6 +37,7 @@ interface StoreState {
   // 用户状态
   onboarded: boolean;
   neuroType: NeuroType;
+  adhdSubtype: ADHDSubtype; // ADHD 子类型（仅 neuroType === "adhd" 时有意义）
   appMode: AppMode; // 自主签到 / 家长代理签到
   checkinTimes: { morning: string; noon: string; evening: string };
 
@@ -95,6 +91,7 @@ interface StoreState {
 
   // 操作
   setOnboarded: (neuroType: NeuroType) => void;
+  setAdhdSubtype: (subtype: ADHDSubtype) => void;
   setCollaborator: (role: CollaboratorRole) => void;
   setAppMode: (mode: AppMode) => void;
   setQwenEnabled: (enabled: boolean) => void;
@@ -131,7 +128,7 @@ interface StoreState {
     voiceText?: string,
     extras?: {
       crash_type?: import("@/types").CrashType;
-      trigger_cues?: { type: import("@/types").TriggerCueType; description: string }[];
+      trigger_cues?: { type: import("@/types").TriggerCueType; description: import("@/types").LocalText }[];
     },
   ) => string;
   updateCrashMark: (id: string, updates: Partial<CrashMark>) => void;
@@ -168,14 +165,15 @@ export const useStore = create<StoreState>()(
     (set, get) => ({
       onboarded: false,
       neuroType: "asd",
+      adhdSubtype: "unknown",
       appMode: "self",
       checkinTimes: { morning: "09:00", noon: "14:00", evening: "20:00" },
 
-      checkins: mockCheckIns,
-      protocols: mockProtocols,
-      executions: mockExecutions,
-      crashMarks: mockCrashMarks,
-      observation: mockObservation,
+      checkins: [],
+      protocols: [],
+      executions: [],
+      crashMarks: [],
+      observation: null,
       personalRules: [],
       connectionMoments: [],
       connectionPreferences: [],
@@ -210,6 +208,8 @@ export const useStore = create<StoreState>()(
         set({ onboarded: true, neuroType });
         get().pushToast("success", "设置完成，欢迎来到你的内在气候");
       },
+
+      setAdhdSubtype: (subtype) => set({ adhdSubtype: subtype }),
 
       setCollaborator: (role) => set({ collaborator: role }),
 
@@ -680,12 +680,13 @@ export const useStore = create<StoreState>()(
         set({
           onboarded: false,
           neuroType: "asd",
+          adhdSubtype: "unknown",
           appMode: "self",
-          checkins: mockCheckIns,
-          protocols: mockProtocols,
-          executions: mockExecutions,
-          crashMarks: mockCrashMarks,
-          observation: mockObservation,
+          checkins: [],
+          protocols: [],
+          executions: [],
+          crashMarks: [],
+          observation: null,
           personalRules: [],
           connectionMoments: [],
           connectionPreferences: [],
@@ -705,6 +706,8 @@ export const useStore = create<StoreState>()(
           soundScapeEnabled: false,
           toasts: [],
         });
+        // 同步清空云端数据（fire-and-forget）
+        clearCloudData();
       },
     }),
     {
@@ -712,6 +715,7 @@ export const useStore = create<StoreState>()(
       partialize: (state) => ({
         onboarded: state.onboarded,
         neuroType: state.neuroType,
+        adhdSubtype: state.adhdSubtype,
         appMode: state.appMode,
         checkins: state.checkins,
         protocols: state.protocols,

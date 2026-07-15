@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Check, ArrowRight } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
+import type { StringKey } from "@/lib/translations";
 import type { CrashType, TriggerCueType } from "@/types";
 
 // 过载回溯组件（PRD §05 F-04 · 非病理化叙事重构）
@@ -13,32 +15,40 @@ import type { CrashType, TriggerCueType } from "@/types";
 // 所有人群：补记后需要 grounding，确认"你现在已经离开了那个情境"
 
 // 过载类型选项（基于 ASD 研究 · meltdown / shutdown / dissociation）
-const CRASH_TYPES: { value: CrashType; label: string; description: string }[] = [
+const CRASH_TYPES: {
+  value: CrashType;
+  labelKey: StringKey;
+  descKey: StringKey;
+}[] = [
   {
     value: "meltdown",
-    label: "爆发（meltdown）",
-    description: "情绪外泄：喊叫、哭泣、踢打、跑开",
+    labelKey: "crash_btn_type_meltdown",
+    descKey: "crash_btn_type_meltdown_desc",
   },
   {
     value: "shutdown",
-    label: "关闭（shutdown）",
-    description: "向内退缩：沉默、封闭、不动、无法回应",
+    labelKey: "crash_btn_type_shutdown",
+    descKey: "crash_btn_type_shutdown_desc",
   },
   {
     value: "dissociation",
-    label: "解离（dissociation）",
-    description: "感觉脱离了自己或周围",
+    labelKey: "crash_btn_type_dissociation",
+    descKey: "crash_btn_type_dissociation_desc",
   },
 ];
 
 // 触发线索选项（PTSD 安全设计 · 只记客观线索，不引导情绪叙述）
-const TRIGGER_CUES: { value: TriggerCueType; label: string; hint?: string }[] = [
-  { value: "sensory", label: "感官刺激", hint: "光/声音/气味/触觉" },
-  { value: "social", label: "社交情境" },
-  { value: "routine_change", label: "常规变化" },
-  { value: "anniversary", label: "周年日/时间" },
-  { value: "place", label: "地点" },
-  { value: "internal", label: "身体状态", hint: "疲劳/饥饿/疼痛" },
+const TRIGGER_CUES: {
+  value: TriggerCueType;
+  labelKey: StringKey;
+  hintKey?: StringKey;
+}[] = [
+  { value: "sensory", labelKey: "crash_btn_cue_sensory", hintKey: "crash_btn_cue_sensory_hint" },
+  { value: "social", labelKey: "crash_btn_cue_social" },
+  { value: "routine_change", labelKey: "crash_btn_cue_routine_change" },
+  { value: "anniversary", labelKey: "crash_btn_cue_anniversary" },
+  { value: "place", labelKey: "crash_btn_cue_place" },
+  { value: "internal", labelKey: "crash_btn_cue_internal", hintKey: "crash_btn_cue_internal_hint" },
 ];
 
 type Step = "type" | "cues" | "done";
@@ -46,6 +56,7 @@ type Step = "type" | "cues" | "done";
 export default function CrashButton() {
   const addCrashMark = useStore((s) => s.addCrashMark);
   const pushToast = useStore((s) => s.pushToast);
+  const { tr } = useT();
 
   const [expanded, setExpanded] = useState(false);
   const [step, setStep] = useState<Step>("type");
@@ -105,7 +116,7 @@ export default function CrashButton() {
       crash_type: selectedType ?? undefined,
       trigger_cues: selectedCues.map((c) => ({
         type: c.type,
-        description: c.description,
+        description: { zh: c.description, en: c.description },
       })),
     });
     setStep("done");
@@ -113,7 +124,7 @@ export default function CrashButton() {
 
   // grounding：回到当下
   const handleGrounding = () => {
-    pushToast("info", "你在这里，你安全");
+    pushToast("info", tr("crash_btn_grounding_toast"));
     setExpanded(false);
     reset();
   };
@@ -135,11 +146,12 @@ export default function CrashButton() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={handleExpand}
+            aria-label={tr("crash_btn_record")}
             className="flex w-full items-center justify-center gap-2.5 text-ink"
           >
             <Zap size={18} className="text-ink-muted" />
-            <span className="text-body font-medium">记录一次过载</span>
-            <span className="text-xs text-ink-muted">· 标记时间 · 晚点再来整理</span>
+            <span className="text-body font-medium">{tr("crash_btn_record")}</span>
+            <span className="text-xs text-ink-muted">{tr("crash_btn_record_hint")}</span>
           </motion.button>
         ) : step === "type" ? (
           // 步骤 A：选择过载类型
@@ -152,9 +164,9 @@ export default function CrashButton() {
             className="space-y-4"
           >
             <div>
-              <p className="text-body font-medium text-ink">这是一次怎样的过载？</p>
+              <p className="text-body font-medium text-ink">{tr("crash_btn_type_question")}</p>
               <p className="mt-1 text-xs leading-relaxed text-ink-muted">
-                不同类型恢复路径不同。不确定也没关系，可以跳过。
+                {tr("crash_btn_type_question_desc")}
               </p>
             </div>
 
@@ -166,9 +178,9 @@ export default function CrashButton() {
                   className="flex w-full items-start gap-3 rounded-card border border-edge bg-white/50 p-3.5 text-left transition-all duration-250 hover:border-primary hover:bg-primary-mist/30 active:scale-[0.99]"
                 >
                   <div className="flex-1">
-                    <p className="text-small font-medium text-ink">{opt.label}</p>
+                    <p className="text-small font-medium text-ink">{tr(opt.labelKey)}</p>
                     <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">
-                      {opt.description}
+                      {tr(opt.descKey)}
                     </p>
                   </div>
                 </button>
@@ -179,14 +191,14 @@ export default function CrashButton() {
               onClick={handleSkipType}
               className="w-full text-center text-xs text-ink-muted underline-offset-2 transition-colors hover:text-ink hover:underline"
             >
-              只标记时间，不选类型
+              {tr("crash_btn_skip_type")}
             </button>
 
             <button
               onClick={handleCancel}
               className="w-full text-center text-xs text-ink-faint transition-colors hover:text-ink-muted"
             >
-              取消
+              {tr("crash_btn_cancel")}
             </button>
           </motion.div>
         ) : step === "cues" ? (
@@ -200,11 +212,11 @@ export default function CrashButton() {
             className="space-y-4"
           >
             <div>
-              <p className="text-body font-medium text-ink">触发线索</p>
+              <p className="text-body font-medium text-ink">{tr("crash_btn_cues_title")}</p>
               <p className="mt-1 text-xs leading-relaxed text-ink-muted">
-                什么线索可能触发了这次过载？只记客观的，不用回忆当时的情绪。
+                {tr("crash_btn_cues_desc")}
               </p>
-              <p className="mt-0.5 text-[11px] text-ink-faint">完全可选，可以跳过。</p>
+              <p className="mt-0.5 text-[11px] text-ink-faint">{tr("crash_btn_cues_optional")}</p>
             </div>
 
             <div className="space-y-2">
@@ -229,11 +241,11 @@ export default function CrashButton() {
                             selected ? "font-medium text-primary" : "text-ink",
                           )}
                         >
-                          {cue.label}
+                          {tr(cue.labelKey)}
                         </span>
-                        {cue.hint && (
+                        {cue.hintKey && (
                           <span className="ml-2 text-xs text-ink-faint">
-                            {cue.hint}
+                            {tr(cue.hintKey)}
                           </span>
                         )}
                       </div>
@@ -257,7 +269,7 @@ export default function CrashButton() {
                         onChange={(e) =>
                           updateCueDescription(cue.value, e.target.value)
                         }
-                        placeholder="加一句客观描述（可选）"
+                        placeholder={tr("crash_btn_cue_placeholder")}
                         className="mt-1.5 w-full rounded-lg border border-edge bg-white/60 px-3 py-2 text-xs text-ink placeholder:text-ink-faint focus:border-primary focus:outline-none"
                       />
                     )}
@@ -270,14 +282,14 @@ export default function CrashButton() {
               onClick={handleSave}
               className="w-full rounded-full bg-primary py-2.5 text-small font-medium text-white transition-all duration-250 hover:bg-primary/90 active:scale-[0.98]"
             >
-              保存
+              {tr("crash_btn_save")}
             </button>
 
             <button
               onClick={handleCancel}
               className="w-full text-center text-xs text-ink-faint transition-colors hover:text-ink-muted"
             >
-              取消
+              {tr("crash_btn_cancel")}
             </button>
           </motion.div>
         ) : (
@@ -300,16 +312,16 @@ export default function CrashButton() {
             </motion.div>
 
             <p className="text-body font-medium leading-relaxed text-ink">
-              已记录。
+              {tr("crash_btn_done_line1")}
               <br />
-              你现在离开了那个情境，这里是安全的。
+              {tr("crash_btn_done_line2")}
             </p>
 
             <button
               onClick={handleGrounding}
               className="flex w-full items-center justify-center gap-2 rounded-full bg-sage py-2.5 text-small font-medium text-white transition-all duration-250 hover:bg-sage/90 active:scale-[0.98]"
             >
-              回到当下
+              {tr("crash_btn_grounding")}
               <ArrowRight size={15} />
             </button>
           </motion.div>

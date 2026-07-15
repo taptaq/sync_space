@@ -2,11 +2,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Check } from "lucide-react";
-import type { AxisKey, Phase, ProtocolTrigger } from "@/types";
+import type { AxisKey, LocalText, Phase, ProtocolTrigger } from "@/types";
 import { useStore } from "@/store/useStore";
 import { cn } from "@/lib/utils";
 import { getAxisProfile, getBandLabel } from "@/lib/axisConfig";
 import { PHASE_MAP } from "@/lib/stageEngine";
+import { useT } from "@/lib/i18n";
 
 // 创建新协议（PRD §05 F-06 协议管理 · 手动创建）
 // 轴选项按神经特质动态生成
@@ -15,10 +16,11 @@ export default function ProtocolNew() {
   const navigate = useNavigate();
   const addProtocol = useStore((s) => s.addProtocol);
   const neuroType = useStore((s) => s.neuroType);
+  const { tr, tt } = useT();
   const profile = getAxisProfile(neuroType);
-  const AXIS_OPTIONS: { key: AxisKey | "none"; label: string }[] = [
+  const AXIS_OPTIONS: { key: AxisKey | "none"; label: LocalText | string }[] = [
     ...profile.axes.map((a) => ({ key: a.key, label: a.label })),
-    { key: "none", label: "行为/情境" },
+    { key: "none", label: tr("protocol_new_axis_behavior") },
   ];
 
   const [axis, setAxis] = useState<AxisKey | "none">("sensory");
@@ -37,32 +39,38 @@ export default function ProtocolNew() {
     );
   };
 
+  const axisLabelStr = (key: AxisKey | "none"): string => {
+    const found = AXIS_OPTIONS.find((a) => a.key === key);
+    return found ? tt(found.label) : "";
+  };
+
   const autoTriggerDesc =
     axis === "none"
-      ? triggerDesc || "描述触发情境"
-      : `${AXIS_OPTIONS.find((a) => a.key === axis)?.label} ${operator} ${value}`;
+      ? triggerDesc || tr("protocol_new_trigger_placeholder")
+      : `${axisLabelStr(axis)} ${operator} ${value}`;
 
   // 当前选中轴的程度描述（让数值有体感）
   const selectedAxis = profile.axes.find((a) => a.key === axis);
   const bandLabel =
-    axis !== "none" && selectedAxis ? getBandLabel(value, selectedAxis) : "";
+    axis !== "none" && selectedAxis ? getBandLabel(value, selectedAxis) : null;
 
   const handleSubmit = () => {
+    const triggerDescText = triggerDesc || tr("protocol_new_trigger_default");
     const trigger: ProtocolTrigger =
       axis === "none"
-        ? { type: "behavior", description: triggerDesc || "自定义情境" }
+        ? { type: "behavior", description: { zh: triggerDescText, en: triggerDescText } }
         : {
             type: "threshold",
             axis,
             operator,
             value,
-            description: autoTriggerDesc,
+            description: { zh: autoTriggerDesc, en: autoTriggerDesc },
           };
 
     addProtocol({
       trigger,
       action: {
-        description: actionDesc,
+        description: { zh: actionDesc, en: actionDesc },
         duration_minutes: duration,
         timer,
       },
@@ -87,9 +95,9 @@ export default function ProtocolNew() {
         </button>
         <div>
           <p className="text-xs uppercase tracking-widest text-primary">
-            和自己签一份协议
+            {tr("protocol_new_header")}
           </p>
-          <p className="font-serif text-xl text-ink">新协议</p>
+          <p className="font-serif text-xl text-ink">{tr("protocol_new")}</p>
         </div>
       </div>
 
@@ -101,7 +109,7 @@ export default function ProtocolNew() {
         className="rounded-card border border-edge bg-white/60 p-5 shadow-soft"
       >
         <p className="mb-4 font-mono text-xs text-primary">
-          WHEN · 触发条件
+          {tr("protocol_new_when")}
         </p>
 
         {/* 轴选择 */}
@@ -117,7 +125,7 @@ export default function ProtocolNew() {
                   : "bg-white/50 text-ink-muted hover:bg-white/80",
               )}
             >
-              {opt.label}
+              {tt(opt.label)}
             </button>
           ))}
         </div>
@@ -130,8 +138,8 @@ export default function ProtocolNew() {
                 onChange={(e) => setOperator(e.target.value as ">" | "<")}
                 className="rounded-full border border-edge bg-base px-3 py-1.5 text-small text-ink"
               >
-                <option value=">">大于</option>
-                <option value="<">小于</option>
+                <option value=">">{tr("protocol_new_op_gt")}</option>
+                <option value="<">{tr("protocol_new_op_lt")}</option>
               </select>
               <input
                 type="range"
@@ -158,10 +166,10 @@ export default function ProtocolNew() {
                       : "bg-warn-mist/50 text-warn",
                 )}
               >
-                {bandLabel}
+                {bandLabel ? tt(bandLabel) : ""}
               </span>
               <span className="text-xs text-ink-faint">
-                {selectedAxis?.hint} · 0 到 10
+                {selectedAxis ? tt(selectedAxis.hint) : ""} {tr("protocol_new_range_hint")}
               </span>
             </div>
           </div>
@@ -170,17 +178,17 @@ export default function ProtocolNew() {
             type="text"
             value={triggerDesc}
             onChange={(e) => setTriggerDesc(e.target.value)}
-            placeholder="例如：收到不舒服的消息"
+            placeholder={tr("protocol_new_trigger_example")}
             className="w-full rounded-card border border-edge bg-base/60 px-3 py-2.5 text-body text-ink placeholder:text-ink-faint"
           />
         )}
 
         {/* 预览 */}
         <div className="mt-4 rounded-card bg-primary-mist/40 p-3">
-          <p className="text-small text-ink-muted">触发条件预览</p>
+          <p className="text-small text-ink-muted">{tr("protocol_new_trigger_preview")}</p>
           <p className="mt-1 font-mono text-xs text-primary">
             {autoTriggerDesc}
-            {axis !== "none" && bandLabel && `（${bandLabel}）`}
+            {axis !== "none" && bandLabel && `（${tt(bandLabel)}）`}
           </p>
         </div>
       </motion.section>
@@ -192,18 +200,18 @@ export default function ProtocolNew() {
         transition={{ duration: 0.3, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
         className="rounded-card border border-edge bg-white/60 p-5 shadow-soft"
       >
-        <p className="mb-4 font-mono text-xs text-sage">THEN · 约定动作</p>
+        <p className="mb-4 font-mono text-xs text-sage">{tr("protocol_new_then")}</p>
 
         <textarea
           value={actionDesc}
           onChange={(e) => setActionDesc(e.target.value)}
-          placeholder="例如：15 分钟内撤退到安静空间，不等别人同意"
+          placeholder={tr("protocol_new_action_example")}
           rows={3}
           className="w-full resize-none rounded-card border border-edge bg-base/60 p-3 text-body leading-relaxed text-ink placeholder:text-ink-faint"
         />
 
         <div className="mt-4 flex items-center justify-between">
-          <span className="text-small text-ink-muted">计时（分钟）</span>
+          <span className="text-small text-ink-muted">{tr("protocol_new_timer_label")}</span>
           <div className="flex items-center gap-3">
             <input
               type="number"
@@ -222,7 +230,7 @@ export default function ProtocolNew() {
                   : "bg-white/50 text-ink-muted",
               )}
             >
-              {timer ? "开启计时" : "不计时"}
+              {timer ? tr("protocol_new_timer_on") : tr("protocol_new_timer_off")}
             </button>
           </div>
         </div>
@@ -236,10 +244,10 @@ export default function ProtocolNew() {
         className="rounded-card border border-edge bg-white/60 p-5 shadow-soft"
       >
         <p className="mb-1 font-mono text-xs text-clay">
-          FOR · 适用阶段（可选）
+          {tr("protocol_new_for")}
         </p>
         <p className="mb-3 text-xs text-ink-muted">
-          标了则只在对应阶段优先触发；不选 = 全阶段通用
+          {tr("protocol_new_for_desc")}
         </p>
         <div className="flex flex-wrap gap-2">
           {(Object.keys(PHASE_MAP) as Phase[]).map((p) => {
@@ -256,7 +264,7 @@ export default function ProtocolNew() {
                     : "bg-white/50 text-ink-muted hover:bg-white/80",
                 )}
               >
-                {cfg.label}
+                {tt(cfg.label)}
               </button>
             );
           })}
@@ -271,14 +279,14 @@ export default function ProtocolNew() {
         className="rounded-bowl bg-sage-mist/40 p-5"
       >
         <p className="mb-2 text-xs uppercase tracking-widest text-sage">
-          协议预览
+          {tr("protocol_new_preview")}
         </p>
         <p className="font-mono text-xs text-primary">
           WHEN · {autoTriggerDesc}
         </p>
         <p className="mt-1.5 text-body text-ink">
-          {actionDesc || "（请填写约定动作）"}
-          {timer && duration > 0 && ` · ${duration} 分钟计时`}
+          {actionDesc || tr("protocol_new_action_placeholder")}
+          {timer && duration > 0 && ` · ${duration} ${tr("protocol_new_timer_suffix")}`}
         </p>
         {phases.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -290,7 +298,7 @@ export default function ProtocolNew() {
                   PHASE_MAP[p].badgeClass,
                 )}
               >
-                {PHASE_MAP[p].label}
+                {tt(PHASE_MAP[p].label)}
               </span>
             ))}
           </div>
@@ -307,13 +315,13 @@ export default function ProtocolNew() {
             : "cursor-not-allowed bg-edge text-ink-muted",
         )}
       >
-        <Check size={18} /> 保存协议
+        <Check size={18} /> {tr("protocol_new_save")}
       </button>
 
       <p className="px-4 pb-4 text-center text-xs leading-relaxed text-ink-muted">
-        这是你和自己签的协议。
+        {tr("protocol_new_footer_1")}
         <br />
-        AI 会记住它，在对的时候提醒你，但绝不替你执行。
+        {tr("protocol_new_footer_2")}
       </p>
     </div>
   );

@@ -11,6 +11,8 @@ import type { ParentGuidancePack } from "@/types";
 import { useStore } from "@/store/useStore";
 import { detectPhase, getPhaseConfigForType } from "@/lib/stageEngine";
 import { getParentGuidance } from "@/lib/parentGuidance";
+import { useT } from "@/lib/i18n";
+import type { StringKey } from "@/lib/translations";
 import { cn } from "@/lib/utils";
 
 // 家长引导卡片 · 根据当前阶段展示四类建议
@@ -19,17 +21,18 @@ import { cn } from "@/lib/utils";
 
 type TabKey = "measures" | "scripts" | "avoidList" | "environment";
 
-const TABS: { key: TabKey; label: string; icon: typeof HeartHandshake }[] = [
-  { key: "measures", label: "可以这样做", icon: HeartHandshake },
-  { key: "scripts", label: "可以这样说", icon: MessageCircleHeart },
-  { key: "avoidList", label: "不要做", icon: Ban },
-  { key: "environment", label: "环境调整", icon: Home },
+const TABS: { key: TabKey; labelKey: StringKey; icon: typeof HeartHandshake }[] = [
+  { key: "measures", labelKey: "parent_guidance_tab_measures", icon: HeartHandshake },
+  { key: "scripts", labelKey: "parent_guidance_tab_scripts", icon: MessageCircleHeart },
+  { key: "avoidList", labelKey: "parent_guidance_tab_avoid", icon: Ban },
+  { key: "environment", labelKey: "parent_guidance_tab_environment", icon: Home },
 ];
 
 export default function ParentGuidanceCard() {
   const currentWeather = useStore((s) => s.currentWeather);
   const crashMarks = useStore((s) => s.crashMarks);
   const neuroType = useStore((s) => s.neuroType);
+  const { tr, tt } = useT();
 
   const phase = detectPhase(currentWeather.climate, crashMarks);
   const phaseCfg = getPhaseConfigForType(phase, neuroType);
@@ -58,21 +61,21 @@ export default function ParentGuidanceCard() {
               phaseCfg.badgeClass,
             )}
           >
-            {phaseCfg.label}
+            {tt(phaseCfg.label)}
           </span>
-          <span className="text-xs text-ink-muted">家长引导</span>
+          <span className="text-xs text-ink-muted">{tr("parent_guidance_subtitle")}</span>
         </div>
         <p className="mt-2 text-small leading-relaxed text-ink">
-          {phaseCfg.narrative}
+          {tt(phaseCfg.narrative)}
         </p>
         <p className="mt-1 text-xs text-ink-muted">
-          {phaseCfg.measureTone}
+          {tt(phaseCfg.measureTone)}
         </p>
       </div>
 
       {/* 标签切换 */}
       <div className="mb-4 flex gap-1.5 overflow-x-auto">
-        {TABS.map(({ key, label, icon: Icon }) => {
+        {TABS.map(({ key, labelKey, icon: Icon }) => {
           const count = (pack[key] ?? []).length;
           const isActive = activeTab === key;
           return (
@@ -89,7 +92,7 @@ export default function ParentGuidanceCard() {
               )}
             >
               <Icon size={12} />
-              {label}
+              {tr(labelKey)}
               <span className="ml-0.5 text-[10px] opacity-70">{count}</span>
             </button>
           );
@@ -108,13 +111,13 @@ export default function ParentGuidanceCard() {
         >
           {items.length === 0 ? (
             <p className="rounded-xl border border-edge bg-white/40 px-3 py-2 text-xs text-ink-muted">
-              暂无此类建议
+              {tr("parent_guidance_empty")}
             </p>
           ) : (
             items.map((item, i) => (
               <GuidanceItem
                 key={i}
-                text={item.text}
+                text={tt(item.text)}
                 variant={activeTab}
                 index={i}
               />
@@ -126,9 +129,9 @@ export default function ParentGuidanceCard() {
       {/* 底部声明 */}
       <div className="mt-4 border-t border-edge/60 pt-3">
         <p className="text-center text-[11px] leading-relaxed text-ink-faint">
-          这些是温柔的支持建议，不替代专业评估。
+          {tr("parent_guidance_disclaimer_1")}
           <br />
-          如出现自伤或伤人倾向，请保护安全并联系专业人士。
+          {tr("parent_guidance_disclaimer_2")}
         </p>
       </div>
     </motion.section>

@@ -11,6 +11,7 @@ import {
   type ProtocolTemplate,
 } from "@/lib/protocolTemplates";
 import { detectPhase, getPhaseConfig } from "@/lib/stageEngine";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { NeuroType } from "@/types";
 
@@ -18,21 +19,19 @@ import type { NeuroType } from "@/types";
 // 按神经特质过滤 + 当前阶段优先推荐
 // 每条模板可一键导入为协议候选
 
-// 神经特质标签（用于"适合 X"切换按钮）
-const NEURO_TYPE_LABELS: Record<NeuroType, string> = {
-  asd: "ASD",
-  adhd: "ADHD",
-  hsp: "HSP",
-  ptsd: "PTSD",
-  other: "通用",
-};
-
 export default function ProtocolTemplateLibrary() {
   const neuroType = useStore((s) => s.neuroType);
+  const adhdSubtype = useStore((s) => s.adhdSubtype);
   const currentWeather = useStore((s) => s.currentWeather);
   const crashMarks = useStore((s) => s.crashMarks);
   const addProtocol = useStore((s) => s.addProtocol);
   const pushToast = useStore((s) => s.pushToast);
+  const { tr, tt } = useT();
+
+  const getNeuroTypeLabel = (type: NeuroType): string => {
+    if (type === "other") return tr("template_lib_neuro_general");
+    return type.toUpperCase();
+  };
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
@@ -44,16 +43,16 @@ export default function ProtocolTemplateLibrary() {
   const templates = useMemo(() => {
     const base = showAll
       ? PROTOCOL_TEMPLATES
-      : getTemplatesByNeuroType(neuroType);
+      : getTemplatesByNeuroType(neuroType, adhdSubtype);
     const byCategory = categoryFilter
       ? base.filter((t) => t.category === categoryFilter)
       : base;
     return sortTemplatesByPhase(byCategory, currentPhase);
-  }, [neuroType, showAll, categoryFilter, currentPhase]);
+  }, [neuroType, adhdSubtype, showAll, categoryFilter, currentPhase]);
 
   const handleImport = (template: ProtocolTemplate) => {
     addProtocol(templateToProtocol(template));
-    pushToast("success", `「${template.name}」已加入协议候选`);
+    pushToast("success", tr("template_lib_added", { name: tt(template.name) }));
   };
 
   return (
@@ -66,7 +65,7 @@ export default function ProtocolTemplateLibrary() {
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Layers size={18} className="text-primary" />
-          <h2 className="font-serif text-xl text-ink">协议模板库</h2>
+          <h2 className="font-serif text-xl text-ink">{tr("template_lib_title")}</h2>
         </div>
         <span
           className={cn(
@@ -74,12 +73,12 @@ export default function ProtocolTemplateLibrary() {
             phaseCfg.badgeClass,
           )}
         >
-          当前 {phaseCfg.label} · 优先推荐
+          {tr("template_lib_phase_priority", { phase: tt(phaseCfg.label) })}
         </span>
       </div>
 
       <p className="mb-4 text-xs text-ink-muted">
-        基于循证研究的预设协议 · 一键导入后可自定义 · 非诊断
+        {tr("template_lib_desc")}
       </p>
 
       {/* 适合特质 / 看全部 切换 */}
@@ -93,7 +92,7 @@ export default function ProtocolTemplateLibrary() {
               : "bg-white/60 text-ink-muted hover:bg-primary-mist/40",
           )}
         >
-          适合 {NEURO_TYPE_LABELS[neuroType]}
+          {tr("template_lib_fit_neuro", { neuro: getNeuroTypeLabel(neuroType) })}
         </button>
         <button
           onClick={() => setShowAll(true)}
@@ -105,7 +104,7 @@ export default function ProtocolTemplateLibrary() {
           )}
         >
           <Eye size={11} />
-          看全部
+          {tr("template_lib_show_all")}
         </button>
       </div>
 
@@ -120,7 +119,7 @@ export default function ProtocolTemplateLibrary() {
               : "bg-white/60 text-ink-muted hover:bg-primary-mist/40",
           )}
         >
-          全部
+          {tr("template_lib_all")}
         </button>
         {Object.entries(TEMPLATE_CATEGORY_LABELS).map(
           ([key, { label, icon }]) => (
@@ -136,7 +135,7 @@ export default function ProtocolTemplateLibrary() {
                   : "bg-white/60 text-ink-muted hover:bg-primary-mist/40",
               )}
             >
-              {icon} {label}
+              {icon} {tt(label)}
             </button>
           ),
         )}
@@ -169,21 +168,21 @@ export default function ProtocolTemplateLibrary() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <p className="truncate text-small font-medium text-ink">
-                      {template.name}
+                      {tt(template.name)}
                     </p>
                     {phaseMatch && (
                       <span className="shrink-0 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] text-primary">
-                        适合现在
+                        {tr("template_lib_fit_now")}
                       </span>
                     )}
                   </div>
                   <div className="mt-0.5 flex items-center gap-2 text-xs text-ink-faint">
                     <span className="flex items-center gap-0.5">
                       <Clock size={10} />
-                      {template.action.duration_minutes} 分钟
+                      {tr("template_lib_minutes", { minutes: template.action.duration_minutes })}
                     </span>
                     <span>·</span>
-                    <span>{catLabel.label}</span>
+                    <span>{tt(catLabel.label)}</span>
                   </div>
                 </div>
                 <ChevronDown
@@ -208,35 +207,35 @@ export default function ProtocolTemplateLibrary() {
                       {/* 触发条件 → 动作 */}
                       <div className="mb-3">
                         <p className="mb-1 text-xs font-medium text-ink">
-                          触发 → 动作
+                          {tr("template_lib_trigger_action")}
                         </p>
                         <p className="text-xs leading-relaxed text-ink-muted">
-                          <span className="text-clay-soft">当</span>{" "}
-                          {template.trigger.description}
+                          <span className="text-clay-soft">{tr("template_lib_when")}</span>{" "}
+                          {tt(template.trigger.description)}
                           {" → "}
                           <span className="text-sage">
-                            {template.action.description}
+                            {tt(template.action.description)}
                           </span>
                         </p>
                       </div>
 
                       {/* 为什么有效 */}
                       <div className="mb-3">
-                        <p className="mb-1 text-xs font-medium text-ink">原理</p>
+                        <p className="mb-1 text-xs font-medium text-ink">{tr("template_lib_principle")}</p>
                         <p className="text-xs leading-relaxed text-ink-muted">
-                          {template.why}
+                          {tt(template.why)}
                         </p>
                       </div>
 
                       {/* 文献来源 */}
                       <p className="mb-3 text-[10px] text-ink-faint">
-                        文献：{template.evidence}
+                        {tr("template_lib_evidence", { evidence: template.evidence })}
                       </p>
 
                       {/* 适合阶段 */}
                       <div className="mb-4 flex flex-wrap items-center gap-1.5">
                         <span className="text-[10px] text-ink-faint">
-                          适合阶段：
+                          {tr("template_lib_fit_phases")}
                         </span>
                         {template.phases.map((ph) => {
                           const cfg = getPhaseConfig(ph);
@@ -248,7 +247,7 @@ export default function ProtocolTemplateLibrary() {
                                 cfg.badgeClass,
                               )}
                             >
-                              {cfg.label}
+                              {tt(cfg.label)}
                             </span>
                           );
                         })}
@@ -260,7 +259,7 @@ export default function ProtocolTemplateLibrary() {
                         className="flex w-full items-center justify-center gap-1.5 rounded-full bg-primary py-2.5 text-small font-medium text-white transition-all duration-250 hover:bg-primary/90 active:scale-[0.98]"
                       >
                         <Plus size={14} />
-                        一键导入协议
+                        {tr("template_lib_import")}
                       </button>
                     </div>
                   </motion.div>
@@ -272,7 +271,7 @@ export default function ProtocolTemplateLibrary() {
       </div>
 
       <p className="mt-4 text-center text-[10px] text-ink-faint">
-        所有模板基于同行评审文献 · 非诊断 · 严重困扰请咨询专业人士
+        {tr("template_lib_footer")}
       </p>
     </motion.section>
   );

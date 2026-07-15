@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronRight, History, Layers, Sparkles, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { ChevronRight, History, Layers, TrendingUp, TrendingDown, Minus, ClipboardList } from "lucide-react";
 import TrendChart from "@/components/climate/TrendChart";
 import { useStore } from "@/store/useStore";
 import { SCALES } from "@/lib/scales";
@@ -22,7 +22,7 @@ export default function Climate() {
   const traitProfile = useStore((s) => s.traitProfile);
   const neuroType = useStore((s) => s.neuroType);
   const { isParent } = useVoice();
-  const { tr } = useT();
+  const { tr, tt } = useT();
 
   // 简易周报数据
   const weeklySummary = useMemo(() => {
@@ -93,8 +93,8 @@ export default function Climate() {
           className="glass-card rounded-card border border-edge/60 p-5 text-left"
         >
           <History size={17} className="text-clay" />
-          <p className="mt-3 text-sm font-medium text-ink">经历证据</p>
-          <p className="mt-1 flex items-center text-xs text-ink-muted">查看时间线 <ChevronRight size={13} /></p>
+          <p className="mt-3 text-sm font-medium text-ink">{tr("climate_evidence")}</p>
+          <p className="mt-1 flex items-center text-xs text-ink-muted">{tr("climate_evidence_desc")} <ChevronRight size={13} /></p>
         </button>
         <button
           type="button"
@@ -102,8 +102,8 @@ export default function Climate() {
           className="glass-card rounded-card border border-edge/60 p-5 text-left"
         >
           <Layers size={17} className="text-primary" />
-          <p className="mt-3 text-sm font-medium text-ink">支持协议</p>
-          <p className="mt-1 flex items-center text-xs text-ink-muted">查看行动规则 <ChevronRight size={13} /></p>
+          <p className="mt-3 text-sm font-medium text-ink">{tr("climate_protocols")}</p>
+          <p className="mt-1 flex items-center text-xs text-ink-muted">{tr("climate_protocols_desc")} <ChevronRight size={13} /></p>
         </button>
       </div>
 
@@ -116,7 +116,7 @@ export default function Climate() {
           className="glass-card rounded-card border border-edge/60 p-5"
         >
           <p className="mb-3 text-xs uppercase tracking-widest text-primary">
-            最近七天的证据
+            {tr("climate_week_title")}
           </p>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -126,16 +126,16 @@ export default function Climate() {
                   weeklySummary.dominantClass,
                 )}
               >
-                {weeklySummary.dominantLabel}
+                {tt(weeklySummary.dominantLabel)}
               </span>
               <span className="text-small text-ink">
-                主要处于{weeklySummary.dominantLabel}
+                {tr("climate_week_dominant")}{tt(weeklySummary.dominantLabel)}
               </span>
             </div>
             <div className="flex items-center gap-3 text-xs text-ink-muted">
-              <span>{weeklySummary.checkinCount} 次签到</span>
+              <span>{weeklySummary.checkinCount} {tr("climate_week_checkins")}</span>
               <span>·</span>
-              <span>{weeklySummary.executionCount} 次协议</span>
+              <span>{weeklySummary.executionCount} {tr("climate_week_protocols")}</span>
             </div>
           </div>
           {weeklySummary.checkinCount >= 2 && (
@@ -148,12 +148,12 @@ export default function Climate() {
                 <Minus size={14} className="text-ink-faint" />
               )}
               <span>
-                感官负载
+                {tr("climate_sensory_label")}
                 {weeklySummary.sensoryDelta < -0.5
-                  ? "有所下降"
+                  ? tr("climate_sensory_down")
                   : weeklySummary.sensoryDelta > 0.5
-                    ? "有所上升"
-                    : "基本稳定"}
+                    ? tr("climate_sensory_up")
+                    : tr("climate_sensory_stable")}
               </span>
             </div>
           )}
@@ -177,13 +177,13 @@ export default function Climate() {
                   <p className="text-small font-medium text-ink">
                     {scale.label}
                   </p>
-                  <p className="text-xs text-ink-muted">{r.band_title}</p>
+                  <p className="text-xs text-ink-muted">{tt(r.band_title)}</p>
                 </div>
                 <div className="text-right">
                   <p className="font-mono text-sm text-ink">
                     {r.score}/{r.max_score}
                   </p>
-                  <p className="text-xs text-ink-faint">非诊断</p>
+                  <p className="text-xs text-ink-faint">{tr("climate_non_diagnosis")}</p>
                 </div>
               </div>
             );
@@ -191,17 +191,28 @@ export default function Climate() {
         </div>
       )}
 
-      {/* 神经特质自评 · 辅助入口（非主导航 · 了解自己补充画像） */}
+      {/* 神经特质自评 · 卡片入口（10 份公开量表 · 非诊断） */}
       <button
         onClick={() => navigate("/screen")}
-        className="mx-auto mb-6 flex items-center gap-1.5 text-xs text-ink-faint underline-offset-2 hover:text-primary hover:underline"
+        className="glass-card flex w-full items-center gap-4 rounded-card border border-edge/60 p-5 text-left transition-all duration-250 hover:border-primary/40 hover:bg-primary-mist/20 active:scale-[0.99]"
       >
-        <Sparkles size={12} />
-        {traitProfile && traitProfile.results.length > 0
-          ? `${tr("climate_trait_done")} ${traitProfile.results.length} 份`
-          : isParent
-            ? tr("climate_self_assess_parent")
-            : tr("climate_self_assess_self")}
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-mist/50">
+          <ClipboardList size={20} className="text-primary" />
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <p className="text-body font-medium text-ink">{tr("climate_assess_title")}</p>
+            {traitProfile && traitProfile.results.length > 0 && (
+              <span className="rounded-full bg-sage-mist/60 px-2 py-0.5 text-[10px] text-sage">
+                {traitProfile.results.length} {tr("climate_assess_count")}
+              </span>
+            )}
+          </div>
+          <p className="mt-0.5 text-xs text-ink-muted">
+            {isParent ? tr("climate_assess_desc_parent") : tr("climate_assess_desc_self")}
+          </p>
+        </div>
+        <ChevronRight size={18} className="shrink-0 text-ink-faint" />
       </button>
     </div>
   );

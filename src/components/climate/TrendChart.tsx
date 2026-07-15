@@ -4,6 +4,7 @@ import type { AxisKey, CheckIn, ProtocolExecution } from "@/types";
 import { cn } from "@/lib/utils";
 import { getAxisProfile } from "@/lib/axisConfig";
 import { useStore } from "@/store/useStore";
+import { useT } from "@/lib/i18n";
 
 // 趋势回放折线图（PRD §05 F-05：三轴可切换查看，平滑曲线）
 // 轴标签按神经特质动态切换
@@ -17,6 +18,7 @@ export default function TrendChart({
   executions?: ProtocolExecution[];
 }) {
   const neuroType = useStore((s) => s.neuroType);
+  const { tr, tt, lang } = useT();
   const profile = getAxisProfile(neuroType);
   const AXIS_CONFIG = profile.axes.map((a) => ({
     key: a.key,
@@ -72,7 +74,7 @@ export default function TrendChart({
 
   return (
     <div className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
-      <h3 className="mb-4 font-serif text-lg text-ink">本周趋势</h3>
+      <h3 className="mb-4 font-serif text-lg text-ink">{tr("trend_chart_title")}</h3>
 
       {/* 轴切换 */}
       <div className="mb-4 flex gap-2">
@@ -87,14 +89,14 @@ export default function TrendChart({
                 : "bg-white/50 text-ink-muted hover:bg-white/80",
             )}
           >
-            {axis.label}
+            {tt(axis.label)}
           </button>
         ))}
       </div>
 
       {points.length === 0 ? (
         <div className="flex h-40 items-center justify-center text-small text-ink-muted">
-          这周还没签到数据
+          {tr("trend_chart_empty")}
         </div>
       ) : (
         <svg
@@ -212,7 +214,7 @@ export default function TrendChart({
                 className="fill-ink-muted"
                 style={{ fontSize: "10px" }}
               >
-                {new Date(points[0].time).toLocaleDateString("zh-CN", {
+                {new Date(points[0].time).toLocaleDateString(lang === "en" ? "en-US" : "zh-CN", {
                   month: "numeric",
                   day: "numeric",
                 })}
@@ -225,7 +227,7 @@ export default function TrendChart({
                 style={{ fontSize: "10px" }}
               >
                 {new Date(points[points.length - 1].time).toLocaleDateString(
-                  "zh-CN",
+                  lang === "en" ? "en-US" : "zh-CN",
                   { month: "numeric", day: "numeric" },
                 )}
               </text>
@@ -236,11 +238,11 @@ export default function TrendChart({
 
       <div className="mt-3 space-y-1">
         <p className="text-xs text-ink-muted">
-          {recent.length} 次签到 · 第一周纯记录回放，让你自己看趋势
+          {tr("trend_chart_count", { count: recent.length })}
         </p>
         <p className="flex items-center gap-1 text-[10px] text-ink-faint">
           <span className="inline-block h-2 w-2 rounded-full bg-clay/30" />
-          光晕越大 = 签到时越不确定自己的状态 · 这是被动信号，不用刻意
+          {tr("trend_chart_halo_hint")}
         </p>
       </div>
     </div>

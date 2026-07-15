@@ -1,15 +1,16 @@
-import type { CheckIn, NeuroType, Phase, PhasePoint } from "@/types";
+import type { CheckIn, LocalText, NeuroType, PhasePoint } from "@/types";
+import { ttNow } from "@/lib/i18n";
 import { getAxisProfile, getBandLabel } from "@/lib/axisConfig";
 import { detectPhase, getPhaseConfig } from "@/lib/stageEngine";
 import { formatTime } from "@/lib/format";
 
 // 签到前后对比（比上一次，各轴变了多少）
 export interface AxisDiff {
-  label: string;
+  label: LocalText;
   prevRaw: number;
   currRaw: number;
-  prevBand: string;
-  currBand: string;
+  prevBand: LocalText;
+  currBand: LocalText;
   delta: number; // 当前 - 上次（正值 = 数值变大）
   directionChanged: boolean; // 区间是否改变（如 过载边缘 → 有些聊）
 }
@@ -32,7 +33,7 @@ export function compareCheckins(
   const profile = getAxisProfile(neuroType);
   const [a1, a2, a3] = profile.axes;
 
-  const axes: { key: typeof a1.key; label: string; cfg: typeof a1 }[] = [
+  const axes: { key: typeof a1.key; label: LocalText; cfg: typeof a1 }[] = [
     { key: a1.key, label: a1.label, cfg: a1 },
     { key: a2.key, label: a2.label, cfg: a2 },
     { key: a3.key, label: a3.label, cfg: a3 },
@@ -71,9 +72,9 @@ export function compareCheckins(
     summary = "各项与上次差不多";
   } else if (changed.length === 1) {
     const d = changed[0];
-    summary = `${d.label}从「${d.prevBand}」变为「${d.currBand}」`;
+    summary = `${ttNow(d.label)}从「${ttNow(d.prevBand)}」变为「${ttNow(d.currBand)}」`;
   } else {
-    summary = changed.map((d) => d.label).join("、") + "有变化";
+    summary = changed.map((d) => ttNow(d.label)).join("、") + "有变化";
   }
 
   return {

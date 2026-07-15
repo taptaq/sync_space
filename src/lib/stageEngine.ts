@@ -1,4 +1,4 @@
-import type { ClimateType, CrashMark, NeuroType, Phase } from "@/types";
+import type { ClimateType, CrashMark, LocalText, NeuroType, Phase } from "@/types";
 
 // 五阶段模型（PRD §09 气候延伸 · 状态分层驱动措施与协议推荐）
 // 阶段由当前气候 + 崩溃标记共同判定，恢复期优先
@@ -8,64 +8,64 @@ import type { ClimateType, CrashMark, NeuroType, Phase } from "@/types";
 
 export interface PhaseConfig {
   key: Phase;
-  label: string;
+  label: LocalText;
   // 天气卡渐变背景类（对应 index.css 中 .phase-* ）
   toneClass: string;
   // 阶段小标签的徽章色（tailwind 文字 + 背景类）
   badgeClass: string;
   // 给用户的阶段叙事（按特质分化的默认值在 PHASE_NARRATIVE_BY_TYPE）
-  narrative: string;
+  narrative: LocalText;
   // 措施基调（按特质分化的默认值在 PHASE_MEASURE_TONE_BY_TYPE）
-  measureTone: string;
+  measureTone: LocalText;
   // 该阶段优先推荐的协议阶段标签（顺序即优先级）
   recommendedTags: Phase[];
 }
 
 // 按特质分化的阶段叙事
-const PHASE_NARRATIVE_BY_TYPE: Record<Phase, Partial<Record<NeuroType, string>>> = {
+const PHASE_NARRATIVE_BY_TYPE: Record<Phase, Partial<Record<NeuroType, LocalText>>> = {
   stable: {
-    asd: "感官预算充足，环境在你的掌控中。这是充电、巩固日常的好时候。",
-    adhd: "多巴胺电量满格，脑子转得动。这是做你真正想做的事的好时候。",
+    asd: { zh: "感官预算充足，环境在你的掌控中。这是充电、巩固日常的好时候。", en: "Sensory budget is full and the environment is in your control. A good time to recharge and consolidate routines." },
+    adhd: { zh: "多巴胺电量满格，脑子转得动。这是做你真正想做的事的好时候。", en: "Dopamine battery is full and the mind is ready. A good time to do what you truly want." },
   },
   accumulating: {
-    asd: "感官输入在累积。还来得及，提前降载比事后修复轻松得多。",
-    adhd: "任务切换和决策在累积疲劳。还来得及，提前减负比硬撑下去轻松得多。",
+    asd: { zh: "感官输入在累积。还来得及，提前降载比事后修复轻松得多。", en: "Sensory input is accumulating. There's still time; reducing load proactively is easier than recovering later." },
+    adhd: { zh: "任务切换和决策在累积疲劳。还来得及，提前减负比硬撑下去轻松得多。", en: "Task-switching and decisions are accumulating fatigue. There's still time; offloading proactively is easier than pushing through." },
   },
   warning: {
-    asd: "离感官过载还有一步。现在执行协议，比硬撑过去更省力。",
-    adhd: "离执行功能崩溃还有一步。现在执行协议，比硬撑过去更省力。",
+    asd: { zh: "离感官过载还有一步。现在执行协议，比硬撑过去更省力。", en: "One step from sensory overload. Running a protocol now takes less effort than pushing through." },
+    adhd: { zh: "离执行功能崩溃还有一步。现在执行协议，比硬撑过去更省力。", en: "One step from executive-function collapse. Running a protocol now takes less effort than pushing through." },
   },
   overload: {
-    asd: "感官电量已经见底。此刻不需要「应该」，只需要保护自己。",
-    adhd: "多巴胺电量已经见底。此刻不需要「应该」，只需要保护自己。",
+    asd: { zh: "感官电量已经见底。此刻不需要「应该」，只需要保护自己。", en: "Sensory battery is empty. Right now you don't need \"should\"; you just need to protect yourself." },
+    adhd: { zh: "多巴胺电量已经见底。此刻不需要「应该」，只需要保护自己。", en: "Dopamine battery is empty. Right now you don't need \"should\"; you just need to protect yourself." },
   },
   recovery: {
-    asd: "刚经历过感官过载，正在回血。低电量是正常的，慢一点。",
-    adhd: "刚经历过执行崩溃，正在回血。低电量是正常的，别急着启动。",
+    asd: { zh: "刚经历过感官过载，正在回血。低电量是正常的，慢一点。", en: "Just came through sensory overload and are recharging. Low battery is normal; take it slowly." },
+    adhd: { zh: "刚经历过执行崩溃，正在回血。低电量是正常的，别急着启动。", en: "Just came through an executive crash and are recharging. Low battery is normal; don't rush to restart." },
   },
 };
 
 // 按特质分化的措施基调
-const PHASE_MEASURE_TONE_BY_TYPE: Record<Phase, Partial<Record<NeuroType, string>>> = {
+const PHASE_MEASURE_TONE_BY_TYPE: Record<Phase, Partial<Record<NeuroType, LocalText>>> = {
   stable: {
-    asd: "可以做需要专注的事，也为未来储备感官预算。",
-    adhd: "可以做需要启动的事，也为未来储备多巴胺电量。",
+    asd: { zh: "可以做需要专注的事，也为未来储备感官预算。", en: "You can do focused work and build up future sensory budget." },
+    adhd: { zh: "可以做需要启动的事，也为未来储备多巴胺电量。", en: "You can do work that needs initiation and build up future dopamine battery." },
   },
   accumulating: {
-    asd: "预防优先：取消非必要安排，给感官降载。",
-    adhd: "预防优先：减少任务切换，给执行功能降载。",
+    asd: { zh: "预防优先：取消非必要安排，给感官降载。", en: "Prevention first: cancel non-essential commitments and reduce sensory load." },
+    adhd: { zh: "预防优先：减少任务切换，给执行功能降载。", en: "Prevention first: reduce task-switching and lower executive load." },
   },
   warning: {
-    asd: "立即执行已设协议，最小化决策，能撤就撤。",
-    adhd: "立即执行已设协议，最小化决策，降低启动门槛。",
+    asd: { zh: "立即执行已设协议，最小化决策，能撤就撤。", en: "Run an existing protocol now, minimize decisions, and withdraw when you can." },
+    adhd: { zh: "立即执行已设协议，最小化决策，降低启动门槛。", en: "Run an existing protocol now, minimize decisions, and lower the bar for starting." },
   },
   overload: {
-    asd: "只做最低限度的保护动作，不要求自己「做好」。",
-    adhd: "只做最低限度的制动动作，不要求自己「做好」。",
+    asd: { zh: "只做最低限度的保护动作，不要求自己「做好」。", en: "Do only the minimum protective action; don't demand that you \"do it well\"." },
+    adhd: { zh: "只做最低限度的制动动作，不要求自己「做好」。", en: "Do only the minimum braking action; don't demand that you \"do it well\"." },
   },
   recovery: {
-    asd: "温柔、不催促。允许低电量，多睡、少做、慢一点。",
-    adhd: "温柔、不催促。允许低电量，别给自己加任务。",
+    asd: { zh: "温柔、不催促。允许低电量，多睡、少做、慢一点。", en: "Gentle, unhurried. Allow low battery—sleep more, do less, slow down." },
+    adhd: { zh: "温柔、不催促。允许低电量，别给自己加任务。", en: "Gentle, unhurried. Allow low battery—don't add tasks for yourself." },
   },
 };
 
@@ -73,47 +73,47 @@ const PHASE_MEASURE_TONE_BY_TYPE: Record<Phase, Partial<Record<NeuroType, string
 export const PHASE_MAP: Record<Phase, PhaseConfig> = {
   stable: {
     key: "stable",
-    label: "平稳期",
+    label: { zh: "平稳期", en: "Stable" },
     toneClass: "phase-stable",
     badgeClass: "bg-sage-mist/60 text-sage",
-    narrative: "状态稳定，能量充足。这是建设、充电、巩固的好时候。",
-    measureTone: "可以做需要专注的事，也为未来储备能量。",
+    narrative: { zh: "状态稳定，能量充足。这是建设、充电、巩固的好时候。", en: "Stable state, ample energy. A good time to build, recharge, and consolidate." },
+    measureTone: { zh: "可以做需要专注的事，也为未来储备能量。", en: "You can do focused work and bank energy for the future." },
     recommendedTags: ["stable"],
   },
   accumulating: {
     key: "accumulating",
-    label: "累积期",
+    label: { zh: "累积期", en: "Accumulating" },
     toneClass: "phase-accumulating",
     badgeClass: "bg-clay-mist/60 text-clay",
-    narrative: "有些信号在累积。还来得及，提前减负比事后修复轻松得多。",
-    measureTone: "预防优先：取消非必要安排，给感官降载。",
+    narrative: { zh: "有些信号在累积。还来得及，提前减负比事后修复轻松得多。", en: "Some signals are accumulating. There's still time; offloading proactively is easier than recovering later." },
+    measureTone: { zh: "预防优先：取消非必要安排，给感官降载。", en: "Prevention first: cancel non-essential commitments and reduce sensory load." },
     recommendedTags: ["accumulating", "warning"],
   },
   warning: {
     key: "warning",
-    label: "预警期",
+    label: { zh: "预警期", en: "Warning" },
     toneClass: "phase-warning",
     badgeClass: "bg-clay-mist/60 text-clay-soft",
-    narrative: "离过载还有一步。现在执行协议，比硬撑过去更省力。",
-    measureTone: "立即执行已设协议，最小化决策，能撤就撤。",
+    narrative: { zh: "离过载还有一步。现在执行协议，比硬撑过去更省力。", en: "One step from overload. Running a protocol now takes less effort than pushing through." },
+    measureTone: { zh: "立即执行已设协议，最小化决策，能撤就撤。", en: "Run an existing protocol now, minimize decisions, and withdraw when you can." },
     recommendedTags: ["warning", "overload"],
   },
   overload: {
     key: "overload",
-    label: "过载期",
+    label: { zh: "过载期", en: "Overload" },
     toneClass: "phase-overload",
     badgeClass: "bg-warn-mist/60 text-warn",
-    narrative: "电量已经见底。此刻不需要「应该」，只需要保护自己。",
-    measureTone: "只做最低限度的保护动作，不要求自己「做好」。",
+    narrative: { zh: "电量已经见底。此刻不需要「应该」，只需要保护自己。", en: "Battery is empty. Right now you don't need \"should\"; you just need to protect yourself." },
+    measureTone: { zh: "只做最低限度的保护动作，不要求自己「做好」。", en: "Do only the minimum protective action; don't demand that you \"do it well\"." },
     recommendedTags: ["overload"],
   },
   recovery: {
     key: "recovery",
-    label: "恢复期",
+    label: { zh: "恢复期", en: "Recovery" },
     toneClass: "phase-recovery",
     badgeClass: "bg-primary-mist/60 text-primary",
-    narrative: "刚经历过过载，正在回血。低电量是正常的，深度加工可能在这个阶段给你一些洞察。",
-    measureTone: "温柔、不催促。允许低电量，多睡、少做、慢一点。恢复期也可能有创造性产出。",
+    narrative: { zh: "刚经历过过载，正在回血。低电量是正常的，深度加工可能在这个阶段给你一些洞察。", en: "Just came through overload and are recharging. Low battery is normal; deep processing may offer some insight here." },
+    measureTone: { zh: "温柔、不催促。允许低电量，多睡、少做、慢一点。恢复期也可能有创造性产出。", en: "Gentle, unhurried. Allow low battery—sleep more, do less, slow down. Creative output can also emerge in recovery." },
     recommendedTags: ["recovery"],
   },
 };

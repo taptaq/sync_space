@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import type { AxisKey } from "@/types";
 import { getAxisProfile } from "@/lib/axisConfig";
 import { useStore } from "@/store/useStore";
+import { useT } from "@/lib/i18n";
 import { AXIS_COLORS } from "@/lib/constants";
 import { mixColors } from "@/lib/colorUtils";
 
@@ -18,6 +19,7 @@ export default function EnergyPalette({
   onChange: (key: AxisKey, value: number) => void;
 }) {
   const neuroType = useStore((s) => s.neuroType);
+  const { tr, tt } = useT();
   const profile = getAxisProfile(neuroType);
 
   const mixedColor = useMemo(() => mixColors(values), [values]);
@@ -28,8 +30,8 @@ export default function EnergyPalette({
   return (
     <div className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-small text-ink">能量调色盘</p>
-        <p className="text-xs text-ink-muted">拖动颜色浓度 · 混合今日颜色</p>
+        <p className="text-small text-ink">{tr("energy_title")}</p>
+        <p className="text-xs text-ink-muted">{tr("energy_subtitle")}</p>
       </div>
 
       {/* 今日颜色预览 */}
@@ -64,15 +66,15 @@ export default function EnergyPalette({
           <div className="flex gap-3 text-xs text-ink-faint">
             <span className="flex items-center gap-1">
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: AXIS_COLORS.sensory.hex }} />
-              {profile.axes[0].label} {Math.round((values.sensory / total) * 100)}%
+              {tt(profile.axes[0].label)} {Math.round((values.sensory / total) * 100)}%
             </span>
             <span className="flex items-center gap-1">
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: AXIS_COLORS.social.hex }} />
-              {profile.axes[1].label} {Math.round((values.social / total) * 100)}%
+              {tt(profile.axes[1].label)} {Math.round((values.social / total) * 100)}%
             </span>
             <span className="flex items-center gap-1">
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: AXIS_COLORS.predictability.hex }} />
-              {profile.axes[2].label} {Math.round((values.predictability / total) * 100)}%
+              {tt(profile.axes[2].label)} {Math.round((values.predictability / total) * 100)}%
             </span>
           </div>
         </div>
@@ -83,7 +85,7 @@ export default function EnergyPalette({
         {profile.axes.map((axis) => (
           <div key={axis.key}>
             <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-xs text-ink">{axis.label}</span>
+              <span className="text-xs text-ink">{tt(axis.label)}</span>
               <span className="font-mono text-xs text-ink-muted">
                 {values[axis.key].toFixed(1)}
               </span>
@@ -120,7 +122,7 @@ export default function EnergyPalette({
       </div>
 
       <p className="mt-4 text-center text-xs text-ink-faint">
-        今日颜色不止一种——是你的能量混合而成
+        {tr("energy_hint")}
       </p>
     </div>
   );

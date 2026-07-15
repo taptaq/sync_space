@@ -67,10 +67,10 @@ export const mockProtocols: Protocol[] = [
       axis: "sensory",
       operator: ">",
       value: 7,
-      description: "感官负载 > 7",
+      description: { zh: "感官负载 > 7", en: "Sensory load > 7" },
     },
     action: {
-      description: "15 分钟内撤退到安静空间，不等别人同意",
+      description: { zh: "15 分钟内撤退到安静空间，不等别人同意", en: "Retreat to a quiet space within 15 minutes, without waiting for others' consent" },
       duration_minutes: 15,
       timer: true,
     },
@@ -87,10 +87,10 @@ export const mockProtocols: Protocol[] = [
       axis: "sensory",
       operator: ">=",
       value: 6,
-      description: "进入 hyperfocus",
+      description: { zh: "进入 hyperfocus", en: "Entering hyperfocus" },
     },
     action: {
-      description: "设 90 分钟硬锚点提醒自己停下来喝水",
+      description: { zh: "设 90 分钟硬锚点提醒自己停下来喝水", en: "Set a 90-minute hard anchor to remind myself to stop and drink water" },
       duration_minutes: 90,
       timer: true,
     },
@@ -107,10 +107,10 @@ export const mockProtocols: Protocol[] = [
       axis: "predictability",
       operator: "<",
       value: 4,
-      description: "情绪开始过载",
+      description: { zh: "情绪开始过载", en: "Emotions beginning to overload" },
     },
     action: {
-      description: "先用文字写下来再尝试说话",
+      description: { zh: "先用文字写下来再尝试说话", en: "Write it down first before trying to speak" },
       duration_minutes: 5,
       timer: false,
     },
@@ -124,10 +124,10 @@ export const mockProtocols: Protocol[] = [
     id: "protocol_004",
     trigger: {
       type: "behavior",
-      description: "收到不舒服的消息",
+      description: { zh: "收到不舒服的消息", en: "Received an uncomfortable message" },
     },
     action: {
-      description: "推迟到明天回 · AI 候选待确认",
+      description: { zh: "推迟到明天回 · AI 候选待确认", en: "Postpone reply until tomorrow · AI candidate pending confirmation" },
       duration_minutes: 0,
       timer: false,
     },
@@ -173,11 +173,14 @@ export const mockCrashMarks: CrashMark[] = [
 // 预置 AI 观察（本周）
 export const mockObservation: AIObservation = {
   id: "obs_week_current",
-  week_label: "本周",
-  pattern: `你过去三次 meltdown 前的 90 分钟，都做了一件相同的事：回复了一条让你不舒服的消息。要不要把"不舒服的消息推迟到明天回"写进协议？`,
+  week_label: { zh: "本周", en: "This week" },
+  pattern: {
+    zh: `你过去三次 meltdown 前的 90 分钟，都做了一件相同的事：回复了一条让你不舒服的消息。要不要把"不舒服的消息推迟到明天回"写进协议？`,
+    en: `In the 90 minutes before your last three meltdowns, you did the same thing: replied to a message that made you uncomfortable. Would you like to add "postpone uncomfortable messages to tomorrow" as a protocol?`,
+  },
   suggested_protocol: {
-    trigger_description: "收到不舒服的消息",
-    action_description: "推迟到明天再回，不强迫自己立刻回应",
+    trigger_description: { zh: "收到不舒服的消息", en: "Received an uncomfortable message" },
+    action_description: { zh: "推迟到明天再回，不强迫自己立刻回应", en: "Postpone the reply until tomorrow; don't force an immediate response" },
   },
   status: "pending",
   created_at: new Date(Date.now() - 1 * 86400000).toISOString(),

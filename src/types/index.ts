@@ -3,6 +3,12 @@
 // 神经特质类型
 export type NeuroType = "asd" | "adhd" | "hsp" | "ptsd" | "other";
 
+// ADHD 子类型（DSM-5 三种表现类型）
+export type ADHDSubtype = "inattentive" | "hyperactive" | "combined" | "unknown";
+
+// 双语文本类型 · 数据层用此类型存储中英文文案
+export type LocalText = { zh: string; en: string };
+
 // 气候类型（PRD §09 气候类型非好坏）
 export type ClimateType =
   | "stuffy_rain" // 闷热待雨 · 感官气压升高
@@ -55,16 +61,16 @@ export interface CaptureItem {
 // 天气卡快照
 export interface WeatherSnapshot {
   climate: ClimateType;
-  climate_label: string;
-  description: string;
-  suitable: string[];
-  unsuitable: string[];
+  climate_label: LocalText;
+  description: LocalText;
+  suitable: LocalText[];
+  unsuitable: LocalText[];
 }
 
 // 阶段轨迹点（阶段移动的迷你可视化）
 export interface PhasePoint {
   phase: Phase;
-  label: string;
+  label: LocalText;
   color: string;
   time: string;
 }
@@ -91,12 +97,12 @@ export interface ProtocolTrigger {
   axis?: AxisKey;
   operator?: ">" | "<" | ">=" | "<=";
   value?: number;
-  description: string; // 自然语言描述，如"感官负载 > 7"
+  description: LocalText; // 自然语言描述，如"感官负载 > 7"
 }
 
 // 协议约定动作
 export interface ProtocolAction {
-  description: string;
+  description: LocalText;
   duration_minutes: number;
   timer: boolean;
 }
@@ -136,9 +142,9 @@ export interface ProtocolExecution {
 
 // AI 三段式解读
 export interface AIInterpretation {
-  event: string; // 事件描述
-  emotion: string; // 情绪翻译
-  need: string; // 需求识别
+  event: LocalText; // 事件描述
+  emotion: LocalText; // 情绪翻译
+  need: LocalText; // 需求识别
 }
 
 // 过载事件类型（ASD 研究：meltdown = 外向爆发，shutdown = 内向退缩，恢复路径不同）
@@ -158,25 +164,25 @@ export type TriggerCueType =
 export interface CrashMark {
   id: string;
   marked_at: string;
-  voice_text?: string; // 模拟语音转文字
-  raw_text?: string; // 用户补记文字
+  voice_text?: string; // 模拟语音转文字（用户输入 · 不双语）
+  raw_text?: string; // 用户补记文字（用户输入 · 不双语）
   ai_interpretation?: AIInterpretation;
   weather_snapshot?: WeatherSnapshot;
   reviewed: boolean;
   // 过载事件类型（meltdown 外向爆发 / shutdown 内向退缩 / dissociation 解离）
   crash_type?: CrashType;
   // 结构化触发线索（PTSD 安全 · 客观线索而非情绪叙述）
-  trigger_cues?: { type: TriggerCueType; description: string }[];
+  trigger_cues?: { type: TriggerCueType; description: LocalText }[];
 }
 
 // AI 观察建议
 export interface AIObservation {
   id: string;
-  week_label: string;
-  pattern: string; // "你过去 N 次 [事件] 前的 M 分钟，都做了 [行为]"
+  week_label: LocalText;
+  pattern: LocalText; // "你过去 N 次 [事件] 前的 M 分钟，都做了 [行为]"
   suggested_protocol: {
-    trigger_description: string;
-    action_description: string;
+    trigger_description: LocalText;
+    action_description: LocalText;
   };
   status: "pending" | "accepted" | "ignored";
   created_at: string;
@@ -187,8 +193,8 @@ export interface TimelineEntry {
   id: string;
   type: "crash" | "protocol" | "checkin";
   time: string;
-  title: string;
-  detail: string;
+  title: LocalText;
+  detail: LocalText;
   weather_snapshot?: WeatherSnapshot;
 }
 
@@ -202,7 +208,17 @@ export interface ToastMessage {
 // ============ 神经特质自评（PRD §11 非诊断 · 使用业内公开量表官方原版） ============
 
 // 量表标识
-export type ScaleId = "aq10" | "asrs6" | "hsps12" | "pcl5";
+export type ScaleId =
+  | "aq10"
+  | "asrs6"
+  | "hsps12"
+  | "pcl5"
+  | "snap18"
+  | "mdqe33"
+  | "sas20"
+  | "sds20"
+  | "dsm5a18s"
+  | "dsm5a18b";
 
 // 计分模式
 // binary：每题命中 scored_options 得 1 分（AQ-10 / ASRS-6 官方计分方式）
@@ -212,33 +228,35 @@ export type ScoringMode = "binary" | "likert";
 // 量表题目
 export interface ScaleQuestion {
   id: number;
-  text: string;
+  text: LocalText;
   // binary 模式：哪些选项 index 得 1 分（对应 ScaleMeta.options 的 index）
   // likert 模式：忽略此字段
   scored_options?: number[];
+  // likert 模式：是否为反向计分题（如 SAS/SDS）
+  reverse?: boolean;
 }
 
 // 量表元数据
 export interface ScaleMeta {
   id: ScaleId;
   neuro_type: NeuroType; // 对应的神经特质
-  label: string; // ASD / ADHD / HSP
-  full_name: string; // 全称
-  source: string; // 量表出处 + 官方链接
+  label: string; // ASD / ADHD / HSP（缩写 · 不双语）
+  full_name: LocalText; // 全称
+  source: LocalText; // 量表出处 + 官方链接
   official_url: string; // 官方测试/资料链接
   question_count: number;
   scoring: ScoringMode;
-  description: string; // 给用户看的通俗说明
-  options: { value: number; label: string }[]; // 选项（binary: value 仅作标识；likert: value 即得分）
+  description: LocalText; // 给用户看的通俗说明
+  options: { value: number; label: LocalText }[]; // 选项（binary: value 仅作标识；likert: value 即得分）
   cutoff: number; // 官方临床 cutoff（≥该分建议转介专科评估）
-  cutoff_note: string; // cutoff 说明
+  cutoff_note: LocalText; // cutoff 说明
   // 分数区间 → 画像
   bands: {
     max: number; // 该区间上限（含）
     level: "low" | "mid" | "high"; // 特质表达程度
-    title: string; // 画像标题
-    summary: string; // 画像描述
-    recommended_protocols: string[]; // 推荐协议方向描述
+    title: LocalText; // 画像标题
+    summary: LocalText; // 画像描述
+    recommended_protocols: LocalText[]; // 推荐协议方向描述
   }[];
 }
 
@@ -248,9 +266,9 @@ export interface ScaleResult {
   score: number;
   max_score: number;
   level: "low" | "mid" | "high";
-  band_title: string;
-  band_summary: string;
-  recommended_protocols: string[];
+  band_title: LocalText;
+  band_summary: LocalText;
+  recommended_protocols: LocalText[];
   answers: number[]; // 每题用户选的 option index
   taken_at: string; // ISO
 }
@@ -282,26 +300,26 @@ export type AppMode = "self" | "parent_proxy";
 // 家长观察到的行为选项（按三轴组织，每条轴给三段可观察行为 · 对应 raw 低/中/高）
 export interface ParentBehaviorOption {
   key: string;
-  label: string; // 家长看得懂的描述，如"捂耳朵 / 躲眼神"
+  label: LocalText; // 家长看得懂的描述，如"捂耳朵 / 躲眼神"
   raw: number; // 映射到的轴 raw 值（2 / 5 / 8 三档）
 }
 
 // 一条轴的家长行为组
 export interface ParentBehaviorAxis {
   axis: AxisKey;
-  label: string; // 轴的家长向标签，如"感官"
+  label: LocalText; // 轴的家长向标签，如"感官"
   options: ParentBehaviorOption[]; // 三档
 }
 
 // 家长引导建议条目
 export interface ParentGuidanceItem {
-  text: string;
+  text: LocalText;
 }
 
 // 单个阶段的家长引导包（四类建议）
 export interface ParentGuidancePack {
   phase: Phase;
-  phaseLabel: string;
+  phaseLabel: LocalText;
   measures: ParentGuidanceItem[]; // 阶段措施卡片
   scripts: ParentGuidanceItem[]; // 话术卡片（家长可以这样说）
   avoidList: ParentGuidanceItem[]; // 不要做清单

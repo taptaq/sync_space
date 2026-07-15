@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { getParentBehaviors, behaviorsToRaw } from "@/lib/parentBehaviors";
 import { detectPhase } from "@/lib/stageEngine";
 import { isToday } from "@/lib/format";
+import { useT } from "@/lib/i18n";
+import type { StringKey } from "@/lib/translations";
 
 // 家长代理签到（家长观察行为选择 → 映射三轴 · 不需要孩子拿手机）
 // 复用自主签到的冷却引导和时段进度逻辑，但签到方式改为"选行为"
@@ -19,6 +21,7 @@ export default function ParentCheckInCard() {
   const crashMarks = useStore((s) => s.crashMarks);
   const checkins = useStore((s) => s.checkins);
   const getMinutesSinceLastCheckin = useStore((s) => s.getMinutesSinceLastCheckin);
+  const { tr, tt } = useT();
 
   const groups = getParentBehaviors(neuroType);
   // 默认选中三轴中间档
@@ -61,12 +64,12 @@ export default function ParentCheckInCard() {
   };
 
   const cooldownText = done
-    ? "已记录"
+    ? tr("parent_checkin_recorded")
     : isCoolingDown
-      ? `距离上次 ${minutesSinceLast} 分钟 · 再观察一会儿更准`
+      ? tr("parent_checkin_cooldown_wait", { minutes: minutesSinceLast })
       : todayCount === 0
-        ? "今天还没有签到"
-        : `今日已签 ${todayCount} 次`;
+        ? tr("parent_checkin_no_checkin")
+        : tr("parent_checkin_today_count", { count: todayCount });
 
   return (
     <motion.section
@@ -77,10 +80,10 @@ export default function ParentCheckInCard() {
     >
       <div className="mb-5 flex items-baseline justify-between">
         <div>
-          <h3 className="font-serif text-xl text-ink">观察签到</h3>
+          <h3 className="font-serif text-xl text-ink">{tr("parent_checkin_title")}</h3>
           <p className="mt-0.5 flex items-center gap-1 text-xs text-ink-muted">
             <Eye size={12} className="text-primary" />
-            家长代签 · 选孩子此刻的样子
+            {tr("parent_checkin_subtitle")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -90,7 +93,7 @@ export default function ParentCheckInCard() {
               getPhaseBadgeClass(currentPhase),
             )}
           >
-            {getPhaseShortLabel(currentPhase)}
+            {tr(getPhaseShortKey(currentPhase))}
           </span>
           <span className="font-mono text-xs text-ink-muted">
             {new Date().toLocaleTimeString("zh-CN", {
@@ -106,7 +109,11 @@ export default function ParentCheckInCard() {
         <div className="flex flex-1 gap-1.5">
           {(["morning", "noon", "evening"] as const).map((slot) => {
             const filled = slots[slot];
-            const labels = { morning: "早", noon: "中", evening: "晚" };
+            const slotLabels: Record<string, StringKey> = {
+              morning: "parent_checkin_slot_morning",
+              noon: "parent_checkin_slot_noon",
+              evening: "parent_checkin_slot_evening",
+            };
             return (
               <div
                 key={slot}
@@ -123,10 +130,10 @@ export default function ParentCheckInCard() {
                     filled ? "text-sage" : "text-ink-faint",
                   )}
                 >
-                  {labels[slot]}
+                  {tr(slotLabels[slot])}
                 </span>
                 <span className="text-[10px] text-ink-faint">
-                  {filled ? "已签" : "待签"}
+                  {filled ? tr("parent_checkin_slot_done") : tr("parent_checkin_slot_pending")}
                 </span>
               </div>
             );
@@ -138,7 +145,7 @@ export default function ParentCheckInCard() {
       <div className="space-y-4">
         {groups.map((g) => (
           <div key={g.axis}>
-            <p className="mb-2 text-small font-medium text-ink">{g.label}</p>
+            <p className="mb-2 text-small font-medium text-ink">{tt(g.label)}</p>
             <div className="grid grid-cols-1 gap-2">
               {g.options.map((opt) => {
                 const selected = picks[g.axis] === opt.key;
@@ -173,7 +180,7 @@ export default function ParentCheckInCard() {
                         </svg>
                       )}
                     </div>
-                    <span className="text-small text-ink">{opt.label}</span>
+                    <span className="text-small text-ink">{tt(opt.label)}</span>
                   </button>
                 );
               })}
@@ -214,18 +221,18 @@ export default function ParentCheckInCard() {
       >
         {done ? (
           <span className="flex items-center justify-center gap-2">
-            <Check size={18} /> 已记录
+            <Check size={18} /> {tr("parent_checkin_recorded")}
           </span>
         ) : isCoolingDown ? (
-          "仍然签到"
+          tr("parent_checkin_still_checkin")
         ) : (
-          "记录这次观察"
+          tr("parent_checkin_record")
         )}
       </button>
       <p className="mt-2 text-center text-xs text-ink-faint">
         {isCoolingDown
-          ? "可以等等再签 · 变化更明显"
-          : "选三项 · 签到后会给你当前阶段的引导建议"}
+          ? tr("parent_checkin_cooldown_hint")
+          : tr("parent_checkin_default_hint")}
       </p>
     </motion.section>
   );
@@ -242,13 +249,13 @@ function getPhaseBadgeClass(phase: Phase): string {
   }
 }
 
-function getPhaseShortLabel(phase: Phase): string {
+function getPhaseShortKey(phase: Phase): StringKey {
   switch (phase) {
-    case "stable": return "平稳";
-    case "accumulating": return "累积";
-    case "warning": return "预警";
-    case "overload": return "过载";
-    case "recovery": return "恢复";
-    default: return "签到";
+    case "stable": return "phase_short_stable";
+    case "accumulating": return "phase_short_accumulating";
+    case "warning": return "phase_short_warning";
+    case "overload": return "phase_short_overload";
+    case "recovery": return "phase_short_recovery";
+    default: return "phase_short_checkin";
   }
 }

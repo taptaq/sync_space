@@ -8,6 +8,7 @@ import {
   type AnimationPlaybackControls,
 } from "framer-motion";
 import { useStore } from "@/store/useStore";
+import { useT } from "@/lib/i18n";
 
 // 气候恢复视觉（协议执行计时期间，背景从雷暴预警陶土红缓慢过渡到晴朗微风鼠尾草绿）
 // 让用户视觉上感到"暴风雨过去了"而非"计时结束"
@@ -27,6 +28,7 @@ export default function RecoveryTransition({
   const totalSeconds = Math.max(1, Math.round(durationMinutes * 60));
   // 低感官模式：降低装饰性动效，颜色过渡本身已足够柔和
   const lowSensoryMode = useStore((s) => s.lowSensoryMode);
+  const { tr } = useT();
 
   // 进度 0 → 1，用 motion value + animate 驱动（JS 驱动以便可暂停）
   const progress = useMotionValue(0);
@@ -100,15 +102,15 @@ export default function RecoveryTransition({
         <span className="font-mono text-3xl tracking-wide text-white/90 tabular-nums">
           {mm}:{ss}
         </span>
-        <span className="mt-1 text-xs text-white/60">剩余时间</span>
+        <span className="mt-1 text-xs text-white/60">{tr("recovery_remaining")}</span>
       </motion.div>
 
       {/* 底部文案：暴风雨正在过去 → 天晴了 */}
       <p className="mt-10 font-serif text-2xl text-white/90">
-        {isClearing ? "天晴了" : "暴风雨正在过去"}
+        {isClearing ? tr("recovery_clearing") : tr("recovery_passing")}
       </p>
       <p className="mt-2 text-sm text-white/50">
-        {paused ? "已暂停，准备好了再继续" : "跟着圆的节奏，慢慢呼吸"}
+        {paused ? tr("recovery_paused") : tr("recovery_breath_hint")}
       </p>
 
       {/* 低刺激控制区：暂停 / 提前结束（无负罪感退出） */}
@@ -118,7 +120,7 @@ export default function RecoveryTransition({
           onClick={() => setPaused((p) => !p)}
           className="text-sm text-white/70 transition-colors hover:text-white/90"
         >
-          {paused ? "继续" : "暂停"}
+          {paused ? tr("recovery_continue") : tr("recovery_pause")}
         </button>
         <span className="text-white/20">·</span>
         <button
@@ -126,7 +128,7 @@ export default function RecoveryTransition({
           onClick={onEarlyExit}
           className="text-sm text-white/70 transition-colors hover:text-white/90"
         >
-          提前结束
+          {tr("recovery_end_early")}
         </button>
       </div>
     </motion.div>

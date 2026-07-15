@@ -1,0 +1,21 @@
+{
+  "name": "syncspace-qwen-proxy",
+  "version": "1.0.0",
+  "description": "Qwen API 代理（Hono · 兼容 Node.js + Cloudflare Workers）",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "dev:worker": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "secret": "wrangler secret put DASHSCOPE_API_KEY"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "dotenv": "^16.4.5",
+    "hono": "^4.6.14"
+  },
+  "devDependencies": {
+    "wrangler": "^3.94.0"
+  }
+}

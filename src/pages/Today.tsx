@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Mic, Sliders, Mail } from "lucide-react";
+import { ChevronDown, Mic, Sliders, Mail, RotateCcw, Languages, Users, User } from "lucide-react";
 import WeatherCard from "@/components/weather/WeatherCard";
 import CheckInCard from "@/components/checkin/CheckInCard";
 import ParentCheckInCard from "@/components/checkin/ParentCheckInCard";
@@ -15,6 +15,7 @@ import Toolbox from "@/components/today/Toolbox";
 import PhaseActionCard from "@/components/today/PhaseActionCard";
 import QuickCapture from "@/components/today/QuickCapture";
 import Disclaimer from "@/components/common/Disclaimer";
+import { ModalPortal } from "@/components/common/ModalPortal";
 import { useStore } from "@/store/useStore";
 import { formatTime, isToday } from "@/lib/format";
 import { useT } from "@/lib/i18n";
@@ -34,8 +35,13 @@ export default function Today() {
   const checkins = useStore((s) => s.checkins);
   const crashMarks = useStore((s) => s.crashMarks);
   const neuroType = useStore((s) => s.neuroType);
+  const adhdSubtype = useStore((s) => s.adhdSubtype);
   const appMode = useStore((s) => s.appMode);
+  const setAppMode = useStore((s) => s.setAppMode);
   const qwenEnabled = useStore((s) => s.qwenEnabled);
+  const language = useStore((s) => s.language);
+  const setLanguage = useStore((s) => s.setLanguage);
+  const pushToast = useStore((s) => s.pushToast);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const { showSelector, openSelector, closeSelector } = useNeuroTypeSelector();
   const [checkinMode, setCheckinMode] = useState<"slider" | "voice">("slider");
@@ -44,7 +50,7 @@ export default function Today() {
   const [showRecords, setShowRecords] = useState(false);
 
   const isParentProxy = appMode === "parent_proxy";
-  const { tr } = useT();
+  const { tr, tt } = useT();
   const currentPhase = detectPhase(currentWeather.climate, crashMarks);
   const voiceCheckinBlocked = currentPhase === "warning" || currentPhase === "overload";
   const canUseVoiceCheckin = qwenEnabled && !isParentProxy && !voiceCheckinBlocked;
@@ -103,8 +109,44 @@ export default function Today() {
 
   return (
     <div className="space-y-6">
+      {/* 0. 顶部设置栏：角色切换 + 语言切换 + 切换神经特质（右上角 · 不折叠） */}
+      <div className="flex items-center justify-end gap-2 pt-5">
+        <button
+          onClick={() => {
+            const next = appMode === "self" ? "parent_proxy" : "self";
+            setAppMode(next);
+            pushToast("info", next === "parent_proxy" ? tr("today_role_switched_parent") : tr("today_role_switched_self"));
+          }}
+          className="flex items-center gap-1.5 rounded-full border border-edge bg-white/40 px-3 py-1.5 text-xs text-ink-muted transition-all duration-250 hover:bg-white/60"
+          aria-label={appMode === "self" ? tr("today_role_parent") : tr("today_role_self")}
+        >
+          {appMode === "self" ? <User size={11} /> : <Users size={11} />}
+          {appMode === "self" ? tr("today_role_self") : tr("today_role_parent")}
+        </button>
+        <button
+          onClick={() => {
+            const next = language === "zh" ? "en" : "zh";
+            setLanguage(next);
+            pushToast("info", next === "en" ? tr("lang_toast_en") : tr("lang_toast_zh"));
+          }}
+          className="flex items-center gap-1.5 rounded-full border border-edge bg-white/40 px-3 py-1.5 text-xs text-ink-muted transition-all duration-250 hover:bg-white/60"
+          aria-label={tr("change_lang")}
+        >
+          <Languages size={11} />
+          {language === "zh" ? "中文" : "EN"}
+        </button>
+        <button
+          onClick={openSelector}
+          className="flex items-center gap-1.5 rounded-full border border-edge bg-white/40 px-3 py-1.5 text-xs text-ink-muted transition-all duration-250 hover:bg-white/60"
+          aria-label={tr("today_change_neurotype")}
+        >
+          <RotateCcw size={11} />
+          {tr("today_change_neurotype")}·{neuroType === "asd" ? "ASD" : neuroType === "adhd" ? (adhdSubtype === "inattentive" ? "ADHD·注意力缺陷" : adhdSubtype === "hyperactive" ? "ADHD·多动冲动" : adhdSubtype === "combined" ? "ADHD·混合" : "ADHD") : tr("onb_neuro_other")}
+        </button>
+      </div>
+
       {/* 1. 天气卡（顶部 · 可预测位置） */}
-      <div className="pt-5">
+      <div className="-mt-2">
         <WeatherCard
           weather={currentWeather}
           updatedAt={lastCheckinTime ? formatTime(lastCheckinTime) : undefined}
@@ -112,7 +154,7 @@ export default function Today() {
           diff={diff}
           trajectory={trajectory}
           compact
-          statusLabel={lastCheckinTime ? "上次记录的气候" : "还没有状态记录"}
+          statusLabel={lastCheckinTime ? tr("weather_recorded_at") : tr("weather_no_record")}
         />
       </div>
 
@@ -189,8 +231,8 @@ export default function Today() {
             <Mail size={15} className="text-primary" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-ink">生成气候明信片</p>
-            <p className="text-xs text-ink-muted">把此刻的气候做成图片，你可以自己决定分享到哪里</p>
+            <p className="text-sm font-medium text-ink">{tr("today_postcard_title")}</p>
+            <p className="text-xs text-ink-muted">{tr("today_postcard_desc")}</p>
           </div>
         </motion.button>
       )}
@@ -217,9 +259,9 @@ export default function Today() {
               >
                 <span className="font-mono text-xs text-ink-muted">{formatTime(c.checkin_at)}</span>
                 <div className="flex gap-3 font-mono text-xs">
-                  <span className={axis1.color}>{axis1.label} {c.axis_sensory.toFixed(1)}</span>
-                  <span className={axis2.color}>{axis2.label} {c.axis_social.toFixed(1)}</span>
-                  <span className={axis3.color}>{axis3.label} {c.axis_predictability.toFixed(1)}</span>
+                  <span className={axis1.color}>{tt(axis1.label)} {c.axis_sensory.toFixed(1)}</span>
+                  <span className={axis2.color}>{tt(axis2.label)} {c.axis_social.toFixed(1)}</span>
+                  <span className={axis3.color}>{tt(axis3.label)} {c.axis_predictability.toFixed(1)}</span>
                 </div>
               </motion.div>
             ))}
@@ -233,48 +275,62 @@ export default function Today() {
           showDisclaimer={showDisclaimer}
           setShowDisclaimer={setShowDisclaimer}
           isParentProxy={isParentProxy}
-          onOpenNeuroTypeSelector={openSelector}
         />
       </div>
 
       {/* 神经特质选择器弹窗 */}
       <AnimatePresence>
         {showSelector && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/20 sm:items-center"
-            onClick={closeSelector}
-          >
-            <div onClick={(e) => e.stopPropagation()} className="mb-20 w-full max-w-sm px-4">
-              <NeuroTypeSelector onClose={closeSelector} />
-            </div>
-          </motion.div>
+          <ModalPortal>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-50 flex items-end justify-center bg-ink/30 backdrop-blur-sm sm:items-center"
+              onClick={closeSelector}
+            >
+              <motion.div
+                initial={{ y: 40, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 40, opacity: 0 }}
+                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-md rounded-t-2xl border-t border-white/30 bg-base/95 p-5 pb-[calc(4.5rem+env(safe-area-inset-bottom))] shadow-2xl sm:mb-0 sm:rounded-2xl"
+              >
+                <NeuroTypeSelector onClose={closeSelector} />
+              </motion.div>
+            </motion.div>
+          </ModalPortal>
         )}
       </AnimatePresence>
 
       {/* 协议执行效果反馈 */}
-      <FeedbackPrompt />
+      <ModalPortal>
+        <FeedbackPrompt />
+      </ModalPortal>
 
       {/* 签到即时奖励（多巴胺回路 · 3 秒动画） */}
-      <CheckInReward
-        show={showReward}
-        phase={currentPhase}
-        streakDays={streakDays}
-        totalCheckins={checkins.length}
-        onComplete={() => setShowReward(false)}
-      />
+      <ModalPortal>
+        <CheckInReward
+          show={showReward}
+          phase={currentPhase}
+          streakDays={streakDays}
+          totalCheckins={checkins.length}
+          onComplete={() => setShowReward(false)}
+        />
+      </ModalPortal>
 
       {/* 气候明信片 */}
-      <ClimatePostcard
-        show={showPostcard}
-        onClose={() => setShowPostcard(false)}
-        checkins={checkins}
-        neuroType={neuroType}
-        currentWeather={currentWeather}
-      />
+      <ModalPortal>
+        <ClimatePostcard
+          show={showPostcard}
+          onClose={() => setShowPostcard(false)}
+          checkins={checkins}
+          neuroType={neuroType}
+          currentWeather={currentWeather}
+        />
+      </ModalPortal>
 
     </div>
   );

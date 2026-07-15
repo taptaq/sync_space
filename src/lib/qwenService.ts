@@ -20,9 +20,10 @@ import type { AIInterpretation, AxisKey, NeuroType, Phase } from "@/types";
 const PROXY_URL = (import.meta.env.VITE_QWEN_PROXY_URL ?? "").replace(/\/$/, "");
 const HAS_BACKEND = PROXY_URL.length > 0;
 
-const QWEN_OMNI_MODEL = "qwen3.5-omni-plus-2026-03-15";
-const QWEN_TTS_MODEL = "qwen3-tts-vd-2026-01-26";
-const QWEN_TEXT_MODEL = "qwen3.7-plus";
+// 模型名（阿里云百炼 2026-07 可用模型 · https://help.aliyun.com/zh/model-studio/getting-started/models）
+const QWEN_OMNI_MODEL = "qwen3.5-omni-plus"; // 全模态：语音转写 + 图片理解
+const QWEN_TTS_MODEL = "cosyvoice-v3-flash"; // 语音合成
+const QWEN_TEXT_MODEL = "qwen3.6-plus"; // 文本生成：智能建议 / 纯文本降级
 
 // ============ 通用工具 ============
 
@@ -350,9 +351,9 @@ function parseCrashInterpretation(
     return {
       transcript: parsed.transcript || fallback,
       interpretation: {
-        event: parsed.event,
-        emotion: parsed.emotion,
-        need: parsed.need,
+        event: { zh: parsed.event, en: parsed.event },
+        emotion: { zh: parsed.emotion, en: parsed.emotion },
+        need: { zh: parsed.need, en: parsed.need },
       },
     };
   }
@@ -773,29 +774,29 @@ function assessConfidence(text: string): "high" | "mid" | "low" {
 function mockCrashInterpretation(text: string): AIInterpretation {
   if (/不理|不回|沉默|停止/.test(text)) {
     return {
-      event: "对方的沟通突然停止或变得沉默。",
-      emotion: "你写的「总是不理我」——这背后是：当沟通突然停止时，你会感到焦虑。你希望提前知道对方什么时候需要独处，而不是突然失去回应。",
-      need: "你需要沟通的可预测性——即使对方需要空间，也希望被告知「什么时候回来」。",
+      event: { zh: "对方的沟通突然停止或变得沉默。", en: "The other person's communication suddenly stopped or went silent." },
+      emotion: { zh: "你写的「总是不理我」——这背后是：当沟通突然停止时，你会感到焦虑。你希望提前知道对方什么时候需要独处，而不是突然失去回应。", en: "You wrote \"always ignoring me\"—behind this is: when communication suddenly stops, you feel anxious. You wish to know in advance when the other person needs space, rather than suddenly losing their response." },
+      need: { zh: "你需要沟通的可预测性——即使对方需要空间，也希望被告知「什么时候回来」。", en: "You need predictability in communication—even if the other person needs space, you want to be told \"when they'll be back\"." },
     };
   }
   if (/声音|刺耳|吵|嘈杂|忍|崩溃|跑出来/.test(text)) {
     return {
-      event: "环境声音变得刺耳，持续忍耐后崩溃离开。",
-      emotion: "你写的「一直在忍」——这背后是：你知道自己在过载，但觉得不应该撤退，因为别人没有撤退。你在用别人的反应来校准自己的感受。",
-      need: "你需要一个「允许自己撤退」的许可。这个许可不来自别人，来自你自己。",
+      event: { zh: "环境声音变得刺耳，持续忍耐后崩溃离开。", en: "Environmental sounds became harsh; after enduring continuously, you broke down and left." },
+      emotion: { zh: "你写的「一直在忍」——这背后是：你知道自己在过载，但觉得不应该撤退，因为别人没有撤退。你在用别人的反应来校准自己的感受。", en: "You wrote \"kept enduring\"—behind this is: you knew you were overloaded but felt you shouldn't withdraw because others didn't. You were using others' reactions to calibrate your own feelings." },
+      need: { zh: "你需要一个「允许自己撤退」的许可。这个许可不来自别人，来自你自己。", en: "You need permission to \"allow yourself to withdraw\". This permission doesn't come from others; it comes from you." },
     };
   }
   if (/人太多|扛|受不了|处理不了/.test(text)) {
     return {
-      event: "在人多场合持续硬撑后过载。",
-      emotion: "你写的「一直在扛」——这背后是：你一直在用意志力对抗感官超载，但意志力是有限度的，到了尽头就是崩溃。",
-      need: "你需要提前识别累积期信号，在硬撑之前就给自己撤退的许可。",
+      event: { zh: "在人多场合持续硬撑后过载。", en: "Overloaded after pushing through in a crowded setting." },
+      emotion: { zh: "你写的「一直在扛」——这背后是：你一直在用意志力对抗感官超载，但意志力是有限度的，到了尽头就是崩溃。", en: "You wrote \"kept pushing through\"—behind this is: you were using willpower to fight sensory overload, but willpower has its limits, and the end of it is collapse." },
+      need: { zh: "你需要提前识别累积期信号，在硬撑之前就给自己撤退的许可。", en: "You need to recognize accumulating-phase signals early and give yourself permission to withdraw before pushing through." },
     };
   }
   return {
-    event: text.length > 0 ? `发生了：${text.slice(0, 40)}${text.length > 40 ? "…" : ""}` : "一次过载事件。",
-    emotion: "你记录下了这件事，说明它对你重要。情绪不是问题，它是信号——告诉你某个边界被越过了。",
-    need: "你需要识别那个被越过的边界，并为自己写一条协议来守护它。",
+    event: text.length > 0 ? { zh: `发生了：${text.slice(0, 40)}${text.length > 40 ? "…" : ""}`, en: `What happened: ${text.slice(0, 40)}${text.length > 40 ? "…" : ""}` } : { zh: "一次过载事件。", en: "An overload event." },
+    emotion: { zh: "你记录下了这件事，说明它对你重要。情绪不是问题，它是信号——告诉你某个边界被越过了。", en: "You recorded this, which means it matters to you. Emotions aren't problems—they're signals telling you a boundary was crossed." },
+    need: { zh: "你需要识别那个被越过的边界，并为自己写一条协议来守护它。", en: "You need to identify the boundary that was crossed and write a protocol for yourself to protect it." },
   };
 }
 

@@ -3,11 +3,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, CircleAlert } from "lucide-react";
 import CrashButton from "@/components/crash/CrashButton";
 import VoiceCrashNote from "@/components/qwen/VoiceCrashNote";
+import { useT } from "@/lib/i18n";
 
 // 预警页只保留一个低频出口：补记过载。环境分析和协议推荐不再与签到竞争。
 
 export default function Toolbox({ qwenEnabled }: { qwenEnabled: boolean }) {
   const [expanded, setExpanded] = useState(false);
+  const { tr } = useT();
 
   return (
     <div className="overflow-hidden border-t border-edge/70">
@@ -17,7 +19,7 @@ export default function Toolbox({ qwenEnabled }: { qwenEnabled: boolean }) {
       >
         <div className="flex items-center gap-2">
           <CircleAlert size={15} className="text-ink-muted" />
-          <span className="text-sm text-ink-muted">需要补记一次过载？</span>
+          <span className="text-sm text-ink-muted">{tr("toolbox_crash_record")}</span>
         </div>
         <motion.div animate={{ rotate: expanded ? 90 : 0 }} transition={{ duration: 0.25 }}>
           <ChevronRight size={14} className="text-ink-muted" />

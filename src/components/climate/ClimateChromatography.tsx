@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import type { CheckIn, CrashMark } from "@/types";
 import { detectPhase } from "@/lib/stageEngine";
 import { mixColors } from "@/lib/colorUtils";
+import { useT } from "@/lib/i18n";
 
 // 气候色谱（感知层 · 外化投射 · 一周的颜色记忆）
 // 每天的签到颜色形成色谱带，一眼看出情绪走向
@@ -14,6 +15,7 @@ export default function ClimateChromatography({
   checkins: CheckIn[];
   crashMarks?: CrashMark[];
 }) {
+  const { tr } = useT();
   const weekColors = useMemo(() => {
     const now = new Date();
     const days: { date: string; color: string; phase: string }[] = [];
@@ -53,7 +55,7 @@ export default function ClimateChromatography({
       className="rounded-card border border-edge bg-white/60 p-5 shadow-soft"
     >
       <p className="mb-3 text-xs uppercase tracking-widest text-primary">
-        本周色谱
+        {tr("chromato_week_title")}
       </p>
       <div className="flex items-end gap-2">
         {weekColors.map((day, i) => (
@@ -68,7 +70,7 @@ export default function ClimateChromatography({
               />
             ) : (
               <div className="flex h-12 w-full items-center justify-center rounded-lg border border-dashed border-edge/60">
-                <span className="text-[9px] text-ink-faint">无</span>
+                <span className="text-[9px] text-ink-faint">{tr("chromato_none")}</span>
               </div>
             )}
             <span className="text-[10px] text-ink-faint">{day.date}</span>
@@ -76,7 +78,7 @@ export default function ClimateChromatography({
         ))}
       </div>
       <p className="mt-3 text-center text-xs text-ink-faint">
-        每天的颜色由你的三轴能量混合而成
+        {tr("chromato_footnote")}
       </p>
     </motion.div>
   );

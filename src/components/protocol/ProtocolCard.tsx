@@ -7,12 +7,14 @@ import { relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { getAxisProfile, getBandLabel } from "@/lib/axisConfig";
 import { PHASE_MAP } from "@/lib/stageEngine";
+import { useT } from "@/lib/i18n";
+import type { StringKey } from "@/lib/translations";
 import ProtocolRehearsal from "./ProtocolRehearsal";
 
-const SOURCE_LABEL: Record<Protocol["source"], string> = {
-  manual: "手动创建",
-  ai_suggestion: "AI建议",
-  crash_reflection: "崩溃复盘提取",
+const SOURCE_LABEL_KEY: Record<Protocol["source"], StringKey> = {
+  manual: "protocol_card_source_manual",
+  ai_suggestion: "protocol_card_source_ai",
+  crash_reflection: "protocol_card_source_crash",
 };
 
 // 协议列表项（PRD §05 F-06 协议管理）
@@ -22,6 +24,7 @@ export default function ProtocolCard({ protocol }: { protocol: Protocol }) {
   const deleteProtocol = useStore((s) => s.deleteProtocol);
   const neuroType = useStore((s) => s.neuroType);
   const pushToast = useStore((s) => s.pushToast);
+  const { tr, tt } = useT();
   const [rehearsing, setRehearsing] = useState(false);
 
   const isCandidate = protocol.status === "candidate";
@@ -53,33 +56,33 @@ export default function ProtocolCard({ protocol }: { protocol: Protocol }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="font-mono text-xs text-primary">
-            WHEN · {protocol.trigger.description}
+            WHEN · {tt(protocol.trigger.description)}
           </p>
           {bandLabel && (
             <p className="mt-0.5 text-xs text-ink-faint">
-              {axisCfg?.label} 达到「{bandLabel}」程度时触发
+              {tr("protocol_card_threshold_trigger", { axis: tt(axisCfg?.label ?? ""), band: tt(bandLabel) })}
             </p>
           )}
           <p className="mt-1.5 text-body leading-relaxed text-ink">
-            {protocol.action.description}
+            {tt(protocol.action.description)}
           </p>
         </div>
         {isCandidate && (
           <span className="shrink-0 rounded-full bg-primary-mist px-2.5 py-1 text-xs text-primary">
-            待确认
+            {tr("protocol_card_pending")}
           </span>
         )}
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-muted">
-        <span>来源：{SOURCE_LABEL[protocol.source]}</span>
+        <span>{tr("protocol_card_source_label")}{tr(SOURCE_LABEL_KEY[protocol.source])}</span>
         <span>·</span>
-        <span>执行 {protocol.execution_count} 次</span>
+        <span>{tr("protocol_card_exec_count", { count: protocol.execution_count })}</span>
         {protocol.last_executed_at && (
           <>
             <span>·</span>
             <span className="flex items-center gap-1">
-              <Clock size={11} /> 上次：{relativeTime(protocol.last_executed_at)}
+              <Clock size={11} /> {tr("protocol_card_last_label")}{relativeTime(protocol.last_executed_at)}
             </span>
           </>
         )}
@@ -96,7 +99,7 @@ export default function ProtocolCard({ protocol }: { protocol: Protocol }) {
                 PHASE_MAP[p].badgeClass,
               )}
             >
-              {PHASE_MAP[p].label}
+              {tt(PHASE_MAP[p].label)}
             </span>
           ))}
         </div>
@@ -109,13 +112,13 @@ export default function ProtocolCard({ protocol }: { protocol: Protocol }) {
               onClick={() => acceptCandidate(protocol.id)}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-sage py-2 text-small font-medium text-white transition-all duration-250 hover:bg-sage/90 active:scale-[0.98]"
             >
-              <Check size={15} /> 接受
+              <Check size={15} /> {tr("protocol_card_accept")}
             </button>
             <button
               onClick={() => setRehearsing(true)}
               className="flex items-center gap-1.5 rounded-full border border-edge px-4 py-2 text-small text-ink-muted transition-all duration-250 hover:bg-white/50 active:scale-[0.98]"
             >
-              <PlayCircle size={15} /> 演练
+              <PlayCircle size={15} /> {tr("protocol_card_rehearse")}
             </button>
             <button
               onClick={() => deleteProtocol(protocol.id)}
@@ -132,11 +135,11 @@ export default function ProtocolCard({ protocol }: { protocol: Protocol }) {
             >
               {isPaused ? (
                 <>
-                  <Play size={14} /> 恢复
+                  <Play size={14} /> {tr("protocol_card_resume")}
                 </>
               ) : (
                 <>
-                  <Pause size={14} /> 暂停
+                  <Pause size={14} /> {tr("protocol_card_pause")}
                 </>
               )}
             </button>
@@ -144,7 +147,7 @@ export default function ProtocolCard({ protocol }: { protocol: Protocol }) {
               onClick={() => setRehearsing(true)}
               className="flex items-center gap-1.5 rounded-full border border-edge px-4 py-2 text-small text-ink-muted transition-all duration-250 hover:bg-white/50 active:scale-[0.98]"
             >
-              <PlayCircle size={15} /> 演练
+              <PlayCircle size={15} /> {tr("protocol_card_rehearse")}
             </button>
             <button
               onClick={() => deleteProtocol(protocol.id)}
@@ -165,7 +168,7 @@ export default function ProtocolCard({ protocol }: { protocol: Protocol }) {
             onFeedback={(helpful) => {
               pushToast(
                 "info",
-                helpful ? "已记录你的感受" : "可以随时调整协议",
+                helpful ? tr("protocol_card_toast_recorded") : tr("protocol_card_toast_adjust"),
               );
               setRehearsing(false);
             }}

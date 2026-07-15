@@ -5,6 +5,7 @@ import { useStore } from "@/store/useStore";
 import { cn } from "@/lib/utils";
 import { interpretCrashVoice } from "@/lib/qwenService";
 import type { AIInterpretation } from "@/types";
+import { useT } from "@/lib/i18n";
 
 // 崩溃语音补记（Qwen ASR + 三段式解读）
 // 崩溃时语音描述 → 转文字 → AI 三段式解读（事件/情绪/需求）
@@ -13,6 +14,7 @@ import type { AIInterpretation } from "@/types";
 type Status = "idle" | "recording" | "processing" | "result" | "done";
 
 export default function VoiceCrashNote() {
+  const { tr, tt } = useT();
   const addCrashMark = useStore((s) => s.addCrashMark);
   const pushToast = useStore((s) => s.pushToast);
   const [status, setStatus] = useState<Status>("idle");
@@ -36,9 +38,9 @@ export default function VoiceCrashNote() {
       setTranscript(res.transcript);
       setInterpretation(res.interpretation);
       setStatus("result");
-      pushToast("success", "语音已识别，AI 解读完成");
+      pushToast("success", tr("voice_crash_recognized"));
     } catch {
-      pushToast("error", "识别失败，请重试");
+      pushToast("error", tr("voice_crash_recognize_failed"));
       setStatus("idle");
     }
   };
@@ -53,7 +55,7 @@ export default function VoiceCrashNote() {
   const handleSave = () => {
     addCrashMark(transcript);
     setStatus("done");
-    pushToast("success", "已记录，你随时可以晚点再来整理");
+    pushToast("success", tr("voice_crash_recorded"));
     setTimeout(() => {
       setStatus("idle");
       setTranscript("");
@@ -70,14 +72,14 @@ export default function VoiceCrashNote() {
     >
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h3 className="font-serif text-lg text-ink">语音补记</h3>
+          <h3 className="font-serif text-lg text-ink">{tr("voice_crash_title")}</h3>
           <p className="mt-0.5 flex items-center gap-1 text-xs text-ink-muted">
             <Zap size={11} className="text-warn" />
-            Qwen ASR · 崩溃时说话即可
+            {tr("voice_crash_subtitle")}
           </p>
         </div>
         <span className="rounded-full bg-warn-mist/60 px-2 py-0.5 text-[10px] text-warn">
-          语音
+          {tr("today_voice")}
         </span>
       </div>
 
@@ -93,15 +95,15 @@ export default function VoiceCrashNote() {
             <button
               onClick={handleStartRecord}
               className="flex h-20 w-20 items-center justify-center rounded-full bg-warn text-white shadow-glow transition-all duration-250 hover:bg-warn/90 active:scale-95"
-              aria-label="开始录音"
+              aria-label={tr("voice_crash_start_record")}
             >
               <Mic size={28} />
             </button>
             <p className="mt-3 text-xs text-ink-muted">
-              崩溃了？乱说一通，AI 帮你整理
+              {tr("voice_crash_prompt")}
             </p>
             <p className="mt-1 text-[11px] text-ink-faint">
-              不用组织语言 · 说什么都行
+              {tr("voice_crash_prompt_hint")}
             </p>
           </motion.div>
         )}
@@ -129,12 +131,12 @@ export default function VoiceCrashNote() {
                 />
               ))}
             </div>
-            <p className="mt-2 text-xs text-ink-muted">录音中…（4 秒）</p>
+            <p className="mt-2 text-xs text-ink-muted">{tr("voice_crash_recording")}</p>
             <button
               onClick={handleStopRecord}
               className="mt-3 flex items-center gap-1.5 rounded-full bg-edge px-4 py-2 text-xs text-ink-muted transition-all duration-250 hover:bg-edge/80"
             >
-              <MicOff size={14} /> 提前结束
+              <MicOff size={14} /> {tr("voice_crash_end_early")}
             </button>
           </motion.div>
         )}
@@ -149,10 +151,10 @@ export default function VoiceCrashNote() {
           >
             <Loader2 size={28} className="animate-spin text-warn" />
             <p className="mt-3 text-xs text-ink-muted">
-              正在识别语音并解读…
+              {tr("voice_crash_processing")}
             </p>
             <p className="mt-1 text-[11px] text-ink-faint">
-              AI 在帮你翻译情绪背后的需求
+              {tr("voice_crash_processing_hint")}
             </p>
           </motion.div>
         )}
@@ -167,7 +169,7 @@ export default function VoiceCrashNote() {
           >
             {/* 语音转写 */}
             <div className="rounded-xl bg-warn-mist/40 p-3">
-              <p className="mb-1 text-[11px] text-warn">你说的</p>
+              <p className="mb-1 text-[11px] text-warn">{tr("voice_crash_you_said")}</p>
               <p className="text-small leading-relaxed text-ink">{transcript}</p>
             </div>
 
@@ -175,22 +177,22 @@ export default function VoiceCrashNote() {
             <div className="space-y-2.5">
               <InterpretationRow
                 icon={Brain}
-                label="事件"
-                text={interpretation.event}
+                label={tr("voice_crash_event")}
+                text={tt(interpretation.event)}
                 color="text-primary"
                 bg="bg-primary-mist/30"
               />
               <InterpretationRow
                 icon={Heart}
-                label="情绪"
-                text={interpretation.emotion}
+                label={tr("voice_crash_emotion")}
+                text={tt(interpretation.emotion)}
                 color="text-clay"
                 bg="bg-clay-mist/30"
               />
               <InterpretationRow
                 icon={Target}
-                label="需求"
-                text={interpretation.need}
+                label={tr("voice_crash_need")}
+                text={tt(interpretation.need)}
                 color="text-sage"
                 bg="bg-sage-mist/30"
               />
@@ -201,13 +203,13 @@ export default function VoiceCrashNote() {
                 onClick={handleCancel}
                 className="flex-1 rounded-full border border-edge py-2.5 text-small text-ink-muted transition-all duration-250 hover:bg-white/60"
               >
-                重录
+                {tr("voice_crash_rerecord")}
               </button>
               <button
                 onClick={handleSave}
                 className="flex-1 rounded-full bg-warn py-2.5 text-small font-medium text-white transition-all duration-250 hover:bg-warn/90 active:scale-[0.98]"
               >
-                保存记录
+                {tr("voice_crash_save")}
               </button>
             </div>
           </motion.div>
@@ -223,8 +225,8 @@ export default function VoiceCrashNote() {
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-sage text-white">
               <Check size={26} />
             </div>
-            <p className="mt-3 text-small text-ink">已记录</p>
-            <p className="mt-1 text-xs text-ink-muted">晚点再来整理也没关系</p>
+            <p className="mt-3 text-small text-ink">{tr("voice_crash_done")}</p>
+            <p className="mt-1 text-xs text-ink-muted">{tr("voice_crash_done_hint")}</p>
           </motion.div>
         )}
       </AnimatePresence>

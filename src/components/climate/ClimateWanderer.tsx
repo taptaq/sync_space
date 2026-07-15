@@ -1,8 +1,10 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
-import type { CheckIn, CrashMark, ProtocolExecution } from "@/types";
+import type { CheckIn, CrashMark, ProtocolExecution, LocalText } from "@/types";
 import { detectPhase, getPhaseConfig } from "@/lib/stageEngine";
 import { formatDateTime } from "@/lib/format";
+import { useT } from "@/lib/i18n";
+import type { StringKey } from "@/lib/translations";
 
 // 气候游记（反思层 · 把时间线变成旅程地图）
 // 每个签到是停留点 · 崩溃标记是避雨亭 · 协议执行是篝火
@@ -18,6 +20,9 @@ interface JourneyPoint {
   detail: string;
 }
 
+type TrFn = (key: StringKey, vars?: Record<string, string | number>) => string;
+type TtFn = (text: LocalText | string) => string;
+
 export default function ClimateWanderer({
   checkins,
   crashMarks,
@@ -27,12 +32,16 @@ export default function ClimateWanderer({
   crashMarks?: CrashMark[];
   executions?: ProtocolExecution[];
 }) {
-  const journey = useMemo(() => buildJourney(checkins, crashMarks ?? [], executions ?? []), [checkins, crashMarks, executions]);
+  const { tr, tt } = useT();
+  const journey = useMemo(
+    () => buildJourney(checkins, crashMarks ?? [], executions ?? [], tr, tt),
+    [checkins, crashMarks, executions, tr, tt],
+  );
 
   if (journey.length === 0) {
     return (
       <div className="rounded-card border border-edge bg-white/60 p-6 text-center">
-        <p className="text-small text-ink-muted">还没有旅程数据 · 开始签到来开启你的气候游记</p>
+        <p className="text-small text-ink-muted">{tr("wanderer_empty")}</p>
       </div>
     );
   }
@@ -49,8 +58,8 @@ export default function ClimateWanderer({
       className="rounded-card border border-edge bg-white/60 p-5 shadow-soft"
     >
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-xs uppercase tracking-widest text-primary">气候游记</p>
-        <p className="text-xs text-ink-muted">{journey.length} 个停留点</p>
+        <p className="text-xs uppercase tracking-widest text-primary">{tr("wanderer_title")}</p>
+        <p className="text-xs text-ink-muted">{tr("wanderer_stops_count", { count: journey.length })}</p>
       </div>
 
       {/* 游记地图 */}
@@ -66,7 +75,7 @@ export default function ClimateWanderer({
 
         {/* 起点标记 */}
         <circle cx={points[0]?.cx ?? 0} cy={points[0]?.cy ?? 0} r="4" fill="#6B9E8A" opacity="0.5" />
-        <text x={points[0]?.cx ?? 0} y={(points[0]?.cy ?? 0) + 16} textAnchor="middle" fontSize="9" fill="#888">出发</text>
+        <text x={points[0]?.cx ?? 0} y={(points[0]?.cy ?? 0) + 16} textAnchor="middle" fontSize="9" fill="#888">{tr("wanderer_depart")}</text>
 
         {/* 停留点 */}
         {points.map((p, i) => (
@@ -118,7 +127,7 @@ export default function ClimateWanderer({
         {points.length > 1 && (
           <>
             <circle cx={points[points.length - 1].cx} cy={points[points.length - 1].cy} r="5" fill="none" stroke="#6B5FA0" strokeWidth="1.5" strokeDasharray="2 2" />
-            <text x={points[points.length - 1].cx} y={points[points.length - 1].cy - 10} textAnchor="middle" fontSize="9" fill="#6B5FA0">现在</text>
+            <text x={points[points.length - 1].cx} y={points[points.length - 1].cy - 10} textAnchor="middle" fontSize="9" fill="#6B5FA0">{tr("wanderer_now")}</text>
           </>
         )}
       </svg>
@@ -126,40 +135,40 @@ export default function ClimateWanderer({
       {/* 图例 */}
       <div className="mt-3 flex items-center justify-center gap-4 text-xs text-ink-muted">
         <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-sage" /> 签到
+          <span className="h-2 w-2 rounded-full bg-sage" /> {tr("wanderer_legend_checkin")}
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-full bg-warn" /> 🏕️ 避雨亭
+          <span className="h-2.5 w-2.5 rounded-full bg-warn" /> {tr("wanderer_legend_shelter")}
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-full bg-clay" /> 🔥 篝火
+          <span className="h-2.5 w-2.5 rounded-full bg-clay" /> {tr("wanderer_legend_campfire")}
         </span>
       </div>
 
       {/* 旅程叙事文字 */}
       <p className="mt-3 text-center text-xs text-ink-faint">
-        {getJourneyNarrator(points)}
+        {getJourneyNarrator(points, tr)}
       </p>
     </motion.div>
   );
 };
 
 // 构建旅程点
-function buildJourney(checkins: CheckIn[], crashMarks: CrashMark[], executions: ProtocolExecution[]): JourneyPoint[] {
+function buildJourney(checkins: CheckIn[], crashMarks: CrashMark[], executions: ProtocolExecution[], tr: TrFn, tt: TtFn): JourneyPoint[] {
   const all: JourneyPoint[] = [];
 
   // 签到点
   checkins.forEach((c) => {
     const phase = detectPhase(c.weather_snapshot.climate, []);
-    const cfg = getPhaseConfig(phase as any);
+    const cfg = getPhaseConfig(phase);
     all.push({
       id: `chk_${c.id}`,
       type: "checkin",
       time: c.checkin_at,
       phase,
-      label: cfg.label,
+      label: tt(cfg.label),
       y: 0,
-      detail: cfg.narrative,
+      detail: tt(cfg.narrative),
     });
   });
 
@@ -167,15 +176,14 @@ function buildJourney(checkins: CheckIn[], crashMarks: CrashMark[], executions: 
   crashMarks.forEach((c) => {
     if (c.reviewed) return;
     const phase = c.weather_snapshot ? detectPhase(c.weather_snapshot.climate, []) : "overload";
-    const cfg = getPhaseConfig(phase as any);
     all.push({
       id: `crash_${c.id}`,
       type: "crash",
       time: c.marked_at,
       phase,
-      label: "避雨亭",
+      label: tr("wanderer_shelter_label"),
       y: 0,
-      detail: "你在这里躲过雨，辛苦了",
+      detail: tr("wanderer_shelter_detail"),
     });
   });
 
@@ -189,9 +197,9 @@ function buildJourney(checkins: CheckIn[], crashMarks: CrashMark[], executions: 
         type: "protocol",
         time: e.executed_at,
         phase: "",
-        label: "篝火",
+        label: tr("wanderer_campfire_label"),
         y: 0,
-        detail: "你为自己点了一簇火",
+        detail: tr("wanderer_campfire_detail"),
       });
     });
 
@@ -260,14 +268,14 @@ function getPointColor(type: string, phase: string): string {
   }
 }
 
-function getJourneyNarrator(points: (JourneyPoint & { cx: number; cy: number })[]): string {
+function getJourneyNarrator(points: (JourneyPoint & { cx: number; cy: number })[], tr: TrFn): string {
   const crashes = points.filter((p) => p.type === "crash").length;
   const campfires = points.filter((p) => p.type === "protocol").length;
   const checkins = points.filter((p) => p.type === "checkin").length;
 
-  if (checkins === 0) return "你的旅程从这里开始";
-  if (crashes > 0 && campfires > 0) return `你走了 ${checkins} 次签到，躲了 ${crashes} 次雨，点了 ${campfires} 簇火`;
-  if (crashes > 0) return `你走了 ${checkins} 次签到，躲了 ${crashes} 次雨`;
-  if (campfires > 0) return `你走了 ${checkins} 次签到，为自己点了 ${campfires} 簇火`;
-  return `你走了 ${checkins} 次签到，每一次都是记录`;
+  if (checkins === 0) return tr("wanderer_narrator_start");
+  if (crashes > 0 && campfires > 0) return tr("wanderer_narrator_all", { checkins, crashes, campfires });
+  if (crashes > 0) return tr("wanderer_narrator_crash", { checkins, crashes });
+  if (campfires > 0) return tr("wanderer_narrator_campfire", { checkins, campfires });
+  return tr("wanderer_narrator_checkin", { checkins });
 }

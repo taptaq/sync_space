@@ -6,6 +6,7 @@ import { useStore } from "@/store/useStore";
 import { cn } from "@/lib/utils";
 import { getAxisProfile } from "@/lib/axisConfig";
 import { voiceToCheckin, type VoiceCheckinResult } from "@/lib/qwenService";
+import { useT } from "@/lib/i18n";
 
 // 语音输入签到（Qwen ASR + 文本语义提取）
 // 说话描述状态 → 转文字 → 提取三轴建议值 → 用户确认后签到
@@ -14,6 +15,7 @@ import { voiceToCheckin, type VoiceCheckinResult } from "@/lib/qwenService";
 type Status = "idle" | "recording" | "processing" | "result" | "done";
 
 export default function VoiceCheckIn() {
+  const { tr, tt } = useT();
   const addCheckIn = useStore((s) => s.addCheckIn);
   const neuroType = useStore((s) => s.neuroType);
   const pushToast = useStore((s) => s.pushToast);
@@ -46,9 +48,9 @@ export default function VoiceCheckIn() {
       setResult(res);
       setValues(res.suggestedValues);
       setStatus("result");
-      pushToast("success", "语音已识别，请确认三轴建议");
+      pushToast("success", tr("voice_checkin_recognized"));
     } catch {
-      pushToast("error", "识别失败，请重试");
+      pushToast("error", tr("voice_checkin_recognize_failed"));
       setStatus("idle");
     }
   };
@@ -62,7 +64,7 @@ export default function VoiceCheckIn() {
   const handleSubmit = () => {
     addCheckIn(values.sensory, values.social, values.predictability, 0);
     setStatus("done");
-    pushToast("success", "语音签到已记录");
+    pushToast("success", tr("voice_checkin_recorded"));
     setTimeout(() => {
       setStatus("idle");
       setResult(null);
@@ -85,14 +87,14 @@ export default function VoiceCheckIn() {
     >
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h3 className="font-serif text-lg text-ink">语音签到</h3>
+          <h3 className="font-serif text-lg text-ink">{tr("voice_checkin_title")}</h3>
           <p className="mt-0.5 flex items-center gap-1 text-xs text-ink-muted">
             <Sparkles size={11} className="text-primary" />
-            Qwen ASR · 说话描述状态
+            {tr("voice_checkin_subtitle")}
           </p>
         </div>
         <span className="rounded-full bg-primary-mist/60 px-2 py-0.5 text-[10px] text-primary">
-          语音
+          {tr("today_voice")}
         </span>
       </div>
 
@@ -108,15 +110,15 @@ export default function VoiceCheckIn() {
             <button
               onClick={handleStartRecord}
               className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-white shadow-glow transition-all duration-250 hover:bg-primary/90 active:scale-95"
-              aria-label="开始录音"
+              aria-label={tr("voice_checkin_start_record")}
             >
               <Mic size={28} />
             </button>
             <p className="mt-3 text-xs text-ink-muted">
-              点击说话 · 描述此刻状态
+              {tr("voice_checkin_tap_to_speak")}
             </p>
             <p className="mt-1 text-[11px] text-ink-faint">
-              如「现在有点吵，想找个安静的地方」
+              {tr("voice_checkin_speak_example")}
             </p>
           </motion.div>
         )}
@@ -144,12 +146,12 @@ export default function VoiceCheckIn() {
                 />
               ))}
             </div>
-            <p className="mt-2 text-xs text-ink-muted">录音中…（3 秒）</p>
+            <p className="mt-2 text-xs text-ink-muted">{tr("voice_checkin_recording")}</p>
             <button
               onClick={handleStopRecord}
               className="mt-3 flex items-center gap-1.5 rounded-full bg-edge px-4 py-2 text-xs text-ink-muted transition-all duration-250 hover:bg-edge/80"
             >
-              <MicOff size={14} /> 提前结束
+              <MicOff size={14} /> {tr("voice_checkin_end_early")}
             </button>
           </motion.div>
         )}
@@ -164,7 +166,7 @@ export default function VoiceCheckIn() {
           >
             <Loader2 size={28} className="animate-spin text-primary" />
             <p className="mt-3 text-xs text-ink-muted">
-              正在识别语音并提取状态…
+              {tr("voice_checkin_processing")}
             </p>
           </motion.div>
         )}
@@ -179,7 +181,7 @@ export default function VoiceCheckIn() {
           >
             {/* 转写结果 */}
             <div className="rounded-xl bg-primary-mist/30 p-3">
-              <p className="mb-1 text-[11px] text-primary">你说的</p>
+              <p className="mb-1 text-[11px] text-primary">{tr("voice_checkin_you_said")}</p>
               <p className="text-small leading-relaxed text-ink">
                 {result.transcript}
               </p>
@@ -194,13 +196,13 @@ export default function VoiceCheckIn() {
                         : "bg-edge text-ink-muted",
                   )}
                 >
-                  置信度 {result.confidence === "high" ? "高" : result.confidence === "mid" ? "中" : "低"}
+                  {tr("voice_checkin_confidence")} {result.confidence === "high" ? tr("voice_checkin_conf_high") : result.confidence === "mid" ? tr("voice_checkin_conf_mid") : tr("voice_checkin_conf_low")}
                 </span>
                 <button
                   onClick={() => setShowDetail((v) => !v)}
                   className="flex items-center gap-0.5 text-[11px] text-ink-muted hover:text-ink"
                 >
-                  调整数值
+                  {tr("voice_checkin_adjust_values")}
                   <ChevronDown
                     size={11}
                     className={cn("transition-transform duration-250", showDetail && "rotate-180")}
@@ -214,7 +216,7 @@ export default function VoiceCheckIn() {
               {([axis1, axis2, axis3] as const).map((axis) => (
                 <div key={axis.key} className="flex items-center gap-3">
                   <span className={cn("w-16 shrink-0 text-xs", axis.color)}>
-                    {axis.label}
+                    {tt(axis.label)}
                   </span>
                   <div className="relative h-2 flex-1 rounded-full bg-edge">
                     <div
@@ -253,13 +255,13 @@ export default function VoiceCheckIn() {
                 onClick={handleCancel}
                 className="flex-1 rounded-full border border-edge py-2.5 text-small text-ink-muted transition-all duration-250 hover:bg-white/60"
               >
-                重录
+                {tr("voice_checkin_rerecord")}
               </button>
               <button
                 onClick={handleSubmit}
                 className="flex-1 rounded-full bg-primary py-2.5 text-small font-medium text-white transition-all duration-250 hover:bg-primary/90 active:scale-[0.98]"
               >
-                确认签到
+                {tr("voice_checkin_confirm")}
               </button>
             </div>
           </motion.div>
@@ -275,7 +277,7 @@ export default function VoiceCheckIn() {
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-sage text-white">
               <Check size={26} />
             </div>
-            <p className="mt-3 text-small text-ink">已记录</p>
+            <p className="mt-3 text-small text-ink">{tr("voice_checkin_done")}</p>
           </motion.div>
         )}
       </AnimatePresence>

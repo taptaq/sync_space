@@ -4,6 +4,8 @@ import type { Phase } from "@/types";
 import { useStore } from "@/store/useStore";
 import { detectPhase } from "@/lib/stageEngine";
 import { soundScape, SOUND_OPTIONS, getPhaseSound } from "@/lib/soundEngine";
+import { useT } from "@/lib/i18n";
+import type { StringKey } from "@/lib/translations";
 import { cn } from "@/lib/utils";
 
 type ActionTone = "calm" | "gentle-urgent" | "urgent" | "recovery";
@@ -14,28 +16,46 @@ interface PhaseAction {
   tone: ActionTone;
 }
 
-function getAction(phase: Phase, neuroType: string): PhaseAction {
+function getAction(
+  phase: Phase,
+  neuroType: string,
+  tr: (key: StringKey) => string,
+): PhaseAction {
+  const typeKey = neuroType === "adhd" ? "adhd" : neuroType === "asd" ? "asd" : "other";
+  const labelKey = `phase_action_${phase}_${typeKey}_label` as StringKey;
+  const sublineKey = `phase_action_${phase}_${typeKey}_subline` as StringKey;
+
   switch (phase) {
     case "stable":
-      return neuroType === "adhd"
-        ? { label: "现在先选一件事", subline: "只写下第一步，不规划全部", tone: "calm" }
-        : { label: "保持现在的节奏", subline: "不需要额外增加安排", tone: "calm" };
+      return {
+        label: tr(labelKey),
+        subline: tr(sublineKey),
+        tone: "calm",
+      };
     case "accumulating":
-      return neuroType === "adhd"
-        ? { label: "离开任务 5 分钟", subline: "喝水或走动，只做一种重置", tone: "gentle-urgent" }
-        : { label: "先减少一个刺激", subline: "声音、光线或人群，只选一个", tone: "gentle-urgent" };
+      return {
+        label: tr(labelKey),
+        subline: tr(sublineKey),
+        tone: "gentle-urgent",
+      };
     case "warning":
-      return neuroType === "adhd"
-        ? { label: "停止增加新任务", subline: "保留眼前这一件，其他先记下", tone: "urgent" }
-        : { label: "退出当前刺激", subline: "少说话，去更安静和确定的地方", tone: "urgent" };
+      return {
+        label: tr(labelKey),
+        subline: tr(sublineKey),
+        tone: "urgent",
+      };
     case "overload":
-      return neuroType === "adhd"
-        ? { label: "停下来，不做任何决定", subline: "多巴胺见底了，此刻不做就是最好的做", tone: "urgent" }
-        : neuroType === "asd"
-          ? { label: "现在不用做决定", subline: "先保证安全，停止一切感官输入", tone: "urgent" }
-          : { label: "现在不用做决定", subline: "先保证安全，停止输入和要求", tone: "urgent" };
+      return {
+        label: tr(labelKey),
+        subline: tr(sublineKey),
+        tone: "urgent",
+      };
     case "recovery":
-      return { label: "先恢复身体", subline: "喝水、进食或躺下，只选一个", tone: "recovery" };
+      return {
+        label: tr(`phase_action_recovery_label` as StringKey),
+        subline: tr(`phase_action_recovery_subline` as StringKey),
+        tone: "recovery",
+      };
   }
 }
 
@@ -56,9 +76,10 @@ export default function PhaseActionCard() {
   const setSoundScape = useStore((s) => s.setSoundScape);
   const stopSoundScape = useStore((s) => s.stopSoundScape);
   const pushToast = useStore((s) => s.pushToast);
+  const { tr } = useT();
 
   const phase = detectPhase(currentWeather.climate, crashMarks);
-  const action = getAction(phase, neuroType);
+  const action = getAction(phase, neuroType, tr);
   const phaseSound = getPhaseSound(phase, neuroType);
 
   const recommendedLabel = phaseSound
@@ -90,7 +111,7 @@ export default function PhaseActionCard() {
       transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
       className={cn("glass-card rounded-card border px-5 py-4", TONE_STYLES[action.tone])}
     >
-      <p className="text-xs text-ink-muted">现在只做这一步</p>
+      <p className="text-xs text-ink-muted">{tr("phase_action_hint")}</p>
       <p className="mt-1 text-base font-medium">{action.label}</p>
       <p className="mt-1 text-xs text-ink-muted">{action.subline}</p>
 
@@ -109,10 +130,10 @@ export default function PhaseActionCard() {
             <div className="min-w-0 flex-1">
               <p className="text-xs font-medium leading-tight">
                 {phaseSound.sound === "silence"
-                  ? "此刻建议：静音"
+                  ? tr("phase_action_silence")
                   : isRecommendedPlaying
-                    ? "正在播放 · " + recommendedLabel
-                    : "试试 · " + recommendedLabel}
+                    ? tr("phase_action_playing") + recommendedLabel
+                    : tr("phase_action_try") + recommendedLabel}
               </p>
               <p className="mt-0.5 text-[11px] leading-tight text-ink-muted">
                 {phaseSound.reason}
@@ -127,9 +148,9 @@ export default function PhaseActionCard() {
                     ? "bg-white/70 text-ink-muted hover:bg-white/90"
                     : "bg-primary text-white hover:bg-primary-soft",
                 )}
-                aria-label={isRecommendedPlaying ? "停止音景" : "播放推荐音景"}
+                aria-label={isRecommendedPlaying ? tr("phase_action_stop") : tr("phase_action_play")}
               >
-                {isRecommendedPlaying ? "停止" : "播放"}
+                {isRecommendedPlaying ? tr("phase_action_stop") : tr("phase_action_play")}
               </button>
             )}
           </div>

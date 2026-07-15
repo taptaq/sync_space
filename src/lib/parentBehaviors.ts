@@ -11,29 +11,29 @@ import type { AxisKey, NeuroType, ParentBehaviorAxis } from "@/types";
 const COMMON_BEHAVIORS: ParentBehaviorAxis[] = [
   {
     axis: "sensory",
-    label: "感官",
+    label: { zh: "感官", en: "Sensory" },
     options: [
-      { key: "calm", label: "安静放松 · 对声音光线没明显反应", raw: 2 },
-      { key: "some", label: "偶尔捂耳 / 眯眼 / 对某些声音皱眉", raw: 5 },
-      { key: "overload", label: "捂耳朵 / 躲光线 / 拒绝触碰 · 明显过载", raw: 8 },
+      { key: "calm", label: { zh: "安静放松 · 对声音光线没明显反应", en: "Calm and relaxed · No noticeable reaction to sound or light" }, raw: 2 },
+      { key: "some", label: { zh: "偶尔捂耳 / 眯眼 / 对某些声音皱眉", en: "Occasionally covers ears / squints / frowns at certain sounds" }, raw: 5 },
+      { key: "overload", label: { zh: "捂耳朵 / 躲光线 / 拒绝触碰 · 明显过载", en: "Covers ears / avoids light / refuses touch · Clearly overloaded" }, raw: 8 },
     ],
   },
   {
     axis: "social",
-    label: "社交",
+    label: { zh: "社交", en: "Social" },
     options: [
-      { key: "withdrawn", label: "退缩 / 不回应 / 躲眼神 · 电量低", raw: 2 },
-      { key: "ok", label: "能回应但简短 · 还行", raw: 5 },
-      { key: "full", label: "主动说话 / 眼神自在 · 电量足", raw: 8 },
+      { key: "withdrawn", label: { zh: "退缩 / 不回应 / 躲眼神 · 电量低", en: "Withdrawn / unresponsive / avoids eye contact · Low battery" }, raw: 2 },
+      { key: "ok", label: { zh: "能回应但简短 · 还行", en: "Can respond but briefly · Okay" }, raw: 5 },
+      { key: "full", label: { zh: "主动说话 / 眼神自在 · 电量足", en: "Initiates conversation / comfortable eye contact · Full battery" }, raw: 8 },
     ],
   },
   {
     axis: "predictability",
-    label: "状态",
+    label: { zh: "状态", en: "State" },
     options: [
-      { key: "chaos", label: "焦躁 / 来回走 / 难安顿 · 混乱", raw: 2 },
-      { key: "mid", label: "能坐下但换得勤 · 一般", raw: 5 },
-      { key: "settled", label: "专注做一件事 · 踏实安定", raw: 8 },
+      { key: "chaos", label: { zh: "焦躁 / 来回走 / 难安顿 · 混乱", en: "Agitated / pacing / hard to settle · Chaotic" }, raw: 2 },
+      { key: "mid", label: { zh: "能坐下但换得勤 · 一般", en: "Can sit but switches often · Average" }, raw: 5 },
+      { key: "settled", label: { zh: "专注做一件事 · 踏实安定", en: "Focused on one thing · Settled and calm" }, raw: 8 },
     ],
   },
 ];
@@ -42,29 +42,29 @@ const COMMON_BEHAVIORS: ParentBehaviorAxis[] = [
 const ADHD_BEHAVIORS: ParentBehaviorAxis[] = [
   {
     axis: "sensory",
-    label: "注意力",
+    label: { zh: "注意力", en: "Attention" },
     options: [
-      { key: "scattered", label: "完全涣散 · 一件事都做不完", raw: 2 },
-      { key: "some", label: "能做一会儿但容易跑神", raw: 5 },
-      { key: "focused", label: "能专注做完一件事", raw: 8 },
+      { key: "scattered", label: { zh: "完全涣散 · 一件事都做不完", en: "Fully scattered · Cannot finish a single task" }, raw: 2 },
+      { key: "some", label: { zh: "能做一会儿但容易跑神", en: "Can focus briefly but easily distracted" }, raw: 5 },
+      { key: "focused", label: { zh: "能专注做完一件事", en: "Can focus and finish a task" }, raw: 8 },
     ],
   },
   {
     axis: "social",
-    label: "能量",
+    label: { zh: "能量", en: "Energy" },
     options: [
-      { key: "drained", label: "瘫着不想动 · 启动不了", raw: 2 },
-      { key: "ok", label: "能开始但需要推一把", raw: 5 },
-      { key: "full", label: "主动想做 · 能量足", raw: 8 },
+      { key: "drained", label: { zh: "瘫着不想动 · 启动不了", en: "Slumped, unwilling to move · Cannot initiate" }, raw: 2 },
+      { key: "ok", label: { zh: "能开始但需要推一把", en: "Can start but needs a nudge" }, raw: 5 },
+      { key: "full", label: { zh: "主动想做 · 能量足", en: "Actively wants to do things · Full energy" }, raw: 8 },
     ],
   },
   {
     axis: "predictability",
-    label: "卡住",
+    label: { zh: "卡住", en: "Stuck" },
     options: [
-      { key: "stuck", label: "卡死 · 反复说做不了", raw: 8 },
-      { key: "some", label: "有点卡但能推进", raw: 5 },
-      { key: "flow", label: "流畅 · 说做就做", raw: 2 },
+      { key: "stuck", label: { zh: "卡死 · 反复说做不了", en: "Completely stuck · Repeatedly says \"can't do it\"" }, raw: 8 },
+      { key: "some", label: { zh: "有点卡但能推进", en: "Somewhat stuck but can push forward" }, raw: 5 },
+      { key: "flow", label: { zh: "流畅 · 说做就做", en: "Flowing · Does it as soon as asked" }, raw: 2 },
     ],
   },
 ];
@@ -73,29 +73,29 @@ const ADHD_BEHAVIORS: ParentBehaviorAxis[] = [
 const PTSD_BEHAVIORS: ParentBehaviorAxis[] = [
   {
     axis: "sensory",
-    label: "安全感",
+    label: { zh: "安全感", en: "Safety" },
     options: [
-      { key: "alert", label: "到处看 / 一惊一乍 · 觉得危险", raw: 2 },
-      { key: "some", label: "有点警觉但能待住", raw: 5 },
-      { key: "safe", label: "放松 · 觉得安全", raw: 8 },
+      { key: "alert", label: { zh: "到处看 / 一惊一乍 · 觉得危险", en: "Looking around / startles easily · Feels in danger" }, raw: 2 },
+      { key: "some", label: { zh: "有点警觉但能待住", en: "Somewhat alert but can stay put" }, raw: 5 },
+      { key: "safe", label: { zh: "放松 · 觉得安全", en: "Relaxed · Feels safe" }, raw: 8 },
     ],
   },
   {
     axis: "social",
-    label: "警觉度",
+    label: { zh: "警觉度", en: "Arousal" },
     options: [
-      { key: "high", label: "高度警觉 / 僵硬 · 唤起高", raw: 8 },
-      { key: "some", label: "有些警觉 · 还行", raw: 5 },
-      { key: "calm", label: "平静放松", raw: 2 },
+      { key: "high", label: { zh: "高度警觉 / 僵硬 · 唤起高", en: "Highly vigilant / rigid · High arousal" }, raw: 8 },
+      { key: "some", label: { zh: "有些警觉 · 还行", en: "Somewhat vigilant · Okay" }, raw: 5 },
+      { key: "calm", label: { zh: "平静放松", en: "Calm and relaxed" }, raw: 2 },
     ],
   },
   {
     axis: "predictability",
-    label: "在不在",
+    label: { zh: "在不在", en: "Presence" },
     options: [
-      { key: "dissociated", label: "眼神空 / 叫不应 · 解离飘忽", raw: 2 },
-      { key: "some", label: "有时飘但能拉回", raw: 5 },
-      { key: "present", label: "人在当下 · 接地", raw: 8 },
+      { key: "dissociated", label: { zh: "眼神空 / 叫不应 · 解离飘忽", en: "Vacant gaze / unresponsive · Dissociating" }, raw: 2 },
+      { key: "some", label: { zh: "有时飘但能拉回", en: "Sometimes drifts but can be called back" }, raw: 5 },
+      { key: "present", label: { zh: "人在当下 · 接地", en: "Present in the moment · Grounded" }, raw: 8 },
     ],
   },
 ];

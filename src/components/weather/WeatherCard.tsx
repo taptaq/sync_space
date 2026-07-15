@@ -4,6 +4,7 @@ import ClimateFamiliar from "@/components/weather/ClimateFamiliar";
 import { CheckinDiff } from "@/lib/checkinCompare";
 import { detectPhase, getPhaseConfigForType } from "@/lib/stageEngine";
 import { useStore } from "@/store/useStore";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 // 内在天气卡（PRD §05 F-01 + §09 气候类型映射 + 五阶段分层）
@@ -32,10 +33,18 @@ export default function WeatherCard({
   statusLabel?: string;
 }) {
   const neuroType = useStore((s) => s.neuroType);
+  const { tr, tt } = useT();
   const phase = detectPhase(weather.climate, crashMarks ?? []);
   const phaseCfg = getPhaseConfigForType(phase, neuroType);
   const pressure = pressureValue ?? phaseToPressure(phase);
-  const pressureLabel = pressure < 30 ? "平稳" : pressure < 55 ? "有些信号在累积" : pressure < 80 ? "接近临界" : "已经到顶了";
+  const pressureLabel =
+    pressure < 30
+      ? tr("weather_pressure_calm")
+      : pressure < 55
+        ? tr("weather_pressure_rising")
+        : pressure < 80
+          ? tr("weather_pressure_near")
+          : tr("weather_pressure_peak");
 
   return (
     <motion.section
@@ -56,7 +65,7 @@ export default function WeatherCard({
             phaseCfg.badgeClass,
           )}
         >
-          {phaseCfg.label}
+          {tt(phaseCfg.label)}
         </span>
       </div>
 
@@ -70,28 +79,28 @@ export default function WeatherCard({
           {statusLabel}
         </p>
         <h2 className="mt-1 font-serif text-3xl text-ink">
-          {weather.climate_label}
+          {tt(weather.climate_label)}
         </h2>
         <p className={cn(
           "mx-auto max-w-[18rem] text-small leading-relaxed text-ink-muted",
           compact ? "mt-2" : "mt-3",
         )}>
-          {weather.description}
+          {tt(weather.description)}
         </p>
       </div>
 
       {/* 阶段叙事 + 措施基调 */}
       {!compact && <div className="mt-5 rounded-card bg-white/30 px-4 py-3 text-center backdrop-blur-sm">
         <p className="font-handwriting text-lg leading-relaxed text-ink">
-          {phaseCfg.narrative}
+          {tt(phaseCfg.narrative)}
         </p>
-        <p className="mt-1.5 text-xs text-ink-muted">{phaseCfg.measureTone}</p>
+        <p className="mt-1.5 text-xs text-ink-muted">{tt(phaseCfg.measureTone)}</p>
       </div>}
 
       {/* 气压计（常驻渐变条 · 用户随时看到离临界点多远 · 非推送惊吓） */}
       <div className={cn("px-2", compact ? "mt-5" : "mt-4")}>
         <div className="mb-1.5 flex items-center justify-between">
-          <span className="text-[10px] uppercase tracking-wider text-ink-muted">气压</span>
+          <span className="text-[10px] uppercase tracking-wider text-ink-muted">{tr("weather_pressure")}</span>
           <span className="text-[10px] text-ink-muted">{pressureLabel}</span>
         </div>
         <div className="relative h-2 overflow-hidden rounded-full bg-white/40">
@@ -124,7 +133,7 @@ export default function WeatherCard({
       {diff && diff.hasPrevious && (
         <div className="mt-4 rounded-card bg-white/40 px-4 py-3">
           <p className="text-xs text-ink-muted">
-            比 {diff.prevTime}，{diff.summary}
+            {tr("weather_compared_to")} {diff.prevTime}，{diff.summary}
           </p>
         </div>
       )}
@@ -158,25 +167,25 @@ export default function WeatherCard({
       {!compact && <div className="mt-5 space-y-3">
         {weather.suitable.length > 0 && (
           <div className="flex flex-wrap items-center justify-center gap-2">
-            {weather.suitable.map((item) => (
+            {weather.suitable.map((item, i) => (
               <span
-                key={item}
+                key={i}
                 className="rounded-full bg-white/50 px-3 py-1 text-xs text-ink"
               >
-                {item}
+                {tt(item)}
               </span>
             ))}
           </div>
         )}
         {weather.unsuitable.length > 0 && (
           <div className="flex flex-wrap items-center justify-center gap-2">
-            <span className="text-xs text-ink-muted">不建议</span>
-            {weather.unsuitable.map((item) => (
+            <span className="text-xs text-ink-muted">{tr("weather_not_suitable")}</span>
+            {weather.unsuitable.map((item, i) => (
               <span
-                key={item}
+                key={i}
                 className="rounded-full bg-warn/20 px-3 py-1 text-xs text-warn line-through decoration-warn/40"
               >
-                {item}
+                {tt(item)}
               </span>
             ))}
           </div>
@@ -185,7 +194,7 @@ export default function WeatherCard({
 
       {updatedAt && (
         <p className={cn("text-center text-xs text-ink-muted/70", compact ? "mt-6" : "mt-5")}>
-          {statusLabel === "当前气候" ? "更新于" : "记录于"} {updatedAt}
+          {statusLabel === tr("weather_current_climate") ? tr("weather_updated_at") : tr("weather_recorded_at")} {updatedAt}
         </p>
       )}
     </motion.section>

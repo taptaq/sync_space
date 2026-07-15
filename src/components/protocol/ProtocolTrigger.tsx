@@ -4,6 +4,7 @@ import { Timer } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { formatTime } from "@/lib/format";
 import { getAxisProfile, getBandLabel } from "@/lib/axisConfig";
+import { useT } from "@/lib/i18n";
 import RecoveryTransition from "@/components/protocol/RecoveryTransition";
 import type { Protocol } from "@/types";
 
@@ -16,6 +17,7 @@ export default function ProtocolTrigger() {
   const dismissTrigger = useStore((s) => s.dismissTrigger);
   const pushToast = useStore((s) => s.pushToast);
   const neuroType = useStore((s) => s.neuroType);
+  const { tr, tt } = useT();
 
   // 气候恢复视觉状态：协议执行计时期间显示恢复过渡层
   const [executingRecovery, setExecutingRecovery] = useState(false);
@@ -63,20 +65,20 @@ export default function ProtocolTrigger() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
             onClick={() => handleExecute(activeTrigger.protocol)}
-            className="fixed inset-0 z-50 bg-ink/20 backdrop-blur-[2px]"
+            className="fixed inset-0 z-[55] bg-ink/30 backdrop-blur-sm"
           />
           {/* slide-up 推送卡 */}
           <motion.div
-            initial={{ y: 120, opacity: 0 }}
+            initial={{ y: 40, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 120, opacity: 0 }}
+            exit={{ y: 40, opacity: 0 }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md p-4 pb-8"
+            className="fixed inset-x-0 bottom-0 z-[55] mx-auto w-full max-w-md rounded-t-2xl border-t border-white/30 bg-base/95 p-5 pb-[calc(4.5rem+env(safe-area-inset-bottom))] shadow-2xl"
           >
-            <div className="rounded-bowl border border-edge bg-base p-6 shadow-lift">
+            <div>
               <div className="mb-3 flex items-center justify-between">
                 <span className="text-xs uppercase tracking-widest text-primary">
-                  协议触发
+                  {tr("trigger_title")}
                 </span>
                 <span className="font-mono text-xs text-ink-muted">
                   {formatTime(activeTrigger.triggeredAt)}
@@ -90,16 +92,16 @@ export default function ProtocolTrigger() {
               <div className="mt-2 rounded-card bg-primary-mist/50 p-3">
                 <p className="text-small text-ink-muted">
                   <span className="font-mono text-primary">WHEN</span>{" "}
-                  {activeTrigger.protocol.trigger.description}
+                  {tt(activeTrigger.protocol.trigger.description)}
                 </p>
                 {bandLabel && (
                   <p className="mt-0.5 text-xs text-ink-faint">
-                    {axisCfg?.label}已达到「{bandLabel}」程度
+                    {tr("trigger_reached_band", { axis: tt(axisCfg?.label ?? ""), band: tt(bandLabel) })}
                   </p>
                 )}
                 <p className="mt-1 text-small text-ink-muted">
                   <span className="font-mono text-sage">THEN</span>{" "}
-                  {activeTrigger.protocol.action.description}
+                  {tt(activeTrigger.protocol.action.description)}
                 </p>
               </div>
 
@@ -109,17 +111,17 @@ export default function ProtocolTrigger() {
                   className="flex flex-1 items-center justify-center gap-2 rounded-full bg-primary py-3 text-body font-medium text-white transition-all duration-250 hover:bg-primary/90 active:scale-[0.98]"
                 >
                   <Timer size={18} />
-                  去 · 开始 {activeTrigger.protocol.action.duration_minutes} 分钟计时
+                  {tr("trigger_start_timer", { minutes: activeTrigger.protocol.action.duration_minutes })}
                 </button>
                 <button
                   onClick={() => postponeProtocol(activeTrigger.protocol.id)}
                   className="rounded-full border border-edge px-5 py-3 text-body text-ink-muted transition-all duration-250 hover:bg-white/50 active:scale-[0.98]"
                 >
-                  推迟
+                  {tr("trigger_postpone")}
                 </button>
               </div>
               <p className="mt-3 text-center text-xs text-ink-muted">
-                推迟 30 分钟后再提醒 · 最多推迟 2 次
+                {tr("trigger_postpone_hint")}
               </p>
             </div>
           </motion.div>
@@ -144,7 +146,7 @@ export default function ProtocolTrigger() {
             // 提前退出：无负罪感，只轻声说"好的，回到现在"
             setExecutingRecovery(false);
             setRecoveryProtocol(null);
-            pushToast("info", "好的，回到现在");
+            pushToast("info", tr("trigger_back_to_now"));
           }}
         />
       )}

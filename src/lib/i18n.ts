@@ -3,6 +3,7 @@
 // 使用：const { t, isParent } = useVoice(); const { lang, tr } = useT();
 import { useStore } from "@/store/useStore";
 import { STRINGS, type StringKey } from "@/lib/translations";
+import type { LocalText } from "@/types";
 
 export interface VoiceText {
   you: string;       // "你" | "孩子"
@@ -46,9 +47,31 @@ export function getVoice(appMode: string): { t: VoiceText; isParent: boolean } {
 }
 
 // ===== 中英文切换 =====
-// useT() 返回 { lang, tr } · tr(key) 读取当前语言翻译
+// useT() 返回 { lang, tr, tt } ·
+//   tr(key, vars?) 读取 translations.ts 中的翻译 key，支持 {var} 插值
+//   tt(text) 将 LocalText 双语对象按当前语言转为字符串（数据层用）
 export function useT() {
   const lang = useStore((s) => s.language) ?? "zh";
-  const tr = (key: StringKey): string => STRINGS[key]?.[lang] ?? STRINGS[key]?.zh ?? key;
-  return { lang, tr };
+  const tr = (key: StringKey, vars?: Record<string, string | number>): string => {
+    let text: string = STRINGS[key]?.[lang] ?? STRINGS[key]?.zh ?? key;
+    if (vars) {
+      Object.entries(vars).forEach(([k, v]) => {
+        text = text.split(`{${k}}`).join(String(v));
+      });
+    }
+    return text;
+  };
+  const tt = (text: LocalText | string): string => {
+    if (typeof text === "string") return text;
+    return text[lang] ?? text.zh;
+  };
+  return { lang, tr, tt };
 }
+
+// 非组件环境使用的 tt（读取 store 当前语言）
+export function ttNow(text: LocalText | string): string {
+  if (typeof text === "string") return text;
+  const lang = useStore.getState().language ?? "zh";
+  return text[lang] ?? text.zh;
+}
+

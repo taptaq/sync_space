@@ -5,7 +5,7 @@ import type { Protocol } from "@/types";
 import { useStore } from "@/store/useStore";
 import { detectPhase, getPhaseConfig, phasePriority } from "@/lib/stageEngine";
 import { cn } from "@/lib/utils";
-import { useVoice } from "@/lib/i18n";
+import { useVoice, useT } from "@/lib/i18n";
 
 // 阶段匹配协议推荐（行动层 · 当前阶段优先推适用协议 + 一键触发）
 export default function RecommendedProtocolsCard() {
@@ -15,6 +15,7 @@ export default function RecommendedProtocolsCard() {
   const crashMarks = useStore((s) => s.crashMarks);
   const setActiveTrigger = useStore((s) => s.setActiveTrigger);
   const { t } = useVoice();
+  const { tr, tt } = useT();
 
   const currentPhase = detectPhase(currentWeather.climate, crashMarks);
   const phaseCfg = getPhaseConfig(currentPhase);
@@ -32,9 +33,10 @@ export default function RecommendedProtocolsCard() {
   if (recommended.length === 0) return null;
 
   const handleTrigger = (protocol: Protocol) => {
+    const phaseLabel = tt(phaseCfg.label);
     setActiveTrigger({
       protocol,
-      reason: `当前处于${phaseCfg.label}，${phaseCfg.label}匹配的协议优先推给${t.you}。`,
+      reason: tr("recommended_reason", { phase: phaseLabel, who: t.you }),
       triggeredAt: new Date().toISOString(),
     });
   };
@@ -56,7 +58,7 @@ export default function RecommendedProtocolsCard() {
       <div className="mb-3 flex items-center gap-2">
         <Sparkles size={14} className="text-primary" />
         <span className="text-small font-medium text-ink">
-          当前阶段 · {phaseCfg.label}
+          {tr("recommended_phase_prefix")}{tt(phaseCfg.label)}
         </span>
         <span
           className={cn(
@@ -64,11 +66,11 @@ export default function RecommendedProtocolsCard() {
             phaseCfg.badgeClass,
           )}
         >
-          {recommended.length} 份协议
+          {tr("recommended_count", { count: recommended.length })}
         </span>
       </div>
 
-      <p className="mb-3 text-xs text-ink-muted">{phaseCfg.measureTone}</p>
+      <p className="mb-3 text-xs text-ink-muted">{tt(phaseCfg.measureTone)}</p>
 
       <div className="space-y-2">
         {(expanded ? recommended : recommended.slice(0, 1)).map((p) => (
@@ -89,13 +91,13 @@ export default function RecommendedProtocolsCard() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-small text-ink">
-                {p.action.description}
+                {tt(p.action.description)}
               </p>
               <p className="truncate text-xs text-ink-faint">
-                WHEN · {p.trigger.description}
+                WHEN · {tt(p.trigger.description)}
               </p>
             </div>
-            <span className="shrink-0 text-xs text-primary">立即执行</span>
+            <span className="shrink-0 text-xs text-primary">{tr("recommended_execute")}</span>
           </button>
         ))}
       </div>
@@ -105,7 +107,7 @@ export default function RecommendedProtocolsCard() {
           onClick={() => setExpanded((value) => !value)}
           className="mt-3 w-full py-1 text-xs text-ink-muted"
         >
-          {expanded ? "收起其他选择" : `还有 ${recommended.length - 1} 个选择`}
+          {expanded ? tr("recommended_collapse") : tr("recommended_more", { count: recommended.length - 1 })}
         </button>
       )}
     </motion.section>

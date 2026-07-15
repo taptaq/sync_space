@@ -7,6 +7,7 @@ import AIInterpretationCard from "@/components/ai/AIInterpretationCard";
 import { useStore } from "@/store/useStore";
 import { interpretEmotion, extractProtocolFromReview } from "@/lib/aiSimulator";
 import { formatDateTime } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 
 // 回看详情 · 崩溃复盘（PRD §05 F-08/F-09/F-10）
 // 事后记录 → AI 解读 → 沉淀新协议
@@ -17,6 +18,7 @@ export default function ReviewDetail() {
   const updateCrashMark = useStore((s) => s.updateCrashMark);
   const addProtocol = useStore((s) => s.addProtocol);
   const addPersonalRule = useStore((s) => s.addPersonalRule);
+  const { tr, tt } = useT();
 
   const crash = crashMarks.find((c) => c.id === crashId);
   const [text, setText] = useState("");
@@ -36,12 +38,12 @@ export default function ReviewDetail() {
   if (!crash) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-        <p className="text-ink-muted">记录不存在</p>
+        <p className="text-ink-muted">{tr("review_detail_not_found")}</p>
         <button
           onClick={() => navigate("/review")}
           className="rounded-full bg-primary px-5 py-2 text-small text-white"
         >
-          返回回看
+          {tr("review_detail_back")}
         </button>
       </div>
     );
@@ -79,9 +81,9 @@ export default function ReviewDetail() {
       status: "candidate",
     });
     addPersonalRule({
-      signal: interpretation.event,
-      understanding: interpretation.emotion,
-      support: interpretation.need,
+      signal: tt(interpretation.event),
+      understanding: tt(interpretation.emotion),
+      support: tt(interpretation.need),
     });
     setSettled(true);
     setTimeout(() => navigate("/climate"), 1200);
@@ -99,7 +101,7 @@ export default function ReviewDetail() {
         </button>
         <div>
           <p className="text-xs uppercase tracking-widest text-primary">
-            崩溃复盘
+            {tr("review_detail_header")}
           </p>
           <p className="font-serif text-xl text-ink">
             {formatDateTime(crash.marked_at)}
@@ -117,7 +119,7 @@ export default function ReviewDetail() {
         <div className="mb-3 flex items-center gap-2">
           {crash.voice_text && <Mic size={14} className="text-clay" />}
           <span className="text-xs uppercase tracking-widest text-ink-muted">
-            {crash.voice_text ? "AI 整理 · 语音转文字" : "事后记录"}
+            {crash.voice_text ? tr("review_detail_voice_label") : tr("review_detail_note_label")}
           </span>
         </div>
 
@@ -130,7 +132,7 @@ export default function ReviewDetail() {
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="你想补记一下发生了什么吗？不强制。"
+          placeholder={tr("review_detail_placeholder")}
           rows={4}
           className="w-full resize-none rounded-card border border-edge bg-base/60 p-3 text-body leading-relaxed text-ink placeholder:text-ink-faint"
         />
@@ -141,7 +143,7 @@ export default function ReviewDetail() {
           className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-2.5 text-small font-medium text-white transition-all duration-250 hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-edge disabled:text-ink-muted"
         >
           <Sparkles size={15} />
-          {loading ? "AI 解读中…" : "让 AI 帮我解读"}
+          {loading ? tr("review_detail_loading") : tr("review_detail_interpret_btn")}
         </button>
       </motion.section>
 
@@ -158,14 +160,14 @@ export default function ReviewDetail() {
           animate={{ opacity: 1 }}
           className="text-center text-small text-sage"
         >
-          已沉淀为个人规则和协议候选，回到理解…
+          {tr("review_detail_settled")}
         </motion.p>
       )}
 
       <p className="px-4 pb-4 text-center text-xs leading-relaxed text-ink-muted">
-        复盘可以延迟到第二天。
+        {tr("review_detail_footer_1")}
         <br />
-        你不必现在就整理——记录会一直在这里。
+        {tr("review_detail_footer_2")}
       </p>
     </div>
   );

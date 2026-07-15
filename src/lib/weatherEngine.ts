@@ -1,86 +1,176 @@
-import type { ClimateType, NeuroType, WeatherSnapshot } from "@/types";
+import type { ClimateType, LocalText, NeuroType, WeatherSnapshot } from "@/types";
 import { getAxisProfile, toStrain } from "@/lib/axisConfig";
 
 // 气候类型映射（PRD §09：气候类型非好坏）
 // 基础版本（通用），按特质分化的版本在 CLIMATE_MAP_BY_TYPE
 export const CLIMATE_MAP: Record<
   ClimateType,
-  { label: string; description: string; suitable: string[]; unsuitable: string[] }
+  { label: LocalText; description: LocalText; suitable: LocalText[]; unsuitable: LocalText[] }
 > = {
   stuffy_rain: {
-    label: "闷热待雨",
-    description: "气压升高中，预计 30 分钟后接近临界点",
-    suitable: ["低感官活动", "安静空间", "独处休息"],
-    unsuitable: ["嘈杂环境", "重要决策", "高强度社交"],
+    label: { zh: "闷热待雨", en: "Stuffy, pre-rain" },
+    description: { zh: "气压升高中，预计 30 分钟后接近临界点", en: "Pressure is rising; nearing critical point in ~30 minutes" },
+    suitable: [
+      { zh: "低感官活动", en: "Low-sensory activities" },
+      { zh: "安静空间", en: "Quiet space" },
+      { zh: "独处休息", en: "Solo rest" },
+    ],
+    unsuitable: [
+      { zh: "嘈杂环境", en: "Noisy environments" },
+      { zh: "重要决策", en: "Important decisions" },
+      { zh: "高强度社交", en: "High-intensity socializing" },
+    ],
   },
   clear_breeze: {
-    label: "晴朗微风",
-    description: "状态稳定舒适，适合做需要专注的事",
-    suitable: ["专注工作", "适度社交", "做决定"],
+    label: { zh: "晴朗微风", en: "Clear breeze" },
+    description: { zh: "状态稳定舒适，适合做需要专注的事", en: "Stable and comfortable; good for focused work" },
+    suitable: [
+      { zh: "专注工作", en: "Focused work" },
+      { zh: "适度社交", en: "Moderate socializing" },
+      { zh: "做决定", en: "Making decisions" },
+    ],
     unsuitable: [],
   },
   warm_fog: {
-    label: "暖雾弥漫",
-    description: "执行功能有些模糊，启动任务可能困难",
-    suitable: ["微任务破冰", "低压力活动", "减少选择"],
-    unsuitable: ["复杂决策", "多线程任务"],
+    label: { zh: "暖雾弥漫", en: "Warm fog" },
+    description: { zh: "执行功能有些模糊，启动任务可能困难", en: "Executive function is a bit hazy; task initiation may be hard" },
+    suitable: [
+      { zh: "微任务破冰", en: "Micro-task warm-up" },
+      { zh: "低压力活动", en: "Low-pressure activities" },
+      { zh: "减少选择", en: "Reduce choices" },
+    ],
+    unsuitable: [
+      { zh: "复杂决策", en: "Complex decisions" },
+      { zh: "多线程任务", en: "Multi-threaded tasks" },
+    ],
   },
   storm_warning: {
-    label: "雷暴预警",
-    description: "接近临界点，建议立即执行撤退协议",
-    suitable: ["撤退到安全空间", "降低一切输入", "暂停社交"],
-    unsuitable: ["嘈杂环境", "重要决策", "持续忍耐"],
+    label: { zh: "雷暴预警", en: "Storm warning" },
+    description: { zh: "接近临界点，建议立即执行撤退协议", en: "Nearing critical point; run a retreat protocol now" },
+    suitable: [
+      { zh: "撤退到安全空间", en: "Retreat to a safe space" },
+      { zh: "降低一切输入", en: "Reduce all input" },
+      { zh: "暂停社交", en: "Pause social contact" },
+    ],
+    unsuitable: [
+      { zh: "嘈杂环境", en: "Noisy environments" },
+      { zh: "重要决策", en: "Important decisions" },
+      { zh: "持续忍耐", en: "Pushing through" },
+    ],
   },
 };
 
 // 按特质分化的气候文案
 // ASD 侧重感官解读，ADHD 侧重执行功能解读
 const CLIMATE_MAP_BY_TYPE: Partial<Record<NeuroType, Partial<Record<ClimateType, {
-  description: string;
-  suitable: string[];
-  unsuitable: string[];
+  description: LocalText;
+  suitable: LocalText[];
+  unsuitable: LocalText[];
 }>>>> = {
   asd: {
     stuffy_rain: {
-      description: "感官气压在升高，环境输入正在累积",
-      suitable: ["低感官活动", "安静空间", "独处休息", "降噪耳机"],
-      unsuitable: ["嘈杂环境", "强光场所", "重要决策", "高强度社交"],
+      description: { zh: "感官气压在升高，环境输入正在累积", en: "Sensory pressure is rising; environmental input is accumulating" },
+      suitable: [
+        { zh: "低感官活动", en: "Low-sensory activities" },
+        { zh: "安静空间", en: "Quiet space" },
+        { zh: "独处休息", en: "Solo rest" },
+        { zh: "降噪耳机", en: "Noise-canceling headphones" },
+      ],
+      unsuitable: [
+        { zh: "嘈杂环境", en: "Noisy environments" },
+        { zh: "强光场所", en: "Bright-light venues" },
+        { zh: "重要决策", en: "Important decisions" },
+        { zh: "高强度社交", en: "High-intensity socializing" },
+      ],
     },
     warm_fog: {
-      description: "感官预算开始模糊，对环境的耐受在下降",
-      suitable: ["低感官活动", "熟悉环境", "减少刺激源"],
-      unsuitable: ["新环境", "多线程任务", "强感官刺激"],
+      description: { zh: "感官预算开始模糊，对环境的耐受在下降", en: "Sensory budget is blurring; environmental tolerance is dropping" },
+      suitable: [
+        { zh: "低感官活动", en: "Low-sensory activities" },
+        { zh: "熟悉环境", en: "Familiar environments" },
+        { zh: "减少刺激源", en: "Reduce stimuli" },
+      ],
+      unsuitable: [
+        { zh: "新环境", en: "New environments" },
+        { zh: "多线程任务", en: "Multi-threaded tasks" },
+        { zh: "强感官刺激", en: "Intense sensory input" },
+      ],
     },
     storm_warning: {
-      description: "感官负荷接近临界，需要立即降载",
-      suitable: ["撤退到安全空间", "降噪隔离", "减少一切输入"],
-      unsuitable: ["嘈杂环境", "社交场合", "强光强声", "持续忍耐"],
+      description: { zh: "感官负荷接近临界，需要立即降载", en: "Sensory load is near critical; reduce load immediately" },
+      suitable: [
+        { zh: "撤退到安全空间", en: "Retreat to a safe space" },
+        { zh: "降噪隔离", en: "Noise isolation" },
+        { zh: "减少一切输入", en: "Reduce all input" },
+      ],
+      unsuitable: [
+        { zh: "嘈杂环境", en: "Noisy environments" },
+        { zh: "社交场合", en: "Social gatherings" },
+        { zh: "强光强声", en: "Bright lights and loud sounds" },
+        { zh: "持续忍耐", en: "Pushing through" },
+      ],
     },
     clear_breeze: {
-      description: "感官预算充足，环境在你的耐受范围内",
-      suitable: ["专注工作", "适度社交", "感官建设活动"],
+      description: { zh: "感官预算充足，环境在你的耐受范围内", en: "Sensory budget is full; environment is within tolerance" },
+      suitable: [
+        { zh: "专注工作", en: "Focused work" },
+        { zh: "适度社交", en: "Moderate socializing" },
+        { zh: "感官建设活动", en: "Sensory-building activities" },
+      ],
       unsuitable: [],
     },
   },
   adhd: {
     stuffy_rain: {
-      description: "执行功能气压升高，任务切换在累积疲劳",
-      suitable: ["单线程任务", "减少切换", "身体活动", "低决策负荷"],
-      unsuitable: ["多线程任务", "重要决策", "高认知负荷"],
+      description: { zh: "执行功能气压升高，任务切换在累积疲劳", en: "Executive function pressure rising; task-switching fatigue is accumulating" },
+      suitable: [
+        { zh: "单线程任务", en: "Single-threaded tasks" },
+        { zh: "减少切换", en: "Reduce switching" },
+        { zh: "身体活动", en: "Physical activity" },
+        { zh: "低决策负荷", en: "Low decision load" },
+      ],
+      unsuitable: [
+        { zh: "多线程任务", en: "Multi-threaded tasks" },
+        { zh: "重要决策", en: "Important decisions" },
+        { zh: "高认知负荷", en: "High cognitive load" },
+      ],
     },
     warm_fog: {
-      description: "多巴胺电量在降，启动任务越来越困难",
-      suitable: ["5 分钟微任务", "外部结构化", "body doubling", "减少选择"],
-      unsuitable: ["无截止期的任务", "复杂决策", "多线程任务"],
+      description: { zh: "多巴胺电量在降，启动任务越来越困难", en: "Dopamine battery is dropping; task initiation is getting harder" },
+      suitable: [
+        { zh: "5 分钟微任务", en: "5-minute micro-tasks" },
+        { zh: "外部结构化", en: "External structure" },
+        { zh: "body doubling", en: "Body doubling" },
+        { zh: "减少选择", en: "Reduce choices" },
+      ],
+      unsuitable: [
+        { zh: "无截止期的任务", en: "Open-ended tasks" },
+        { zh: "复杂决策", en: "Complex decisions" },
+        { zh: "多线程任务", en: "Multi-threaded tasks" },
+      ],
     },
     storm_warning: {
-      description: "多巴胺见底，执行功能接近崩溃",
-      suitable: ["完全停止任务", "身体重置运动", "关闭屏幕", "不要求自己"],
-      unsuitable: ["继续任务", "做决定", "增加新任务", "硬撑"],
+      description: { zh: "多巴胺见底，执行功能接近崩溃", en: "Dopamine is bottoming out; executive function is near collapse" },
+      suitable: [
+        { zh: "完全停止任务", en: "Stop all tasks" },
+        { zh: "身体重置运动", en: "Physical reset movement" },
+        { zh: "关闭屏幕", en: "Turn off screens" },
+        { zh: "不要求自己", en: "Drop self-demands" },
+      ],
+      unsuitable: [
+        { zh: "继续任务", en: "Continue tasks" },
+        { zh: "做决定", en: "Make decisions" },
+        { zh: "增加新任务", en: "Add new tasks" },
+        { zh: "硬撑", en: "Push through" },
+      ],
     },
     clear_breeze: {
-      description: "多巴胺电量满格，脑子转得动",
-      suitable: ["做你真正想做的事", "启动重要任务", "创造性工作"],
+      description: { zh: "多巴胺电量满格，脑子转得动", en: "Dopamine battery is full; the mind is ready to work" },
+      suitable: [
+        { zh: "做你真正想做的事", en: "Do what you truly want" },
+        { zh: "启动重要任务", en: "Start important tasks" },
+        { zh: "创造性工作", en: "Creative work" },
+      ],
       unsuitable: [],
     },
   },

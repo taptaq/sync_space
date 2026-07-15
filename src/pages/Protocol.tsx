@@ -42,7 +42,7 @@ export default function Protocol() {
         <h1 className="mt-1 font-serif text-3xl text-ink">{isParent ? tr("protocol_title_parent") : tr("protocol_title_self")}</h1>
         <p className="mt-1 text-small text-ink-muted">
           {protocols.length > 0
-            ? `${protocols.length} ${tr("protocol_subtitle")} ${executedCount} 次`
+            ? `${protocols.length} ${tr("protocol_subtitle")} ${executedCount} ${tr("protocol_executed_times")}`
             : isParent
               ? tr("protocol_empty_parent")
               : tr("protocol_empty_self")}
@@ -52,12 +52,12 @@ export default function Protocol() {
       {/* 我的协议 */}
       <section>
         <div className="mb-4 flex items-center justify-between px-1">
-          <h2 className="font-serif text-xl text-ink">已有协议</h2>
+          <h2 className="font-serif text-xl text-ink">{tr("protocol_existing")}</h2>
           <button
             onClick={() => navigate("/protocol/new")}
             className="flex items-center gap-1 rounded-full border border-edge bg-white/50 px-3.5 py-1.5 text-xs text-primary transition-all duration-250 hover:bg-primary-mist/40 active:scale-[0.98]"
           >
-            <Plus size={14} /> 新协议
+            <Plus size={14} /> {tr("protocol_new")}
           </button>
         </div>
 
@@ -70,15 +70,15 @@ export default function Protocol() {
         {protocols.length === 0 && (
           <div className="rounded-card border border-dashed-candidate p-8 text-center">
             <p className="text-small text-ink-muted">
-              还没有协议。
+              {tr("protocol_empty_state")}
               <br />
-              协议是"当 X 发生时，{isParent ? "我帮孩子" : "我给自己"}约定 Y"。
+              {isParent ? tr("protocol_empty_def_parent") : tr("protocol_empty_def_self")}
             </p>
             <button
               onClick={() => navigate("/protocol/new")}
               className="mt-4 rounded-full bg-primary px-5 py-2 text-small font-medium text-white transition-all duration-250 hover:bg-primary/90"
             >
-              创建第一份协议
+              {tr("protocol_create_first")}
             </button>
           </div>
         )}
@@ -92,9 +92,9 @@ export default function Protocol() {
         >
           <span className="flex items-center gap-2 text-sm font-medium text-ink">
             {showLibrary ? <X size={16} /> : <BookOpen size={16} />}
-            {showLibrary ? "收起方法库" : "从方法库添加协议"}
+            {showLibrary ? tr("protocol_library_collapse") : tr("protocol_library_expand")}
           </span>
-          <span className="text-xs text-ink-muted">按需打开</span>
+          <span className="text-xs text-ink-muted">{tr("protocol_library_hint")}</span>
         </button>
         {showLibrary && <div className="mt-3"><ProtocolTemplateLibrary /></div>}
       </section>

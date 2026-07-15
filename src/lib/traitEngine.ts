@@ -1,4 +1,4 @@
-import type { ScaleId, ScaleMeta, ScaleQuestion, ScaleResult } from "@/types";
+import type { ScaleId, ScaleMeta, ScaleQuestion, ScaleResult, ADHDSubtype } from "@/types";
 import { SCALES, SCALE_QUESTIONS } from "@/lib/scales";
 
 // 特质自评引擎（PRD §11 非诊断 · 纯画像计算）
@@ -18,7 +18,13 @@ export function scoreQuestion(
   optionIndex: number, // 用户选的 option 在 scale.options 中的 index
 ): number {
   if (scale.scoring === "likert") {
-    return scale.options[optionIndex]?.value ?? 0;
+    const raw = scale.options[optionIndex]?.value ?? 0;
+    if (!question.reverse) return raw;
+    // 反向计分：得分 = 最小值 + 最大值 - 原始值
+    const values = scale.options.map((o) => o.value);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    return min + max - raw;
   }
   // binary
   return question.scored_options?.includes(optionIndex) ? 1 : 0;
@@ -67,6 +73,39 @@ export function computeResult(
  */
 export function reachedCutoff(scaleId: ScaleId, score: number): boolean {
   return score >= SCALES[scaleId].cutoff;
+}
+
+/**
+ * 根据 DSM-5 成人 ADHD 评估结果自动推断子类型
+ * DSM-5 18 题：Q1-9 = 注意力缺陷维度，Q10-18 = 多动/冲动维度
+ * 任一维度 ≥5 项阳性即视为该维度明显
+ * - 仅注意力维度 ≥5 → inattentive
+ * - 仅多动冲动维度 ≥5 → hyperactive
+ * - 两个维度都 ≥5 → combined
+ * - 两个维度都 <5 → unknown（特质表达较低，不做子类型判断）
+ */
+export function detectAdhdSubtype(
+  scaleId: ScaleId,
+  rawAnswers: number[],
+): ADHDSubtype | null {
+  if (scaleId !== "dsm5a18s" && scaleId !== "dsm5a18b") return null;
+
+  const scale = SCALES[scaleId];
+  const questions = SCALE_QUESTIONS[scaleId];
+  const inattentiveScore = rawAnswers
+    .slice(0, 9)
+    .reduce((sum, optIdx, i) => sum + scoreQuestion(scale, questions[i], optIdx), 0);
+  const hyperactiveScore = rawAnswers
+    .slice(9, 18)
+    .reduce((sum, optIdx, i) => sum + scoreQuestion(scale, questions[i + 9], optIdx), 0);
+
+  const inattentivePositive = inattentiveScore >= 5;
+  const hyperactivePositive = hyperactiveScore >= 5;
+
+  if (inattentivePositive && hyperactivePositive) return "combined";
+  if (inattentivePositive) return "inattentive";
+  if (hyperactivePositive) return "hyperactive";
+  return "unknown";
 }
 
 /**

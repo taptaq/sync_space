@@ -8,6 +8,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 // 危机支持组件（常驻 · 非病理化 · 低刺激）
 // 伦理底线：非治疗类工具必须提供危机转介路径（参考 PTSD Coach 类 App 负面反应研究）
@@ -18,16 +19,17 @@ import {
 
 // 三层支持内容：即时危机 / 专业支持 / 同伴支持
 function CrisisContent() {
+  const { tr } = useT();
   return (
     <div className="space-y-5">
       {/* 即时危机 · 热线 */}
       <section>
         <div className="flex items-center gap-2">
           <LifeBuoy size={16} className="text-primary" />
-          <p className="text-small font-medium text-ink">即时危机 · 热线</p>
+          <p className="text-small font-medium text-ink">{tr("crisis_hotline_title")}</p>
         </div>
         <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
-          如果现在很难受、撑不住，可以打这些电话，有人 24 小时在听。
+          {tr("crisis_hotline_desc")}
         </p>
         <div className="mt-3 space-y-2">
           <a
@@ -35,9 +37,9 @@ function CrisisContent() {
             className="flex items-center justify-between gap-3 rounded-card border border-edge bg-white/60 px-3.5 py-2.5 transition-colors duration-250 hover:bg-white/80"
           >
             <div className="min-w-0">
-              <p className="text-small text-ink">全国 24 小时心理危机干预热线</p>
+              <p className="text-small text-ink">{tr("crisis_national_hotline")}</p>
               <p className="text-xs text-ink-muted">
-                400-161-9995 · 学生专线按 1 · 生命热线按 3
+                {tr("crisis_national_hotline_detail")}
               </p>
             </div>
             <Phone size={16} className="shrink-0 text-primary" />
@@ -47,8 +49,8 @@ function CrisisContent() {
             className="flex items-center justify-between gap-3 rounded-card border border-edge bg-white/60 px-3.5 py-2.5 transition-colors duration-250 hover:bg-white/80"
           >
             <div className="min-w-0">
-              <p className="text-small text-ink">北京心理危机研究与干预中心</p>
-              <p className="text-xs text-ink-muted">010-82951332 · 24 小时</p>
+              <p className="text-small text-ink">{tr("crisis_beijing_center")}</p>
+              <p className="text-xs text-ink-muted">{tr("crisis_beijing_center_detail")}</p>
             </div>
             <Phone size={16} className="shrink-0 text-primary" />
           </a>
@@ -59,13 +61,12 @@ function CrisisContent() {
       <section>
         <div className="flex items-center gap-2">
           <Stethoscope size={16} className="text-primary" />
-          <p className="text-small font-medium text-ink">专业支持</p>
+          <p className="text-small font-medium text-ink">{tr("crisis_pro_support")}</p>
         </div>
         <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
-          最近似乎特别辛苦，和专业的人聊聊可能会有帮助。
-          可以在精神卫生中心、医院心理科或正规心理咨询平台找到心理咨询师 / 精神科医生。
+          {tr("crisis_pro_desc")}
           <br />
-          寻求帮助是勇敢的表现，不是软弱。
+          {tr("crisis_pro_brave")}
         </p>
       </section>
 
@@ -73,10 +74,10 @@ function CrisisContent() {
       <section>
         <div className="flex items-center gap-2">
           <Users size={16} className="text-primary" />
-          <p className="text-small font-medium text-ink">同伴支持</p>
+          <p className="text-small font-medium text-ink">{tr("crisis_peer_support")}</p>
         </div>
         <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
-          你不需要独自面对。
+          {tr("crisis_peer_desc")}
         </p>
       </section>
     </div>
@@ -84,6 +85,7 @@ function CrisisContent() {
 }
 
 export default function CrisisSupport({ compact }: { compact?: boolean }) {
+  const { tr } = useT();
   const [expanded, setExpanded] = useState(false);
 
   // compact 模式：导航栏旁的小入口，点击弹出 bottom sheet
@@ -92,7 +94,7 @@ export default function CrisisSupport({ compact }: { compact?: boolean }) {
       <>
         <button
           onClick={() => setExpanded(true)}
-          aria-label="需要帮助"
+          aria-label={tr("crisis_need_help")}
           className="flex items-center justify-center rounded-full border border-primary/20 bg-white/60 p-2.5 text-primary shadow-soft transition-all duration-250 hover:bg-white/80 active:scale-95"
         >
           <HeartPulse size={18} />
@@ -108,7 +110,7 @@ export default function CrisisSupport({ compact }: { compact?: boolean }) {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
                 onClick={() => setExpanded(false)}
-                className="fixed inset-0 z-50 bg-ink/20 backdrop-blur-sm"
+                className="fixed inset-0 z-50 bg-ink/30 backdrop-blur-sm"
               />
               {/* 底部弹出层 */}
               <motion.div
@@ -116,16 +118,16 @@ export default function CrisisSupport({ compact }: { compact?: boolean }) {
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
                 transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-bowl rounded-b-none border border-edge bg-base/95 p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-lift"
+                className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-2xl border-t border-white/30 bg-base/95 p-5 pb-[calc(4.5rem+env(safe-area-inset-bottom))] shadow-2xl"
               >
                 <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <HeartPulse size={18} className="text-primary" />
-                    <span className="font-serif text-lg text-ink">需要帮助</span>
+                    <span className="font-serif text-lg text-ink">{tr("crisis_need_help")}</span>
                   </div>
                   <button
                     onClick={() => setExpanded(false)}
-                    aria-label="关闭"
+                    aria-label={tr("close")}
                     className="rounded-full p-1.5 text-ink-muted transition-colors duration-250 hover:bg-white/60 hover:text-ink"
                   >
                     <X size={18} />
@@ -149,7 +151,7 @@ export default function CrisisSupport({ compact }: { compact?: boolean }) {
         className="flex w-full items-center justify-center gap-2 text-primary"
       >
         <HeartPulse size={18} />
-        <span className="text-body font-medium">需要帮助</span>
+        <span className="text-body font-medium">{tr("crisis_need_help")}</span>
       </button>
 
       <AnimatePresence initial={false}>

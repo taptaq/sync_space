@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import type { Protocol } from "@/types";
+import { useT } from "@/lib/i18n";
+import type { StringKey } from "@/lib/translations";
 
 // 协议演练模式（原创差异化交互 · 基于 ASD 研究的"可预测性"原则）
 // 用户创建协议后可模拟走一遍执行流程，在非危机状态下熟悉"执行协议是什么感觉"
@@ -15,6 +17,7 @@ export default function ProtocolRehearsal({
   onExit: () => void;
   onFeedback: (helpful: boolean) => void;
 }) {
+  const { tr, tt } = useT();
   const [step, setStep] = useState(0); // 0 想象场景 · 1 现在执行 · 2 执行中 · 3 演练完成
   const [secondsLeft, setSecondsLeft] = useState(30); // 模拟计时 30 秒
   const [breathIn, setBreathIn] = useState(true); // 呼吸引导：吸气 / 呼气
@@ -50,7 +53,12 @@ export default function ProtocolRehearsal({
   };
 
   // 步骤标题
-  const STEP_TITLE = ["想象这个场景", "现在执行", "执行中", "演练完成"];
+  const STEP_TITLE: StringKey[] = [
+    "rehearsal_step_0",
+    "rehearsal_step_1",
+    "rehearsal_step_2",
+    "rehearsal_step_3",
+  ];
 
   return (
     <motion.div
@@ -66,10 +74,10 @@ export default function ProtocolRehearsal({
           onClick={onExit}
           className="flex items-center gap-1 rounded-full px-2 py-1 text-small text-ink-muted transition-all duration-250 hover:bg-white/60 hover:text-ink active:scale-[0.98]"
         >
-          <ArrowLeft size={16} /> 退出
+          <ArrowLeft size={16} /> {tr("rehearsal_exit")}
         </button>
         <span className="flex items-center gap-1 rounded-full bg-primary-mist px-2.5 py-1 text-xs text-primary">
-          <Sparkles size={12} /> 演练模式
+          <Sparkles size={12} /> {tr("rehearsal_mode")}
         </span>
       </div>
 
@@ -87,29 +95,29 @@ export default function ProtocolRehearsal({
               className="w-full max-w-md text-center"
             >
               <p className="text-xs uppercase tracking-widest text-primary">
-                {STEP_TITLE[0]}
+                {tr(STEP_TITLE[0])}
               </p>
               <div className="mt-4 rounded-card border border-edge bg-white/60 p-5 text-left shadow-soft">
                 <p className="font-mono text-xs text-primary">WHEN</p>
                 <p className="mt-1 text-body leading-relaxed text-ink">
-                  {protocol.trigger.description}
+                  {tt(protocol.trigger.description)}
                 </p>
               </div>
               <p className="mt-6 text-body leading-relaxed text-ink">
-                想象一下：{protocol.trigger.description}。你现在感觉到了什么？
+                {tr("rehearsal_imagine_prompt", { trigger: tt(protocol.trigger.description) })}
               </p>
               <div className="mt-8 flex gap-3">
                 <button
                   onClick={() => setStep(1)}
                   className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-sage py-2.5 text-small font-medium text-white transition-all duration-250 hover:bg-sage/90 active:scale-[0.98]"
                 >
-                  我感觉到了
+                  {tr("rehearsal_felt_it")}
                 </button>
                 <button
                   onClick={() => setStep(1)}
                   className="rounded-full border border-edge px-5 py-2.5 text-small text-ink-muted transition-all duration-250 hover:bg-white/50 active:scale-[0.98]"
                 >
-                  跳过
+                  {tr("rehearsal_skip")}
                 </button>
               </div>
             </motion.section>
@@ -126,29 +134,29 @@ export default function ProtocolRehearsal({
               className="w-full max-w-md text-center"
             >
               <p className="text-xs uppercase tracking-widest text-primary">
-                {STEP_TITLE[1]}
+                {tr(STEP_TITLE[1])}
               </p>
               <div className="mt-4 rounded-card border border-edge bg-white/60 p-5 text-left shadow-soft">
                 <p className="font-mono text-xs text-sage">THEN</p>
                 <p className="mt-1 text-body leading-relaxed text-ink">
-                  {protocol.action.description}
+                  {tt(protocol.action.description)}
                 </p>
               </div>
               <p className="mt-6 text-body leading-relaxed text-ink">
-                接下来你会：{protocol.action.description}。准备好了吗？
+                {tr("rehearsal_action_prompt", { action: tt(protocol.action.description) })}
               </p>
               <div className="mt-8 flex gap-3">
                 <button
                   onClick={advanceFromAction}
                   className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-sage py-2.5 text-small font-medium text-white transition-all duration-250 hover:bg-sage/90 active:scale-[0.98]"
                 >
-                  开始
+                  {tr("rehearsal_start")}
                 </button>
                 <button
                   onClick={() => setStep(3)}
                   className="rounded-full border border-edge px-5 py-2.5 text-small text-ink-muted transition-all duration-250 hover:bg-white/50 active:scale-[0.98]"
                 >
-                  跳过
+                  {tr("rehearsal_skip")}
                 </button>
               </div>
             </motion.section>
@@ -165,7 +173,7 @@ export default function ProtocolRehearsal({
               className="w-full max-w-md text-center"
             >
               <p className="text-xs uppercase tracking-widest text-primary">
-                {STEP_TITLE[2]}
+                {tr(STEP_TITLE[2])}
               </p>
 
               {/* 呼吸引导圆：吸气 4 秒放大 + 呼气 4 秒缩小 */}
@@ -177,7 +185,7 @@ export default function ProtocolRehearsal({
                 />
                 <div className="relative z-10 text-center">
                   <p className="text-body font-medium text-sage">
-                    {breathIn ? "吸气" : "呼气"}
+                    {breathIn ? tr("rehearsal_inhale") : tr("rehearsal_exhale")}
                   </p>
                   <p className="mt-1 font-mono text-xs text-ink-muted">
                     {secondsLeft}s
@@ -186,14 +194,13 @@ export default function ProtocolRehearsal({
               </div>
 
               <p className="text-small leading-relaxed text-ink-muted">
-                跟着圆的节奏，慢慢来。这只是模拟，不会真的计时到{" "}
-                {protocol.action.duration_minutes} 分钟。
+                {tr("rehearsal_breath_hint", { minutes: protocol.action.duration_minutes })}
               </p>
               <button
                 onClick={() => setStep(3)}
                 className="mt-6 rounded-full border border-edge px-5 py-2 text-small text-ink-muted transition-all duration-250 hover:bg-white/50 active:scale-[0.98]"
               >
-                提前结束
+                {tr("rehearsal_end_early")}
               </button>
             </motion.section>
           )}
@@ -209,23 +216,23 @@ export default function ProtocolRehearsal({
               className="w-full max-w-md text-center"
             >
               <p className="text-xs uppercase tracking-widest text-primary">
-                {STEP_TITLE[3]}
+                {tr(STEP_TITLE[3])}
               </p>
               <p className="mt-6 text-body leading-relaxed text-ink">
-                这就是执行协议的感觉。真实触发时，你已经知道会发生什么了。
+                {tr("rehearsal_complete_msg")}
               </p>
               <div className="mt-8 flex flex-col gap-3">
                 <button
                   onClick={() => onFeedback(true)}
                   className="flex items-center justify-center gap-1.5 rounded-full bg-sage py-2.5 text-small font-medium text-white transition-all duration-250 hover:bg-sage/90 active:scale-[0.98]"
                 >
-                  这个协议对我有用
+                  {tr("rehearsal_helpful")}
                 </button>
                 <button
                   onClick={() => onFeedback(false)}
                   className="rounded-full border border-edge px-5 py-2.5 text-small text-ink-muted transition-all duration-250 hover:bg-white/50 active:scale-[0.98]"
                 >
-                  需要调整
+                  {tr("rehearsal_needs_adjust")}
                 </button>
               </div>
             </motion.section>

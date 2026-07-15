@@ -6,16 +6,18 @@ import type { TimelineEntry } from "@/types";
 import { useStore } from "@/store/useStore";
 import { formatDateTime, formatTime, relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
+import type { StringKey } from "@/lib/translations";
 
 // 回看页 · 过载后循环（PRD §05 页面3）
 // 时间线 · 按时间倒序排列所有事件
 type FilterType = "all" | "crash" | "protocol" | "checkin";
 
-const FILTER_LABELS: { key: FilterType; label: string }[] = [
-  { key: "all", label: "全部" },
-  { key: "crash", label: "崩溃" },
-  { key: "protocol", label: "协议" },
-  { key: "checkin", label: "签到" },
+const FILTER_LABELS: { key: FilterType; label: StringKey }[] = [
+  { key: "all", label: "review_filter_all" },
+  { key: "crash", label: "review_filter_crash" },
+  { key: "protocol", label: "review_filter_protocol" },
+  { key: "checkin", label: "review_filter_checkin" },
 ];
 
 export default function Review() {
@@ -24,20 +26,24 @@ export default function Review() {
   const executions = useStore((s) => s.executions);
   const crashMarks = useStore((s) => s.crashMarks);
   const protocols = useStore((s) => s.protocols);
+  const { tr, tt } = useT();
   const [filter, setFilter] = useState<FilterType>("all");
 
-  // 构建时间线
-  const timeline: TimelineEntry[] = [
+  // 构建时间线（title/detail 用 tr() 已按当前语言解析为 string，非 LocalText）
+  const timeline: (Omit<TimelineEntry, "title" | "detail"> & {
+    title: string;
+    detail: string;
+  })[] = [
     ...crashMarks.map((c) => ({
       id: c.id,
       type: "crash" as const,
       time: c.marked_at,
-      title: "崩溃标记",
+      title: tr("review_title_crash"),
       detail: c.voice_text
-        ? `语音记录 · ${c.voice_text.slice(0, 30)}…`
+        ? `${tr("review_detail_voice_prefix")}${c.voice_text.slice(0, 30)}…`
         : c.reviewed
-          ? "已复盘"
-          : "待复盘",
+          ? tr("review_detail_reviewed")
+          : tr("review_detail_pending"),
       weather_snapshot: c.weather_snapshot,
     })),
     ...executions.map((e) => {
@@ -46,10 +52,10 @@ export default function Review() {
         id: e.id,
         type: "protocol" as const,
         time: e.triggered_at,
-        title: `协议触发 · ${
-          e.action_taken === "executed" ? "已执行" : "已推迟"
+        title: `${tr("review_title_protocol_prefix")}${
+          e.action_taken === "executed" ? tr("review_status_executed") : tr("review_status_postponed")
         }`,
-        detail: protocol?.action.description ?? "协议执行",
+        detail: protocol ? tt(protocol.action.description) : tr("review_detail_protocol_default"),
         weather_snapshot: undefined,
       };
     }),
@@ -57,9 +63,9 @@ export default function Review() {
       id: c.id,
       type: "checkin" as const,
       time: c.checkin_at,
-      title: "签到",
-      detail: `感官 ${c.axis_sensory.toFixed(1)} · 社交 ${c.axis_social.toFixed(1)} · 可预测 ${c.axis_predictability.toFixed(1)}${
-        c.response_delay_minutes > 120 ? " · 响应延迟（低能信号）" : ""
+      title: tr("review_title_checkin"),
+      detail: `${tr("review_detail_sensory")}${c.axis_sensory.toFixed(1)} ${tr("review_detail_social")}${c.axis_social.toFixed(1)} ${tr("review_detail_predictability")}${c.axis_predictability.toFixed(1)}${
+        c.response_delay_minutes > 120 ? tr("review_detail_delay") : ""
       }`,
       weather_snapshot: c.weather_snapshot,
     })),
@@ -77,10 +83,10 @@ export default function Review() {
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
         className="px-1"
       >
-        <p className="text-xs uppercase tracking-widest text-primary">过载后循环</p>
-        <h1 className="mt-1 font-serif text-3xl text-ink">回看</h1>
+        <p className="text-xs uppercase tracking-widest text-primary">{tr("review_header_label")}</p>
+        <h1 className="mt-1 font-serif text-3xl text-ink">{tr("review_title")}</h1>
         <p className="mt-1 text-small text-ink-muted">
-          事后记录 · AI 解读 · 沉淀新协议
+          {tr("review_desc")}
         </p>
       </motion.header>
 
@@ -98,10 +104,10 @@ export default function Review() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-body font-medium text-ink">
-              要整理一下昨天的记录吗？
+              {tr("review_prompt_title")}
             </p>
             <p className="text-xs text-ink-muted">
-              {formatDateTime(unreviewedCrash.marked_at)} · 崩溃标记
+              {formatDateTime(unreviewedCrash.marked_at)} {tr("review_prompt_suffix")}
             </p>
           </div>
           <ChevronRight size={18} className="text-ink-muted" />
@@ -122,7 +128,7 @@ export default function Review() {
                 : "bg-white/50 text-ink-muted hover:bg-white/80",
             )}
           >
-            {label}
+            {tr(label)}
           </button>
         ))}
       </div>
@@ -131,7 +137,7 @@ export default function Review() {
       <div className="space-y-3">
         {timeline.length === 0 && (
           <div className="rounded-card border border-edge bg-white/40 p-8 text-center text-small text-ink-muted">
-            还没有记录
+            {tr("review_empty")}
           </div>
         )}
         {timeline.map((entry, i) => (
@@ -188,7 +194,7 @@ export default function Review() {
               </p>
               {entry.weather_snapshot && (
                 <p className="mt-1.5 text-xs text-ink-faint">
-                  当日气候：{entry.weather_snapshot.climate_label}
+                  {tr("review_climate_label")}{tt(entry.weather_snapshot.climate_label)}
                 </p>
               )}
               <p className="mt-1 text-xs text-ink-faint">

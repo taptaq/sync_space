@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, Pause, Play, RotateCcw } from "lucide-react";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const START_SECONDS = 5 * 60;
@@ -10,6 +11,7 @@ export default function FocusStartCard() {
   const [secondsLeft, setSecondsLeft] = useState(START_SECONDS);
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);
+  const { tr } = useT();
 
   useEffect(() => {
     if (!running || secondsLeft <= 0) return;
@@ -52,8 +54,8 @@ export default function FocusStartCard() {
     <section className="rounded-card border border-sage/30 bg-sage-mist/30 p-5">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-medium text-sage">现在只做一件事</p>
-          <h2 className="mt-1 font-serif text-xl text-ink">把第一步缩到 5 分钟</h2>
+          <p className="text-xs font-medium text-sage">{tr("focus_title")}</p>
+          <h2 className="mt-1 font-serif text-xl text-ink">{tr("focus_subtitle")}</h2>
         </div>
         <span className="shrink-0 font-mono text-lg text-ink" aria-live="polite">
           {minutes}:{seconds.toString().padStart(2, "0")}
@@ -61,7 +63,7 @@ export default function FocusStartCard() {
       </div>
 
       <label className="block text-xs text-ink-muted" htmlFor="first-step">
-        写动作，不写目标
+        {tr("focus_input_label")}
       </label>
       <input
         id="first-step"
@@ -70,7 +72,7 @@ export default function FocusStartCard() {
           setTask(event.target.value);
           setDone(false);
         }}
-        placeholder="例如：打开文档，写下标题"
+        placeholder={tr("focus_input_placeholder")}
         className="mt-1.5 w-full rounded-lg border border-edge bg-white/70 px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-sage/50"
       />
 
@@ -88,12 +90,12 @@ export default function FocusStartCard() {
         >
           {running ? <Pause size={16} /> : <Play size={16} />}
           {running
-            ? "暂停"
+            ? tr("focus_pause")
             : secondsLeft === 0
-              ? "再来 5 分钟"
+              ? tr("focus_again")
               : secondsLeft < START_SECONDS
-                ? "继续"
-                : "开始第一步"}
+                ? tr("focus_continue")
+                : tr("focus_start")}
         </button>
         <button
           type="button"
@@ -102,8 +104,8 @@ export default function FocusStartCard() {
             setRunning(false);
           }}
           disabled={!task.trim() || done}
-          aria-label="标记完成"
-          title="标记完成"
+          aria-label={tr("focus_mark_done")}
+          title={tr("focus_mark_done")}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-edge bg-white/70 text-sage disabled:text-ink-faint"
         >
           <Check size={18} />
@@ -111,8 +113,8 @@ export default function FocusStartCard() {
         <button
           type="button"
           onClick={reset}
-          aria-label="重置计时"
-          title="重置计时"
+          aria-label={tr("focus_reset")}
+          title={tr("focus_reset")}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-edge bg-white/70 text-ink-muted"
         >
           <RotateCcw size={16} />
@@ -121,12 +123,12 @@ export default function FocusStartCard() {
 
       <p className="mt-2 text-xs text-ink-muted" aria-live="polite">
         {done
-          ? "完成到这里就可以停。"
+          ? tr("focus_msg_done")
           : secondsLeft === 0
-            ? "5 分钟到了。继续或停下都可以。"
-            : "不要求做完，计时结束可以停。"}
+            ? tr("focus_msg_timeout")
+            : tr("focus_msg_default")}
       </p>
-      <p className="mt-1 text-[11px] text-ink-faint">第一步自动保留在本机，不用靠脑内记住。</p>
+      <p className="mt-1 text-[11px] text-ink-faint">{tr("focus_hint")}</p>
     </section>
   );
 }

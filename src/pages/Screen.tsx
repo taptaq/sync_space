@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -7,12 +7,15 @@ import {
   Sparkles,
   ChevronRight,
   Check,
-  Info,
+  Heart,
+  Shield,
+  CloudSun,
 } from "lucide-react";
 import type { ScaleId, ScaleResult } from "@/types";
 import { SCALE_LIST, SCALE_QUESTIONS, SCALES } from "@/lib/scales";
-import { computeResult, levelColor, levelBg } from "@/lib/traitEngine";
+import { computeResult, levelColor, levelBg, detectAdhdSubtype } from "@/lib/traitEngine";
 import { useStore } from "@/store/useStore";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 // 神经特质自评页（PRD §11 非诊断声明 · §03 可预测可退出）
@@ -24,12 +27,19 @@ type Phase = "select" | "quiz" | "result";
 const NEURO_ICON: Record<string, typeof Brain> = {
   asd: Brain,
   adhd: Sparkles,
+  hsp: Heart,
+  ptsd: Shield,
+  other: CloudSun,
 };
 
 export default function Screen() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const saveTraitResult = useStore((s) => s.saveTraitResult);
   const traitProfile = useStore((s) => s.traitProfile);
+  const setAdhdSubtype = useStore((s) => s.setAdhdSubtype);
+  const pushToast = useStore((s) => s.pushToast);
+  const { tr, tt } = useT();
 
   const [phase, setPhase] = useState<Phase>("select");
   const [scaleId, setScaleId] = useState<ScaleId | null>(null);
@@ -44,6 +54,15 @@ export default function Screen() {
     setQuestionIdx(0);
     setPhase("quiz");
   };
+
+  // URL 参数 ?scale=dsm5a18b → 自动启动指定量表（用于 ADHD 子类型检测引导）
+  useEffect(() => {
+    const scaleParam = searchParams.get("scale") as ScaleId | null;
+    if (scaleParam && SCALE_QUESTIONS[scaleParam] && phase === "select") {
+      startScale(scaleParam);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const pickAnswer = (value: number) => {
     if (!scaleId) return;
@@ -71,6 +90,21 @@ export default function Screen() {
   const saveAndExit = () => {
     if (result) {
       saveTraitResult(result);
+      // DSM-5 评估完成 → 自动推断 ADHD 子类型
+      if (scaleId) {
+        const detected = detectAdhdSubtype(scaleId, result.answers);
+        if (detected) {
+          setAdhdSubtype(detected);
+          const typeLabel = detected === "inattentive"
+            ? tr("adhd_subtype_inattentive")
+            : detected === "hyperactive"
+              ? tr("adhd_subtype_hyperactive")
+              : detected === "combined"
+                ? tr("adhd_subtype_combined")
+                : tr("adhd_subtype_unknown");
+          pushToast("success", tr("adhd_subtype_detected", { type: typeLabel }));
+        }
+      }
       navigate("/climate");
     }
   };
@@ -83,32 +117,21 @@ export default function Screen() {
   if (phase === "select") {
     return (
       <div className="flex min-h-screen flex-col pt-10">
-        <Header title="神经特质自评" onBack={() => navigate("/climate")} />
+        <Header title={tr("screen_title")} onBack={() => navigate("/climate")} />
 
         <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           className="mt-6 flex-1"
         >
           <h1 className="font-serif text-3xl leading-tight text-ink">
-            多了解自己一点
+            {tr("screen_h1")}
           </h1>
           <p className="mt-3 text-body leading-relaxed text-ink-muted">
-            这是基于业内公开量表的自评画像，<span className="text-primary">不是诊断</span>。
-            结果会帮你更精准地配置签到维度和协议方向。
-            <br />
-            神经多样性是差异，不是疾病。
+            {tr("screen_intro_1")}<span className="text-primary">{tr("screen_not_diagnosis")}</span>。
+            {tr("screen_intro_2")}
           </p>
-
-          {/* 非诊断声明卡 */}
-          <div className="mt-5 flex gap-2.5 rounded-card border border-edge bg-white/40 p-4">
-            <Info size={16} className="mt-0.5 shrink-0 text-clay" />
-            <p className="text-small leading-relaxed text-ink-muted">
-              自评只反映你的特质表达程度。如果你正在经历明显困扰，
-              请联系专业医疗或心理人士做正式评估。
-            </p>
-          </div>
 
           <div className="mt-6 space-y-3">
             {SCALE_LIST.map((scale) => {
@@ -120,7 +143,7 @@ export default function Screen() {
                 <button
                   key={scale.id}
                   onClick={() => startScale(scale.id)}
-                  className="flex w-full items-start gap-4 rounded-card border border-edge bg-white/50 p-4 text-left transition-all duration-250 hover:border-primary hover:bg-primary-mist/30 active:scale-[0.99]"
+                  className="flex w-full items-center gap-4 rounded-card border border-edge bg-white/50 p-4 text-left transition-all duration-250 hover:border-primary hover:bg-primary-mist/30 active:scale-[0.99]"
                 >
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-mist/50">
                     <Icon size={20} className="text-primary" />
@@ -132,61 +155,32 @@ export default function Screen() {
                       </p>
                       {doneResult && (
                         <span className="rounded-full bg-sage-mist/60 px-2 py-0.5 text-[10px] text-sage">
-                          已完成
+                          {tr("screen_done")}
                         </span>
                       )}
                     </div>
                     <p className="mt-0.5 text-xs text-ink-muted">
-                      {scale.full_name} · {scale.question_count} 题
-                    </p>
-                    <p className="mt-2 text-small leading-relaxed text-ink-muted">
-                      {scale.description}
-                    </p>
-                    <p className="mt-2 text-[11px] text-ink-faint">
-                      来源：{scale.source}
+                      {tt(scale.full_name)} · {scale.question_count} {tr("screen_questions_unit")}
                     </p>
                     {doneResult && (
-                      <p className="mt-1.5 text-xs text-ink-faint">
-                        上次：{doneResult.band_title} · {doneResult.score}/
-                        {doneResult.max_score} 分
+                      <p className="mt-1 text-xs text-ink-faint">
+                        {tr("screen_last")}{tt(doneResult.band_title)} · {doneResult.score}/{doneResult.max_score} {tr("screen_score_unit")}
                       </p>
                     )}
                   </div>
                   <ChevronRight
                     size={18}
-                    className="mt-1 shrink-0 text-ink-faint"
+                    className="shrink-0 text-ink-faint"
                   />
                 </button>
               );
             })}
           </div>
 
-          {/* 官方测试链接（PRD §11 非诊断 · 提供权威出口） */}
-          <div className="mt-5 rounded-card border border-edge bg-white/30 p-4">
-            <p className="text-xs font-medium text-ink">官方测试链接</p>
-            <p className="mt-1 text-[11px] text-ink-muted">
-              如果你想要完整的官方评估体验，可以直接访问这些权威来源。
-            </p>
-            <div className="mt-3 space-y-2">
-              {SCALE_LIST.map((s) => (
-                <a
-                  key={s.id}
-                  href={s.official_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between rounded-lg bg-white/50 px-3 py-2 text-xs transition-colors hover:bg-primary-mist/30"
-                >
-                  <span className="text-ink">{s.label} · {s.full_name.split("·")[0].trim()}</span>
-                  <span className="text-primary">访问 ↗</span>
-                </a>
-              ))}
-            </div>
-          </div>
-
           <p className="mt-6 px-2 text-center text-xs leading-relaxed text-ink-muted">
-            三份量表可以都做，也可以只做一份。
+            {tr("screen_scale_note_1")}
             <br />
-            随时可以重做，结果会覆盖上一次。
+            {tr("screen_scale_note_2")}
           </p>
         </motion.div>
       </div>
@@ -211,7 +205,7 @@ export default function Screen() {
               onClick={() => setPhase("select")}
               className="text-xs text-ink-muted transition-colors hover:text-ink"
             >
-              退出
+              {tr("screen_exit")}
             </button>
           }
         />
@@ -220,7 +214,7 @@ export default function Screen() {
         <div className="mt-6">
           <div className="mb-2 flex justify-between text-xs text-ink-muted">
             <span>
-              第 {questionIdx + 1} / {questions.length} 题
+              {tr("screen_progress", { cur: questionIdx + 1, total: questions.length })}
             </span>
             <span className="font-mono">{Math.round(progress)}%</span>
           </div>
@@ -243,19 +237,19 @@ export default function Screen() {
             className="mt-10 flex flex-1 flex-col"
           >
             <p className="text-xs uppercase tracking-widest text-primary">
-              {scale.full_name}
+              {tt(scale.full_name)}
             </p>
             <h2 className="mt-3 font-serif text-2xl leading-relaxed text-ink">
-              {q.text}
+              {tt(q.text)}
             </h2>
 
             <div className="mt-10 space-y-3">
-              {scale.options.map((opt) => {
-                const selected = answers[questionIdx] === opt.value;
+              {scale.options.map((opt, optIdx) => {
+                const selected = answers[questionIdx] === optIdx;
                 return (
                   <button
-                    key={opt.value}
-                    onClick={() => pickAnswer(opt.value)}
+                    key={optIdx}
+                    onClick={() => pickAnswer(optIdx)}
                     className={cn(
                       "flex w-full items-center justify-between rounded-card border p-4 text-left transition-all duration-250 active:scale-[0.99]",
                       selected
@@ -269,7 +263,7 @@ export default function Screen() {
                         selected ? "font-medium text-primary" : "text-ink",
                       )}
                     >
-                      {opt.label}
+                      {tt(opt.label)}
                     </span>
                     <div
                       className={cn(
@@ -294,11 +288,11 @@ export default function Screen() {
                   onClick={goPrevQuestion}
                   className="w-full text-center text-xs text-ink-muted underline-offset-2 hover:underline"
                 >
-                  上一题
+                  {tr("screen_prev")}
                 </button>
               )}
               <p className="mt-3 text-center text-xs text-ink-muted">
-                {isLast ? "选完最后一题将自动生成画像" : "选完自动进入下一题"}
+                {isLast ? tr("screen_last_hint") : tr("screen_auto_next")}
               </p>
             </div>
           </motion.div>
@@ -312,11 +306,11 @@ export default function Screen() {
     const scale = SCALES[result.scale_id];
     return (
       <div className="flex min-h-screen flex-col pt-10">
-        <Header title="特质画像" onBack={() => setPhase("select")} />
+        <Header title={tr("screen_result_title")} onBack={() => setPhase("select")} />
 
         <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           className="mt-6 flex-1"
         >
@@ -328,7 +322,7 @@ export default function Screen() {
             )}
           >
             <p className="text-xs uppercase tracking-widest text-ink-muted">
-              {scale.label} · {scale.full_name}
+              {scale.label} · {tt(scale.full_name)}
             </p>
             <h2
               className={cn(
@@ -336,7 +330,7 @@ export default function Screen() {
                 levelColor(result.level),
               )}
             >
-              {result.band_title}
+              {tt(result.band_title)}
             </h2>
 
             {/* 分数可视化 · 特质表达强度（非诊断阈值） */}
@@ -374,46 +368,22 @@ export default function Screen() {
                 />
               </div>
               <p className="mt-2 text-[11px] text-ink-faint">
-                竖线为参考点——许多自评者在这个分数附近开始明显感受到特质影响。
-                <br />
-                这不是诊断标准，只是帮你定位自己的特质表达强度。
+                {tr("screen_cutoff_hint_1")}
+                {tr("screen_cutoff_hint_2")}
               </p>
             </div>
 
             <p className="mt-5 text-body leading-relaxed text-ink">
-              {result.band_summary}
+              {tt(result.band_summary)}
             </p>
-          </div>
-
-          {/* 非诊断声明 */}
-          <div className="mt-5 flex gap-2.5 rounded-card border border-edge bg-white/40 p-4">
-            <Info size={16} className="mt-0.5 shrink-0 text-clay" />
-            <div className="flex-1">
-              <p className="text-small leading-relaxed text-ink-muted">
-                这是基于你作答的特质画像，<span className="text-ink">不是诊断</span>。
-                量表来源：{scale.source}。
-                如需专业评估，请联系医疗或心理专业人士。
-              </p>
-              <a
-                href={scale.official_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-2 inline-block text-xs text-primary underline-offset-2 hover:underline"
-              >
-                访问官方测试页面 ↗
-              </a>
-            </div>
           </div>
 
           {/* 推荐协议方向 */}
-          <div className="mt-6">
+          <div className="mt-5">
             <p className="px-1 text-xs uppercase tracking-widest text-primary">
-              适合你的协议方向
+              {tr("screen_recommended")}
             </p>
-            <p className="mt-1 px-1 text-small text-ink-muted">
-              这是 AI 秘书基于你的特质画像给的参考，你可以稍后在协议页采纳或忽略。
-            </p>
-            <div className="mt-4 space-y-2.5">
+            <div className="mt-3 space-y-2.5">
               {result.recommended_protocols.map((proto, i) => (
                 <motion.div
                   key={i}
@@ -424,26 +394,32 @@ export default function Screen() {
                 >
                   <p className="font-mono text-xs text-primary">THEN</p>
                   <p className="mt-1.5 text-body leading-relaxed text-ink">
-                    {proto}
+                    {tt(proto)}
                   </p>
                 </motion.div>
               ))}
             </div>
           </div>
 
+          {/* 非诊断声明 · 精简单行 */}
+          <p className="mt-5 px-2 text-center text-[11px] leading-relaxed text-ink-faint">
+            {tr("screen_result_disclaimer_1")}<span className="text-ink-muted">{tr("screen_not_diagnosis")}</span>。
+            {tr("screen_result_disclaimer_2")}
+          </p>
+
           {/* 操作 */}
-          <div className="mt-8 space-y-3 pb-6">
+          <div className="mt-6 space-y-3 pb-6">
             <button
               onClick={saveAndExit}
               className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-body font-medium text-white transition-all duration-250 hover:bg-primary/90 active:scale-[0.98]"
             >
-              <Check size={18} /> 保存到我的特质画像
+              <Check size={18} /> {tr("screen_save")}
             </button>
             <button
               onClick={exitWithoutSave}
               className="w-full text-center text-xs text-ink-muted underline-offset-2 hover:underline"
             >
-              不保存，先看看
+              {tr("screen_dont_save")}
             </button>
           </div>
         </motion.div>

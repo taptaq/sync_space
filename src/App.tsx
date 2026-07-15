@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useStore } from "@/store/useStore";
+import { useCloudInit } from "@/hooks/useCloudInit";
 import AppShell from "@/components/layout/AppShell";
 import Toast from "@/components/common/Toast";
 import ProtocolTrigger from "@/components/protocol/ProtocolTrigger";
@@ -14,11 +15,13 @@ import ProtocolNew from "@/pages/ProtocolNew";
 import Screen from "@/pages/Screen";
 import Connection from "@/pages/Connection";
 
-// 页面切换过渡：左右滑入呼应 PRD §09 方向一致动效
+// 页面切换过渡：纯 opacity · 不使用 y 位移
+// 原因：framer-motion 的 transform 会创建 containing block，
+// 导致内部 fixed inset-0 遮罩层被限制在容器宽度内而非全视口
 const pageVariants = {
-  initial: { opacity: 0, y: 8 },
-  enter: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -8 },
+  initial: { opacity: 0 },
+  enter: { opacity: 1 },
+  exit: { opacity: 0 },
 };
 
 function PageWrapper({ children }: { children: React.ReactNode }) {
@@ -122,6 +125,20 @@ function AnimatedRoutes() {
 }
 
 export default function App() {
+  const cloudStatus = useCloudInit();
+
+  // Supabase 初始化中：显示加载屏（仅配置了 Supabase 时出现）
+  if (cloudStatus === "loading") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-cream">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-sm text-ink-muted">正在连接云端...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Router>
       <AppShell>

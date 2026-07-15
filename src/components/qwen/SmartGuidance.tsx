@@ -22,15 +22,18 @@ import {
   type Therapy,
 } from "@/lib/therapies";
 import { textToSpeech } from "@/lib/qwenService";
+import { useT } from "@/lib/i18n";
 
 // 智能建议（秘书模式 · 从循证疗法库挑匹配阶段的 · 你自己决定要不要用）
 // 设计原则（PRD §03）：协议 > AI 建议。AI 不生成新建议，
 // 只从有学术依据的疗法库里挑出适合当前阶段的，用户一键转协议。
 
 export default function SmartGuidance() {
+  const { tr, tt } = useT();
   const currentWeather = useStore((s) => s.currentWeather);
   const crashMarks = useStore((s) => s.crashMarks);
   const neuroType = useStore((s) => s.neuroType);
+  const adhdSubtype = useStore((s) => s.adhdSubtype);
   const checkins = useStore((s) => s.checkins);
   const addProtocol = useStore((s) => s.addProtocol);
   const pushToast = useStore((s) => s.pushToast);
@@ -54,12 +57,12 @@ export default function SmartGuidance() {
 
   // 从疗法库挑匹配当前阶段的，最多 3 条
   const pickedTherapies = useMemo(() => {
-    const all = getTherapiesByNeuroType(neuroType);
+    const all = getTherapiesByNeuroType(neuroType, adhdSubtype);
     const sorted = sortTherapiesByPhase(all, phase);
     // 优先当前阶段命中的
     const matched = sorted.filter((t) => t.phases.includes(phase));
     return (matched.length > 0 ? matched : sorted).slice(0, 3);
-  }, [neuroType, phase]);
+  }, [neuroType, adhdSubtype, phase]);
 
   return (
     <motion.div
@@ -70,22 +73,22 @@ export default function SmartGuidance() {
     >
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h3 className="font-serif text-lg text-ink">适合现在的调节方法</h3>
+          <h3 className="font-serif text-lg text-ink">{tr("smart_guidance_title")}</h3>
           <p className="mt-0.5 flex items-center gap-1 text-xs text-ink-muted">
             <Sparkles size={11} className="text-primary" />
-            基于你的阶段和特质 · 从循证疗法库挑的
+            {tr("smart_guidance_subtitle")}
           </p>
         </div>
-        <TrendBadge trend={trend} phaseLabel={phaseCfg.label} />
+        <TrendBadge trend={trend} phaseLabel={tt(phaseCfg.label)} />
       </div>
 
       {/* 秘书声明 */}
       <div className="mb-4 rounded-xl bg-primary-mist/20 px-3 py-2.5">
         <p className="text-[11px] leading-relaxed text-ink-muted">
-          {phaseCfg.measureTone}
+          {tt(phaseCfg.measureTone)}
           <br />
           <span className="text-ink-faint">
-            这是秘书从疗法库挑的参考，你决定要不要用。
+            {tr("smart_guidance_secretary_note")}
           </span>
         </p>
       </div>
@@ -100,7 +103,10 @@ export default function SmartGuidance() {
               const proto = {
                 trigger: {
                   type: "behavior" as const,
-                  description: `${therapy.name}（${CATEGORY_LABELS[therapy.category].label}）`,
+                  description: {
+                    zh: `${therapy.name.zh}（${CATEGORY_LABELS[therapy.category].label.zh}）`,
+                    en: `${therapy.name.en}（${CATEGORY_LABELS[therapy.category].label.en}）`,
+                  },
                 },
                 action: {
                   description: therapy.steps[0],
@@ -112,7 +118,7 @@ export default function SmartGuidance() {
                 phases: therapy.phases,
               };
               addProtocol(proto);
-              pushToast("success", `「${therapy.name}」已加入协议候选`);
+              pushToast("success", tr("smart_guidance_added_to_protocol", { name: tt(therapy.name) }));
             }}
           />
         ))}
@@ -120,7 +126,7 @@ export default function SmartGuidance() {
 
       <p className="mt-4 flex items-center justify-center gap-1 text-center text-[11px] text-ink-faint">
         <BookHeart size={11} />
-        每条都有学术引用 · 你可以在气候页查看完整疗法库
+        {tr("smart_guidance_footer")}
       </p>
     </motion.div>
   );
@@ -135,6 +141,7 @@ function TherapyPickCard({
   index: number;
   onAddProtocol: () => void;
 }) {
+  const { tr, tt } = useT();
   const [expanded, setExpanded] = useState(false);
   const [ttsLoading, setTtsLoading] = useState(false);
   const [ttsPlaying, setTtsPlaying] = useState(false);
@@ -153,7 +160,7 @@ function TherapyPickCard({
     setTtsLoading(true);
     try {
       const { audioUrl } = await textToSpeech(
-        `${therapy.name}。${therapy.steps.join("。")}`,
+        `${tt(therapy.name)}。${therapy.steps.map((s) => tt(s)).join("。")}`,
       );
       const audio = new Audio(audioUrl);
       audio.onended = () => {
@@ -164,7 +171,7 @@ function TherapyPickCard({
       await audio.play();
       setTtsPlaying(true);
     } catch {
-      pushToast("error", "语音合成不可用，请配置 API Key");
+      pushToast("error", tr("smart_guidance_tts_unavailable"));
     } finally {
       setTtsLoading(false);
     }
@@ -181,16 +188,16 @@ function TherapyPickCard({
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <span className="text-base">{cat.icon}</span>
-            <p className="text-body font-medium text-ink">{therapy.name}</p>
+            <p className="text-body font-medium text-ink">{tt(therapy.name)}</p>
           </div>
           <p className="mt-1 text-[11px] text-ink-muted">
-            {cat.label} · {therapy.duration_minutes} 分钟
+            {tt(cat.label)} · {therapy.duration_minutes} {tr("smart_guidance_minutes")}
           </p>
         </div>
         <button
           onClick={() => setExpanded((v) => !v)}
           className="shrink-0 rounded-full p-1 text-ink-muted transition-colors hover:bg-white/60"
-          aria-label={expanded ? "收起" : "展开"}
+          aria-label={expanded ? tr("checkin_collapse") : tr("checkin_expand")}
         >
           <ChevronDown
             size={16}
@@ -212,14 +219,14 @@ function TherapyPickCard({
               {therapy.steps.map((step, i) => (
                 <li key={i} className="flex gap-2 text-small leading-relaxed text-ink">
                   <span className="shrink-0 font-mono text-[11px] text-primary">{i + 1}.</span>
-                  <span>{step}</span>
+                  <span>{tt(step)}</span>
                 </li>
               ))}
             </ol>
             <p className="mt-3 rounded-lg bg-edge/40 px-2.5 py-1.5 text-[11px] leading-relaxed text-ink-muted">
-              {therapy.principle}
+              {tt(therapy.principle)}
               <br />
-              <span className="text-ink-faint">来源：{therapy.evidence}</span>
+              <span className="text-ink-faint">{tr("smart_guidance_source")}{therapy.evidence}</span>
             </p>
 
             {/* 朗读按钮（低能量时听着跟着做 · TTS） */}
@@ -230,12 +237,12 @@ function TherapyPickCard({
             >
               {ttsLoading ? (
                 <>
-                  <Loader2 size={11} className="animate-spin" /> 合成中…
+                  <Loader2 size={11} className="animate-spin" /> {tr("smart_guidance_synthesizing")}
                 </>
               ) : (
                 <>
                   <Volume2 size={11} />
-                  {ttsPlaying ? "停止朗读" : "朗读步骤"}
+                  {ttsPlaying ? tr("smart_guidance_stop_reading") : tr("smart_guidance_read_steps")}
                 </>
               )}
             </button>
@@ -247,7 +254,7 @@ function TherapyPickCard({
         onClick={onAddProtocol}
         className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-full border border-primary/30 bg-primary-mist/30 py-2 text-xs font-medium text-primary transition-all duration-250 hover:bg-primary-mist/50 active:scale-[0.98]"
       >
-        <Plus size={13} /> 加入协议候选
+        <Plus size={13} /> {tr("smart_guidance_add_to_protocol")}
       </button>
     </motion.div>
   );
@@ -260,10 +267,11 @@ function TrendBadge({
   trend: "improving" | "stable" | "declining";
   phaseLabel: string;
 }) {
+  const { tr } = useT();
   const config = {
-    improving: { icon: TrendingUp, label: "好转", color: "text-sage", bg: "bg-sage-mist/60" },
-    stable: { icon: Minus, label: "稳定", color: "text-ink-muted", bg: "bg-edge" },
-    declining: { icon: TrendingDown, label: "下滑", color: "text-warn", bg: "bg-warn-mist/60" },
+    improving: { icon: TrendingUp, label: tr("smart_guidance_trend_improving"), color: "text-sage", bg: "bg-sage-mist/60" },
+    stable: { icon: Minus, label: tr("smart_guidance_trend_stable"), color: "text-ink-muted", bg: "bg-edge" },
+    declining: { icon: TrendingDown, label: tr("smart_guidance_trend_declining"), color: "text-warn", bg: "bg-warn-mist/60" },
   }[trend];
   const Icon = config.icon;
   return (
