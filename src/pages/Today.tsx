@@ -1,355 +1,416 @@
-import { useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Mic, Sliders, Mail, RotateCcw, Languages, Users, User, Sparkles } from "lucide-react";
-import WeatherCard from "@/components/weather/WeatherCard";
-import CheckInCard from "@/components/checkin/CheckInCard";
-import ParentCheckInCard from "@/components/checkin/ParentCheckInCard";
-import ParentGuidanceCard from "@/components/parent/ParentGuidanceCard";
-import VoiceCheckIn from "@/components/qwen/VoiceCheckIn";
-import FeedbackPrompt from "@/components/today/FeedbackPrompt";
-import CheckInReward from "@/components/today/CheckInReward";
-import ClimatePostcard from "@/components/today/ClimatePostcard";
-import { getClimateFingerprint } from "@/lib/climateFingerprint";
-import NeuroTypeSelector, { useNeuroTypeSelector } from "@/components/common/NeuroTypeSelector";
-import Toolbox from "@/components/today/Toolbox";
-import PhaseActionCard from "@/components/today/PhaseActionCard";
-import QuickCapture from "@/components/today/QuickCapture";
-import Disclaimer from "@/components/common/Disclaimer";
-import { ModalPortal } from "@/components/common/ModalPortal";
-import { useStore } from "@/store/useStore";
-import { formatTime, isToday } from "@/lib/format";
-import { useT } from "@/lib/i18n";
-import { getAxisProfile } from "@/lib/axisConfig";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
-  compareCheckins,
-  recentPhaseTrajectory,
-} from "@/lib/checkinCompare";
-import { detectPhase } from "@/lib/stageEngine";
+  Settings as SettingsIcon,
+  Ear,
+  Shuffle,
+  Zap,
+  Clock,
+  MessageCircle,
+  X,
+  ChevronRight,
+  ChevronDown,
+  BellRing,
+} from "lucide-react";
+import type { DifficultyType, SessionMode } from "@/types";
+import { useStore } from "@/store/useStore";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { detectPhase } from "@/lib/stageEngine";
+import {
+  getDifficultyPack,
+  getOrderedDifficultyTypes,
+  getDifficultyLabel,
+} from "@/lib/difficultyPacks";
+import CheckInCard from "@/components/checkin/CheckInCard";
+import VoiceCheckIn from "@/components/qwen/VoiceCheckIn";
+import QuickCapture from "@/components/today/QuickCapture";
+import ClimateFamiliar from "@/components/weather/ClimateFamiliar";
+import ActionRunner from "@/components/today/ActionRunner";
 
-// 今日页 · 重构：单条主路径 + 可预测布局 + 低频功能折叠
-// ASD/ADHD 友好：不再根据神经类型显示/隐藏卡片 → 布局始终一致
-// 签到是 Today 的唯一核心动作；其他功能收进工具箱，默认收起
+// 今日页 · 卡住时的即时帮助
+// 理念：现在怎样 → 做一件事 → 有没有用
+// ASD/ADHD 走查优化：
+// - 删除模式切换栏 3 按钮（低感官/恢复自动激活，专注模式单独按钮）
+// - 删除阶段标签（太抽象，对 ADHD 无 actionable 价值）
+// - 删除困难类型 direction 副标题 + "上次使用"标记（认知过载）
+// - 签到默认按 neuroType 选模式（ADHD=语音，ASD=滑块），去掉切换按钮
+// - 干预包第一个动作标"先做这个"（ASD 可预测性 + ADHD 减少选择）
 export default function Today() {
+  const navigate = useNavigate();
   const currentWeather = useStore((s) => s.currentWeather);
-  const checkins = useStore((s) => s.checkins);
   const crashMarks = useStore((s) => s.crashMarks);
   const neuroType = useStore((s) => s.neuroType);
-  const adhdSubtype = useStore((s) => s.adhdSubtype);
   const appMode = useStore((s) => s.appMode);
-  const setAppMode = useStore((s) => s.setAppMode);
   const qwenEnabled = useStore((s) => s.qwenEnabled);
-  const setQwenEnabled = useStore((s) => s.setQwenEnabled);
-  const language = useStore((s) => s.language);
-  const setLanguage = useStore((s) => s.setLanguage);
+  const sessionMode = useStore((s) => s.sessionMode);
+  const setSessionMode = useStore((s) => s.setSessionMode);
+  const setLowSensoryMode = useStore((s) => s.setLowSensoryMode);
+  const setSoundScape = useStore((s) => s.setSoundScape);
   const pushToast = useStore((s) => s.pushToast);
-  const [showDisclaimer, setShowDisclaimer] = useState(false);
-  const { showSelector, openSelector, closeSelector } = useNeuroTypeSelector();
-  const [checkinMode, setCheckinMode] = useState<"slider" | "voice">("slider");
-  const [showReward, setShowReward] = useState(false);
-  const [showPostcard, setShowPostcard] = useState(false);
-  const [showRecords, setShowRecords] = useState(false);
-
   const isParentProxy = appMode === "parent_proxy";
   const { tr, tt } = useT();
+
+  const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyType | null>(null);
+  const [showCheckin, setShowCheckin] = useState(false);
+  const [runnerAction, setRunnerAction] = useState<{ id: string; label: string; description: string } | null>(null);
+  const [showMoreActions, setShowMoreActions] = useState(false);
+  const [showAllDifficulties, setShowAllDifficulties] = useState(false);
+
   const currentPhase = detectPhase(currentWeather.climate, crashMarks);
   const voiceCheckinBlocked = currentPhase === "warning" || currentPhase === "overload";
   const canUseVoiceCheckin = qwenEnabled && !isParentProxy && !voiceCheckinBlocked;
-  const effectiveCheckinMode =
-    canUseVoiceCheckin && checkinMode === "voice" ? "voice" : "slider";
+  // ADHD 默认语音签到（减少 friction），ASD/其他默认滑块
+  const defaultCheckinMode: "voice" | "slider" = neuroType === "adhd" ? "voice" : "slider";
 
-  const axisProfile = getAxisProfile(neuroType);
-  const [axis1, axis2, axis3] = axisProfile.axes;
-
-  const todayCheckins = checkins
-    .filter((c) => isToday(c.checkin_at))
-    .sort((a, b) => new Date(b.checkin_at).getTime() - new Date(a.checkin_at).getTime());
-
-  const lastCheckinTime = todayCheckins[0]?.checkin_at;
-
-  const diff = useMemo(() => {
-    if (todayCheckins.length < 2) return null;
-    return compareCheckins(todayCheckins[1], todayCheckins[0], neuroType);
-  }, [todayCheckins, neuroType]);
-
-  const trajectory = useMemo(() => recentPhaseTrajectory(checkins, 5), [checkins]);
-
-  // 连续签到天数
-  const streakDays = useMemo(() => {
-    if (checkins.length === 0) return 0;
-    const daySet = new Set(
-      checkins.map((c) => {
-        const d = new Date(c.checkin_at);
-        return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-      }),
-    );
-    let count = 0;
-    const cursor = new Date();
-    for (let i = 0; i < 365; i++) {
-      const key = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
-      if (daySet.has(key)) {
-        count++;
-        cursor.setDate(cursor.getDate() - 1);
-      } else {
-        break;
-      }
+  // 过载时自动进入低感官模式：仅 ASD（ADHD 过载路径不同，更需要紧急制动而非降亮度）
+  useEffect(() => {
+    if (currentPhase === "overload" && sessionMode === "normal" && neuroType === "asd") {
+      setSessionMode("low_sensory");
+      setLowSensoryMode(true);
     }
-    return count;
-  }, [checkins]);
+  }, [currentPhase, sessionMode, neuroType, setSessionMode, setLowSensoryMode]);
 
-  // 签到提交后触发奖励
-  const handleCheckinSubmitted = () => {
-    setShowReward(true);
+  // ASD 累积期主动提示低感官（拒绝后本次累积期不再提示，进入预警/过载/恢复时重置）
+  const [showLowSensoryPrompt, setShowLowSensoryPrompt] = useState(false);
+  const lowSensoryPromptDeclinedRef = useRef(false);
+  useEffect(() => {
+    if (neuroType !== "asd") return;
+    if (currentPhase === "accumulating" && sessionMode === "normal" && !lowSensoryPromptDeclinedRef.current) {
+      setShowLowSensoryPrompt(true);
+    } else if (currentPhase !== "accumulating") {
+      // 离开累积期（进入预警/过载/恢复/稳定）重置拒绝标记，下次累积期重新提示
+      lowSensoryPromptDeclinedRef.current = false;
+      setShowLowSensoryPrompt(false);
+    }
+  }, [currentPhase, sessionMode, neuroType]);
+
+  const handleLowSensoryPrompt = (accept: boolean) => {
+    setShowLowSensoryPrompt(false);
+    if (accept) {
+      setSessionMode("low_sensory");
+      setLowSensoryMode(true);
+      pushToast("info", tr("mode_low_sensory_active"));
+    } else {
+      lowSensoryPromptDeclinedRef.current = true;
+    }
   };
 
-  // 气候指纹：签到 3+ 次后解锁明信片
-  const fingerprint = useMemo(
-    () => getClimateFingerprint(checkins, neuroType),
-    [checkins, neuroType],
-  );
+  // 恢复期自动进入恢复模式
+  useEffect(() => {
+    if (currentPhase === "recovery" && sessionMode === "normal") {
+      setSessionMode("recovery");
+    }
+  }, [currentPhase, sessionMode, setSessionMode]);
+
+  const orderedTypes = useMemo(() => getOrderedDifficultyTypes(neuroType), [neuroType]);
+  const visibleTypes = showAllDifficulties ? orderedTypes : orderedTypes.slice(0, 3);
+
+  const handleSelectDifficulty = (type: DifficultyType) => {
+    setSelectedDifficulty(type);
+    setShowMoreActions(false);
+  };
+
+  const handleModeSwitch = (mode: SessionMode) => {
+    if (sessionMode === mode) {
+      setSessionMode("normal");
+      if (mode === "low_sensory") setLowSensoryMode(false);
+      pushToast("info", tr("mode_exited"));
+    } else {
+      setSessionMode(mode);
+      if (mode === "low_sensory") {
+        setLowSensoryMode(true);
+      } else if (sessionMode === "low_sensory") {
+        setLowSensoryMode(false);
+      }
+      const toastKey =
+        mode === "focus" ? "mode_focus_active"
+        : mode === "low_sensory" ? "mode_low_sensory_active"
+        : mode === "recovery" ? "mode_recovery_active"
+        : "mode_exited";
+      pushToast("info", tr(toastKey));
+    }
+  };
+
+  // 低感官/恢复模式下隐藏困难选择，直接给 1 个动作
+  const showDifficultyEntry = sessionMode === "normal";
+  const isInSpecialMode = sessionMode === "low_sensory" || sessionMode === "recovery";
+
+  // 获取当前要显示的干预包
+  const activePack = selectedDifficulty ? getDifficultyPack(selectedDifficulty) : null;
+  const defaultPack =
+    sessionMode === "low_sensory" || sessionMode === "recovery"
+      ? getDifficultyPack("sensory")
+      : null;
+  const displayPack = activePack ?? defaultPack;
 
   return (
-    <div className="space-y-6">
-      {/* 0. 顶部设置栏：角色切换 + 语言切换 + 切换神经特质（右上角 · 不折叠） */}
-      <div className="flex items-center justify-end gap-2 pt-5">
-        <button
-          onClick={() => {
-            const next = appMode === "self" ? "parent_proxy" : "self";
-            setAppMode(next);
-            pushToast("info", next === "parent_proxy" ? tr("today_role_switched_parent") : tr("today_role_switched_self"));
-          }}
-          className="flex items-center gap-1.5 rounded-full border border-edge bg-white/40 px-3 py-1.5 text-xs text-ink-muted transition-all duration-250 hover:bg-white/60"
-          aria-label={appMode === "self" ? tr("today_role_parent") : tr("today_role_self")}
-        >
-          {appMode === "self" ? <User size={11} /> : <Users size={11} />}
-          {appMode === "self" ? tr("today_role_self") : tr("today_role_parent")}
-        </button>
-        <button
-          onClick={() => {
-            const next = language === "zh" ? "en" : "zh";
-            setLanguage(next);
-            pushToast("info", next === "en" ? tr("lang_toast_en") : tr("lang_toast_zh"));
-          }}
-          className="flex items-center gap-1.5 rounded-full border border-edge bg-white/40 px-3 py-1.5 text-xs text-ink-muted transition-all duration-250 hover:bg-white/60"
-          aria-label={tr("change_lang")}
-        >
-          <Languages size={11} />
-          {language === "zh" ? "中文" : "EN"}
-        </button>
-        <button
-          onClick={openSelector}
-          className="flex items-center gap-1.5 rounded-full border border-edge bg-white/40 px-3 py-1.5 text-xs text-ink-muted transition-all duration-250 hover:bg-white/60"
-          aria-label={tr("today_change_neurotype")}
-        >
-          <RotateCcw size={11} />
-          {tr("today_change_neurotype")}·{neuroType === "asd" ? "ASD" : neuroType === "adhd" ? (adhdSubtype === "inattentive" ? "ADHD·注意力缺陷" : adhdSubtype === "hyperactive" ? "ADHD·多动冲动" : adhdSubtype === "combined" ? "ADHD·混合" : "ADHD") : tr("onb_neuro_other")}
-        </button>
-        <button
-          onClick={() => {
-            const next = !qwenEnabled;
-            setQwenEnabled(next);
-            pushToast("info", next ? tr("today_ai_switched_on") : tr("today_ai_switched_off"));
-          }}
-          className={cn(
-            "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-all duration-250",
-            qwenEnabled
-              ? "border-primary/40 bg-primary-mist/40 text-primary hover:bg-primary-mist/60"
-              : "border-edge bg-white/40 text-ink-muted hover:bg-white/60",
+    <div className="space-y-5">
+      {/* 0. 顶部：特殊模式退出 + 设置 */}
+      <div className="flex items-center justify-between pt-5">
+        <div className="flex items-center gap-2">
+          {isInSpecialMode && (
+            <button
+              onClick={() => handleModeSwitch(sessionMode)}
+              className="flex items-center gap-1.5 rounded-full border border-edge bg-white/40 px-3 py-1.5 text-xs text-ink-muted transition-all duration-250 hover:bg-white/60"
+            >
+              <X size={12} />
+              {tr("mode_exit_current")}
+            </button>
           )}
-          aria-label={qwenEnabled ? tr("today_ai_on") : tr("today_ai_off")}
+        </div>
+        <button
+          onClick={() => navigate("/settings")}
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-edge bg-white/40 text-ink-muted transition-all duration-250 hover:bg-white/60 hover:text-ink"
+          aria-label={tr("settings_title")}
+          title={tr("settings_title")}
         >
-          <Sparkles size={11} />
-          {qwenEnabled ? tr("today_ai_on") : tr("today_ai_off")}
+          <SettingsIcon size={17} />
         </button>
       </div>
 
-      {/* 1. 天气卡（顶部 · 可预测位置） */}
-      <div className="-mt-2">
-        <WeatherCard
-          weather={currentWeather}
-          updatedAt={lastCheckinTime ? formatTime(lastCheckinTime) : undefined}
-          crashMarks={crashMarks}
-          diff={diff}
-          trajectory={trajectory}
-          compact
-          statusLabel={lastCheckinTime ? tr("weather_recorded_at") : tr("weather_no_record")}
-        />
-      </div>
-
-      <div className="flex items-center justify-between border-b border-edge/70 px-1 pb-3">
-        <div>
-          <p className="text-xs font-medium text-primary">{tr("today_section_label")}</p>
-          <p className="mt-1 text-sm text-ink">{tr("today_section_desc")}</p>
-        </div>
-        <span className="rounded-full bg-white/55 px-2.5 py-1 text-xs text-ink-muted">
-          {todayCheckins.length} {tr("today_records_count")}
-        </span>
-      </div>
-
-      {/* 1.5 阶段行动衔接（天气→行动 · 单一建议 · 消除选择瘫痪） */}
-      {!isParentProxy && <PhaseActionCard />}
-
-      {/* ADHD：所有零散想法先进入同一个外部收件箱 */}
+      {/* ADHD 外部记忆优先：想到的事先安全落地，再决定是否处理 */}
       {!isParentProxy && neuroType === "adhd" && <QuickCapture />}
 
-      {/* 2. 核心动作：签到（自主 or 家长代理） */}
-      {isParentProxy ? (
-        <ParentCheckInCard />
-      ) : canUseVoiceCheckin && effectiveCheckinMode === "voice" ? (
-        <VoiceCheckIn />
-      ) : (
-        <CheckInCard onSubmitted={handleCheckinSubmitted} />
+      {/* 0.5 状态小精灵 · 陪伴感（根据当前阶段显示不同姿态） */}
+      <div className="flex flex-col items-center pt-2 pb-1">
+        <ClimateFamiliar phase={currentPhase} size={64} />
+      </div>
+
+      {/* 1. ASD 累积期主动提示低感官（拒绝后本次累积期不再弹） */}
+      {showLowSensoryPrompt && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="rounded-card border border-primary/20 bg-primary-mist/25 p-4 shadow-soft"
+        >
+          <p className="text-sm font-medium text-ink">{tr("low_sensory_prompt_title")}</p>
+          <p className="mt-1 text-xs text-ink-muted">{tr("low_sensory_prompt_body")}</p>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => handleLowSensoryPrompt(true)}
+              className="min-h-10 flex-1 rounded-full bg-primary px-3 text-xs text-white"
+            >
+              {tr("low_sensory_prompt_open")}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleLowSensoryPrompt(false)}
+              className="min-h-10 flex-1 rounded-full border border-edge bg-white/55 px-3 text-xs text-ink-muted"
+            >
+              {tr("low_sensory_prompt_skip")}
+            </button>
+          </div>
+        </motion.div>
       )}
 
-      {/* 语音被阶段屏蔽时的温和提示 */}
-      {qwenEnabled && !isParentProxy && voiceCheckinBlocked && (
-        <p className="text-center text-xs text-ink-faint">{tr("today_voice_blocked")}</p>
+      {/* 2. 低感官/恢复模式提示（更明确 · ASD 可预测性） */}
+      {(sessionMode === "low_sensory" || sessionMode === "recovery") && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="rounded-card bg-white/40 px-4 py-3"
+        >
+          <p className="text-xs text-ink-muted">
+            {sessionMode === "low_sensory"
+              ? tr("mode_low_sensory_hint")
+              : tr("mode_recovery_hint")}
+          </p>
+        </motion.div>
       )}
 
-      {/* 签到方式切换 */}
-      {canUseVoiceCheckin && (
-        <div className="flex justify-center gap-2">
-          <button
-            onClick={() => setCheckinMode("slider")}
-            className={cn(
-              "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-all duration-250",
-              checkinMode === "slider" ? "bg-primary text-white" : "bg-white/50 text-ink-muted hover:bg-white/70",
+      {/* 2. 困难类型入口（"你现在卡在哪？"）· 简化版 */}
+      {showDifficultyEntry && !isParentProxy && (
+        <div className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
+          <h2 className="mb-4 font-serif text-lg text-ink">{tr("today_stuck_question")}</h2>
+          <div className="space-y-2">
+            {visibleTypes.map((type) => {
+              const label = getDifficultyLabel(type);
+              const icon = getDifficultyIcon(type);
+              const isSelected = selectedDifficulty === type;
+              return (
+                <button
+                  key={type}
+                  onClick={() => handleSelectDifficulty(type)}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all duration-250 active:scale-[0.99]",
+                    isSelected
+                      ? "border-primary/30 bg-primary-mist/30"
+                      : "border-edge/50 bg-white/40 hover:bg-white/60",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+                      isSelected ? "bg-primary-mist/60" : "bg-white/50",
+                    )}
+                  >
+                    {icon}
+                  </div>
+                  <p className={cn("flex-1 text-sm font-medium", isSelected ? "text-primary" : "text-ink")}>
+                    {tt(label)}
+                  </p>
+                </button>
+              );
+            })}
+            {orderedTypes.length > 3 && (
+              <button
+                type="button"
+                onClick={() => setShowAllDifficulties((value) => !value)}
+                className="flex min-h-10 w-full items-center justify-center gap-1 text-xs text-ink-muted"
+              >
+                {showAllDifficulties ? tr("today_fewer_difficulties") : tr("today_other_difficulties")}
+                <ChevronDown size={13} className={cn("transition-transform", showAllDifficulties && "rotate-180")} />
+              </button>
             )}
-          >
-            <Sliders size={12} /> {tr("today_slider")}
-          </button>
-          <button
-            onClick={() => setCheckinMode("voice")}
-            className={cn(
-              "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-all duration-250",
-              checkinMode === "voice" ? "bg-primary text-white" : "bg-white/50 text-ink-muted hover:bg-white/70",
-            )}
-          >
-            <Mic size={12} /> {tr("today_voice")}
-          </button>
+          </div>
         </div>
       )}
 
-      {/* 家长引导卡片 */}
-      {isParentProxy && <ParentGuidanceCard />}
-
-      {/* 3. 唯一低频出口：过载补记 */}
-      <Toolbox qwenEnabled={qwenEnabled} />
-
-      {/* 3.5 气候明信片入口（签到 3+ 次解锁） */}
-      {fingerprint && !isParentProxy && (
-        <motion.button
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          onClick={() => setShowPostcard(true)}
-          className="flex w-full items-center gap-3 rounded-card border border-edge/60 bg-white/40 px-4 py-3 text-left transition-all duration-250 hover:bg-white/60"
+      {/* 3. 干预包内容（第一个动作标"先做这个"） */}
+      {displayPack && !isParentProxy && (
+        <motion.div
+          key={displayPack.type}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.25 }}
+          className="rounded-card border border-edge bg-white/60 p-5 shadow-soft"
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-mist/50">
-            <Mail size={15} className="text-primary" />
+          <div className="mb-4">
+            <h3 className="font-serif text-base text-ink">{tt(displayPack.title)}</h3>
           </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-ink">{tr("today_postcard_title")}</p>
-            <p className="text-xs text-ink-muted">{tr("today_postcard_desc")}</p>
-          </div>
-        </motion.button>
-      )}
-
-      {/* 4. 今日记录默认收起，避免和当前签到竞争 */}
-      {todayCheckins.length > 0 && (
-        <section className="border-t border-edge/70 pt-1">
-          <button
-            type="button"
-            onClick={() => setShowRecords((value) => !value)}
-            className="flex min-h-12 w-full items-center justify-between text-sm text-ink-muted"
-          >
-            <span>{tr("today_recorded")} · {todayCheckins.length}</span>
-            <ChevronDown size={15} className={cn("transition-transform", showRecords && "rotate-180")} />
-          </button>
-          {showRecords && <div className="space-y-3 pb-3">
-            {todayCheckins.map((c) => (
-              <motion.div
-                key={c.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                className="flex items-center justify-between text-small"
+          <div className="space-y-2">
+            {(showMoreActions ? displayPack.actions : displayPack.actions.slice(0, 1)).map((action, idx) => (
+              <button
+                key={action.id}
+                onClick={() => handleExecuteAction(action.id, tt(action.label), tt(action.description), action.instant)}
+                className="flex w-full items-center gap-3 rounded-xl bg-white/50 px-4 py-3 text-left transition-all duration-250 hover:bg-white/70 active:scale-[0.99]"
               >
-                <span className="font-mono text-xs text-ink-muted">{formatTime(c.checkin_at)}</span>
-                <div className="flex gap-3 font-mono text-xs">
-                  <span className={axis1.color}>{tt(axis1.label)} {c.axis_sensory.toFixed(1)}</span>
-                  <span className={axis2.color}>{tt(axis2.label)} {c.axis_social.toFixed(1)}</span>
-                  <span className={axis3.color}>{tt(axis3.label)} {c.axis_predictability.toFixed(1)}</span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-ink">{tt(action.label)}</p>
+                  <p className="mt-0.5 text-[11px] text-ink-muted">{tt(action.description)}</p>
                 </div>
-              </motion.div>
+                {idx === 0 && (
+                  <span className="rounded-full bg-primary-mist/50 px-2 py-0.5 text-[10px] text-primary">
+                    {tr("today_do_first")}
+                  </span>
+                )}
+                {action.duration_minutes && (
+                  <span className="rounded-full bg-edge/50 px-2 py-0.5 text-[10px] text-ink-muted">
+                    {action.duration_minutes}min
+                  </span>
+                )}
+                {action.instant && idx > 0 && (
+                  <span className="rounded-full bg-sage-mist/40 px-2 py-0.5 text-[10px] text-sage">
+                    {tr("today_instant")}
+                  </span>
+                )}
+              </button>
             ))}
-          </div>}
-        </section>
+            {displayPack.actions.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setShowMoreActions((value) => !value)}
+                className="flex min-h-10 w-full items-center justify-center gap-1 text-xs text-ink-muted"
+              >
+                {showMoreActions ? tr("today_less_options") : tr("today_more_options")}
+                <ChevronDown size={13} className={cn("transition-transform", showMoreActions && "rotate-180")} />
+              </button>
+            )}
+          </div>
+        </motion.div>
       )}
 
-      {/* 6. 底部声明 + 设置 */}
-      <div className="pt-2">
-        <Disclaimer
-          showDisclaimer={showDisclaimer}
-          setShowDisclaimer={setShowDisclaimer}
-          isParentProxy={isParentProxy}
-        />
-      </div>
-
-      {/* 神经特质选择器弹窗 */}
-      <AnimatePresence>
-        {showSelector && (
-          <ModalPortal>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-50 flex items-end justify-center bg-ink/30 backdrop-blur-sm sm:items-center"
-              onClick={closeSelector}
+      {/* 4. 快速签到入口（折叠态 · 默认按 neuroType 选模式） */}
+      {!isParentProxy && (
+        <div>
+          {!showCheckin ? (
+            <button
+              onClick={() => setShowCheckin(true)}
+              className="flex w-full items-center justify-between rounded-card border border-edge/60 bg-white/40 px-4 py-3 text-left transition-all duration-250 hover:bg-white/60"
             >
-              <motion.div
-                initial={{ y: 40, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: 40, opacity: 0 }}
-                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-md rounded-t-2xl border-t border-white/30 bg-base/95 p-5 pb-[calc(4.5rem+env(safe-area-inset-bottom))] shadow-2xl sm:mb-0 sm:rounded-2xl"
+              <div className="flex items-center gap-2">
+                <BellRing size={15} className="text-ink-muted" />
+                <span className="text-sm text-ink-muted">{tr("today_quick_checkin")}</span>
+              </div>
+              <ChevronRight size={15} className="text-ink-faint" />
+            </button>
+          ) : (
+            <div className="space-y-3">
+              {canUseVoiceCheckin && defaultCheckinMode === "voice" ? (
+                <VoiceCheckIn />
+              ) : (
+                <CheckInCard onSubmitted={() => setShowCheckin(false)} />
+              )}
+
+              <button
+                onClick={() => setShowCheckin(false)}
+                className="flex w-full items-center justify-center gap-1 text-xs text-ink-faint"
               >
-                <NeuroTypeSelector onClose={closeSelector} />
-              </motion.div>
-            </motion.div>
-          </ModalPortal>
-        )}
-      </AnimatePresence>
+                <X size={12} /> {tr("today_close_checkin")}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* 协议执行效果反馈 */}
-      <ModalPortal>
-        <FeedbackPrompt />
-      </ModalPortal>
-
-      {/* 签到即时奖励（多巴胺回路 · 3 秒动画） */}
-      <ModalPortal>
-        <CheckInReward
-          show={showReward}
-          phase={currentPhase}
-          streakDays={streakDays}
-          totalCheckins={checkins.length}
-          onComplete={() => setShowReward(false)}
+      {/* 6. 动作执行器浮层 */}
+      {runnerAction && (
+        <ActionRunner
+          actionId={runnerAction.id}
+          label={runnerAction.label}
+          description={runnerAction.description}
+          onClose={() => setRunnerAction(null)}
         />
-      </ModalPortal>
+      )}
 
-      {/* 气候明信片 */}
-      <ModalPortal>
-        <ClimatePostcard
-          show={showPostcard}
-          onClose={() => setShowPostcard(false)}
-          checkins={checkins}
-          neuroType={neuroType}
-          currentWeather={currentWeather}
-        />
-      </ModalPortal>
+      {/* 家长代理签到 */}
+      {isParentProxy && (
+        <button
+          onClick={() => navigate("/climate")}
+          className="flex w-full items-center justify-between rounded-card border border-edge/60 bg-white/40 px-4 py-3 text-left transition-all duration-250 hover:bg-white/60"
+        >
+          <span className="text-sm text-ink-muted">{tr("today_parent_checkin")}</span>
+          <ChevronRight size={15} className="text-ink-faint" />
+        </button>
+      )}
 
     </div>
   );
+
+  function handleExecuteAction(actionId: string, label: string, description: string, instant?: boolean) {
+    if (actionId === "low_sensory_toggle" || actionId === "low_sensory_mode") {
+      handleModeSwitch("low_sensory");
+      return;
+    }
+    if (actionId === "brown_noise") {
+      setSoundScape("brown_noise", 0.3);
+      pushToast("success", tr("today_sound_started"));
+      return;
+    }
+    if (actionId === "pause_communication" || actionId === "resend_last" || actionId === "need_message" || actionId === "choose_trusted") {
+      navigate("/connect");
+      return;
+    }
+    if (actionId === "send_last_message") {
+      navigate("/connect");
+      return;
+    }
+    // 其他困难包动作：用 ActionRunner 给出明确的执行下一步
+    setRunnerAction({ id: actionId, label, description });
+  }
+}
+
+// ============ 困难类型图标映射 ============
+function getDifficultyIcon(type: DifficultyType) {
+  const icons: Record<DifficultyType, React.ReactNode> = {
+    sensory: <Ear size={17} className="text-primary" />,
+    change: <Shuffle size={17} className="text-clay" />,
+    startup: <Zap size={17} className="text-sage" />,
+    time: <Clock size={17} className="text-clay" />,
+    communication: <MessageCircle size={17} className="text-primary" />,
+  };
+  return icons[type];
 }

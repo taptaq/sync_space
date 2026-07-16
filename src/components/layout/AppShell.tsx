@@ -24,38 +24,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     location.pathname === "/onboarding" ||
     location.pathname === "/protocol/new" ||
     location.pathname === "/screen" ||
+    location.pathname === "/settings" ||
     location.pathname.startsWith("/review/");
 
   return (
     <div className={cn("relative mx-auto flex h-screen max-w-md flex-col bg-base", lowSensoryMode && "low-sensory-mode")}>
-      {/* 氛围背景层 · 噪点 + 柔光晕呼吸 */}
-      {!lowSensoryMode && (
-        <>
-          <div className="ambient-noise" />
-          <div
-            className="ambient-glow animate-glow-drift"
-            style={{
-              top: "-10%",
-              left: "-15%",
-              width: "70%",
-              height: "50%",
-              background: "radial-gradient(circle, rgba(107,95,160,0.12) 0%, transparent 70%)",
-            }}
-          />
-          <div
-            className="ambient-glow animate-glow-drift"
-            style={{
-              bottom: "-5%",
-              right: "-10%",
-              width: "60%",
-              height: "45%",
-              background: "radial-gradient(circle, rgba(107,158,138,0.1) 0%, transparent 70%)",
-              animationDelay: "7s",
-            }}
-          />
-        </>
-      )}
-
       <main className="relative z-10 flex-1 overflow-y-auto px-5 pb-5">
         {children}
       </main>

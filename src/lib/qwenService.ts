@@ -535,7 +535,63 @@ function parseSmartGuidanceResult(
   return mockSmartGuidance(phase, neuroType, trend);
 }
 
-// ============ 5. 文本转语音（TTS） ============
+// ============ 5. 气候明信片专属标语生成 ============
+
+export async function generatePostcardSlogan(
+  fingerprintSummary: string,
+  phase: Phase,
+  neuroType: NeuroType,
+  checkinCount: number,
+): Promise<string> {
+  if (HAS_BACKEND) {
+    try {
+      return await realGeneratePostcardSlogan(fingerprintSummary, phase, neuroType, checkinCount);
+    } catch (e) {
+      console.warn("[Qwen] generatePostcardSlogan 失败:", e);
+      throw e;
+    }
+  }
+  // 无后端直接抛错，调用方走 fallback
+  throw new Error("Qwen 服务端代理未配置");
+}
+
+async function realGeneratePostcardSlogan(
+  fingerprintSummary: string,
+  phase: Phase,
+  neuroType: NeuroType,
+  checkinCount: number,
+): Promise<string> {
+  const phaseLabel = getPhaseLabel(phase);
+  const neuroLabel = getNeuroLabel(neuroType);
+
+  const systemPrompt = `你是一个温柔的内在气候诗人，服务于神经多样性人群。
+你的语气：温柔、接纳、不评判，像给朋友写明信片题词。
+要求：一句话，15-25字以内，有画面感，不说教，不用感叹号。`;
+
+  const userPrompt = `用户信息：
+- 神经特质：${neuroLabel}
+- 当前阶段：${phaseLabel}
+- 签到次数：${checkinCount}
+- 气候指纹：${fingerprintSummary}
+
+请基于以上信息，为这张气候明信片生成一句专属标语。
+只返回标语本身，不要加引号或解释。`;
+
+  const result = await chatCompletion(
+    QWEN_TEXT_MODEL,
+    [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    { temperature: 0.85 },
+  );
+
+  const slogan = result.trim().replace(/^["「『]|["」』]$/g, "");
+  if (slogan.length === 0) throw new Error("标语为空");
+  return slogan;
+}
+
+// ============ 6. 文本转语音（TTS） ============
 
 export async function textToSpeech(text: string): Promise<TTSResult> {
   if (HAS_BACKEND) {
@@ -843,6 +899,108 @@ function getPhaseLabel(phase: Phase): string {
     case "recovery": return "恢复期";
     default: return "未知";
   }
+}
+
+// ============ 协议 AI 参考建议 ============
+
+export interface ProtocolSuggestion {
+  text: string; // 建议动作文案
+  duration_minutes: number;
+  source: "ai" | "template";
+}
+
+/**
+ * 基于触发条件、神经特质和阶段生成协议动作参考建议。
+ * 优先调用 AI 文本模型；未配置/失败时降级到本地模板匹配。
+ */
+export async function generateProtocolSuggestions(
+  triggerText: string,
+  neuroType: NeuroType,
+  phases: Phase[],
+): Promise<ProtocolSuggestion[]> {
+  const fallback = getLocalProtocolSuggestions(triggerText, neuroType, phases);
+
+  if (!HAS_BACKEND) return fallback;
+
+  try {
+    const phaseStr = phases.length > 0 ? phases.map(getPhaseLabel).join(",") : "任意阶段";
+    const prompt = `你是一位熟悉 ASD/ADHD 自我调节的专业辅助者。用户想写一条个人协议：当触发条件发生时，我该做什么。
+请基于以下信息生成 3 条具体、可执行、简短的动作建议。
+
+要求：
+- 动作越具体越好，避免抽象建议（"深呼吸"不好，"吸气 4 秒 → 屏息 4 秒 → 呼气 4 秒，循环 6 次"好）
+- 每条建议包含具体动作和推荐时长（分钟）
+- 优先匹配神经特质的调节需求：ASD 侧重感官减载、可预测性、边界；ADHD 侧重执行功能脚手架、启动、多巴胺
+- 返回 JSON：{"suggestions":[{"text":"动作描述","duration_minutes":数字}]}
+
+神经特质：${getNeuroLabel(neuroType)}
+适用阶段：${phaseStr}
+触发条件：${triggerText}`;
+
+    const result = await chatCompletion(
+      QWEN_TEXT_MODEL,
+      [
+        { role: "system", content: "你是神经多样性自我调节协议辅助助手。" },
+        { role: "user", content: prompt },
+      ],
+      { jsonMode: true, temperature: 0.5 },
+    );
+
+    const parsed = extractJson<{ suggestions?: Array<{ text?: string; duration_minutes?: number }> }>(result);
+    if (parsed?.suggestions && parsed.suggestions.length > 0) {
+      return parsed.suggestions
+        .slice(0, 3)
+        .map((s) => ({
+          text: String(s.text ?? "").trim(),
+          duration_minutes: typeof s.duration_minutes === "number" && s.duration_minutes > 0 ? s.duration_minutes : 5,
+          source: "ai" as const,
+        }))
+        .filter((s) => s.text.length > 0);
+    }
+  } catch (e) {
+    console.warn("[Qwen] 协议 AI 建议生成失败，使用本地模板:", e);
+  }
+
+  return fallback;
+}
+
+function getLocalProtocolSuggestions(
+  triggerText: string,
+  neuroType: NeuroType,
+  phases: Phase[],
+): ProtocolSuggestion[] {
+  const lower = triggerText.toLowerCase();
+  const suggestions: ProtocolSuggestion[] = [];
+
+  if (neuroType === "asd" || lower.includes("感官") || lower.includes("声音") || lower.includes("光")) {
+    suggestions.push(
+      { text: "戴上降噪耳机或耳塞，找一个安静角落，5 分钟内不看手机", duration_minutes: 5, source: "template" },
+      { text: "调暗灯光或拉上窗帘，把屏幕亮度降到 30% 以下", duration_minutes: 3, source: "template" },
+    );
+  }
+  if (neuroType === "adhd" || lower.includes("开始") || lower.includes("启动") || lower.includes("拖延")) {
+    suggestions.push(
+      { text: "打开计时器，只先做 5 分钟，告诉自己\"只做一点点\"", duration_minutes: 5, source: "template" },
+      { text: "把任务拆成 3 个最小步骤，写在纸上，只做第一步", duration_minutes: 2, source: "template" },
+    );
+  }
+  if (lower.includes("社交") || lower.includes("说话") || lower.includes("人")) {
+    suggestions.push(
+      { text: "发送一条预设消息：\"我现在需要安静一下，稍后联系你\"", duration_minutes: 1, source: "template" },
+    );
+  }
+  if (lower.includes("变化") || lower.includes("计划") || lower.includes("变")) {
+    suggestions.push(
+      { text: "把\"变化\"写下来：什么变了、什么没变、下一步最小动作是什么", duration_minutes: 5, source: "template" },
+    );
+  }
+  if (suggestions.length === 0) {
+    suggestions.push(
+      { text: "离开当前环境，喝一口水，做 3 次慢呼吸", duration_minutes: 3, source: "template" },
+    );
+  }
+
+  return suggestions.slice(0, 3);
 }
 
 // ============ 导出配置状态 ============

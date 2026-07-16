@@ -9,11 +9,14 @@ import type {
   CollaboratorRole,
   ConnectionMoment,
   CrashMark,
+  DifficultyType,
   NeuroType,
   PersonalRule,
   Protocol,
   ProtocolExecution,
   ScaleResult,
+  SessionMode,
+  SupportRule,
   ToastMessage,
   TraitProfile,
   WeatherSnapshot,
@@ -77,6 +80,13 @@ interface StoreState {
   // 对光敏感/前庭敏感/HSP 用户尤为重要（WCAG 2.3.3 · Microsoft Inclusive Design）
   lowSensoryMode: boolean;
   language: Lang;
+
+  // 会话模式（专注/低感官/恢复 · 重构后的统一模式系统）
+  sessionMode: SessionMode;
+  // 上次选择的困难类型（记住偏好 · neuroType 影响默认排序但不锁死）
+  lastDifficultyType: DifficultyType | null;
+  // 支持规则（合并个人规则 + 协议 · 统一模型）
+  supportRules: SupportRule[];
 
   // 音景偏好（Web Audio API · 零版权 · 程序生成）
   soundScapeType: SoundType | null; // null = 未播放
@@ -153,6 +163,17 @@ interface StoreState {
   pushToast: (type: ToastMessage["type"], text: string) => void;
   dismissToast: (id: string) => void;
   resetAll: () => void;
+
+  // 会话模式 + 困难类型
+  setSessionMode: (mode: SessionMode) => void;
+  setLastDifficultyType: (type: DifficultyType | null) => void;
+
+  // 支持规则（合并模型）
+  addSupportRule: (rule: Pick<SupportRule, "trigger" | "action" | "difficultyType" | "understanding" | "phases">) => void;
+  updateSupportRule: (id: string, updates: Partial<SupportRule>) => void;
+  deleteSupportRule: (id: string) => void;
+  executeSupportRule: (id: string) => void;
+  submitSupportRuleFeedback: (id: string, feedback: "helpful" | "neutral" | "unhelpful") => void;
 }
 
 function todayKey(): string {
@@ -194,6 +215,11 @@ export const useStore = create<StoreState>()(
 
       lowSensoryMode: false,
       language: "zh" as Lang,
+
+      // 重构：会话模式 + 困难类型 + 支持规则
+      sessionMode: "normal" as SessionMode,
+      lastDifficultyType: null,
+      supportRules: [],
 
       // 音景初始状态：未播放，音量 0.3
       soundScapeType: null,
@@ -676,6 +702,68 @@ export const useStore = create<StoreState>()(
         set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) }));
       },
 
+      // ============ 会话模式 + 困难类型 ============
+      setSessionMode: (mode) => set({ sessionMode: mode }),
+      setLastDifficultyType: (type) => set({ lastDifficultyType: type }),
+
+      // ============ 支持规则（合并模型） ============
+      addSupportRule: (rule) => {
+        const now = new Date().toISOString();
+        const newRule: SupportRule = {
+          id: genId(),
+          trigger: rule.trigger,
+          action: rule.action,
+          understanding: rule.understanding,
+          difficultyType: rule.difficultyType,
+          source: "manual",
+          status: "active",
+          phases: rule.phases,
+          uses: 0,
+          helpfulCount: 0,
+          lastUsed: null,
+          created_at: now,
+        };
+        set((state) => ({ supportRules: [...state.supportRules, newRule] }));
+      },
+
+      updateSupportRule: (id, updates) => {
+        set((state) => ({
+          supportRules: state.supportRules.map((r) =>
+            r.id === id ? { ...r, ...updates } : r,
+          ),
+        }));
+      },
+
+      deleteSupportRule: (id) => {
+        set((state) => ({
+          supportRules: state.supportRules.filter((r) => r.id !== id),
+        }));
+      },
+
+      executeSupportRule: (id) => {
+        set((state) => ({
+          supportRules: state.supportRules.map((r) =>
+            r.id === id
+              ? { ...r, uses: r.uses + 1, lastUsed: new Date().toISOString() }
+              : r,
+          ),
+        }));
+      },
+
+      submitSupportRuleFeedback: (id, feedback) => {
+        set((state) => ({
+          supportRules: state.supportRules.map((r) =>
+            r.id === id
+              ? {
+                  ...r,
+                  lastFeedback: feedback,
+                  helpfulCount: feedback === "helpful" ? r.helpfulCount + 1 : r.helpfulCount,
+                }
+              : r,
+          ),
+        }));
+      },
+
       resetAll: () => {
         set({
           onboarded: false,
@@ -701,6 +789,9 @@ export const useStore = create<StoreState>()(
           qwenEnabled: false,
           lowSensoryMode: false,
           language: "zh" as Lang,
+          sessionMode: "normal" as SessionMode,
+          lastDifficultyType: null,
+          supportRules: [],
           soundScapeType: null,
           soundScapeVolume: 0.3,
           soundScapeEnabled: false,
@@ -732,6 +823,9 @@ export const useStore = create<StoreState>()(
         qwenEnabled: state.qwenEnabled,
         lowSensoryMode: state.lowSensoryMode,
         language: state.language,
+        sessionMode: state.sessionMode,
+        lastDifficultyType: state.lastDifficultyType,
+        supportRules: state.supportRules,
         soundScapeType: state.soundScapeType,
         soundScapeVolume: state.soundScapeVolume,
         soundScapeEnabled: state.soundScapeEnabled,

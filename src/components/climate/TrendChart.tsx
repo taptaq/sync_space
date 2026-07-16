@@ -25,6 +25,8 @@ export default function TrendChart({
     label: a.label,
     color: a.color,
     stroke: a.stroke,
+    direction: a.direction,
+    bands: a.bands,
   }));
   const [activeAxis, setActiveAxis] = useState<AxisKey>("sensory");
   const config = AXIS_CONFIG.find((a) => a.key === activeAxis)!;
@@ -74,7 +76,16 @@ export default function TrendChart({
 
   return (
     <div className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
-      <h3 className="mb-4 font-serif text-lg text-ink">{tr("trend_chart_title")}</h3>
+      <div className="mb-3">
+        <h3 className="font-serif text-lg text-ink">{tr("trend_chart_title")}</h3>
+        <p className="mt-1 text-[11px] leading-relaxed text-ink-muted">
+  {tr("trend_chart_axis_hint", {
+            label: tt(config.label),
+            low: tt(config.bands[0]),
+            high: tt(config.bands[2]),
+          })}
+        </p>
+      </div>
 
       {/* 轴切换 */}
       <div className="mb-4 flex gap-2">
@@ -104,6 +115,24 @@ export default function TrendChart({
           className="w-full"
           preserveAspectRatio="none"
         >
+          {/* Y 轴刻度标签 */}
+          {[0, 5, 10].map((v) => {
+            const y =
+              padding.top + (1 - v / 10) * (height - padding.top - padding.bottom);
+            return (
+              <text
+                key={`ylabel-${v}`}
+                x={10}
+                y={y + 3}
+                textAnchor="start"
+                className="fill-ink-faint"
+                style={{ fontSize: "9px" }}
+              >
+                {v}
+              </text>
+            );
+          })}
+
           {/* 网格线 */}
           {[2, 4, 6, 8].map((v) => {
             const y =

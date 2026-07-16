@@ -14,6 +14,7 @@ import ReviewDetail from "@/pages/ReviewDetail";
 import ProtocolNew from "@/pages/ProtocolNew";
 import Screen from "@/pages/Screen";
 import Connection from "@/pages/Connection";
+import Settings from "@/pages/Settings";
 
 // 页面切换过渡：纯 opacity · 不使用 y 位移
 // 原因：framer-motion 的 transform 会创建 containing block，
@@ -113,6 +114,14 @@ function AnimatedRoutes() {
           element={
             <RequireOnboard>
               <PageWrapper><Screen /></PageWrapper>
+            </RequireOnboard>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <RequireOnboard>
+              <PageWrapper><Settings /></PageWrapper>
             </RequireOnboard>
           }
         />

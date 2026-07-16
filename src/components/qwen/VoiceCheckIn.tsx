@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MicOff, Loader2, Check, Sparkles, ChevronDown } from "lucide-react";
 import type { AxisKey } from "@/types";
@@ -11,6 +11,8 @@ import { useT } from "@/lib/i18n";
 // 语音输入签到（Qwen ASR + 文本语义提取）
 // 说话描述状态 → 转文字 → 提取三轴建议值 → 用户确认后签到
 // 合规：只做语音转文字，不做声纹/语音情绪识别
+
+const MAX_RECORD_SECONDS = 20;
 
 type Status = "idle" | "recording" | "processing" | "result" | "done";
 
@@ -30,33 +32,124 @@ export default function VoiceCheckIn() {
     predictability: 5,
   });
   const [showDetail, setShowDetail] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
 
-  const handleStartRecord = () => {
-    setStatus("recording");
-    // 模拟录音 3 秒后自动停止
-    timerRef.current = setTimeout(() => {
-      handleStopRecord();
-    }, 3000);
-  };
+  // 录音相关 ref
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleStopRecord = async () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    setStatus("processing");
+  const cleanup = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (autoStopRef.current) {
+      clearTimeout(autoStopRef.current);
+      autoStopRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
+  const handleStartRecord = async () => {
+    setRecordingSeconds(0);
+    chunksRef.current = [];
+
     try {
-      const res = await voiceToCheckin(null);
-      setResult(res);
-      setValues(res.suggestedValues);
-      setStatus("result");
-      pushToast("success", tr("voice_checkin_recognized"));
-    } catch {
-      pushToast("error", tr("voice_checkin_recognize_failed"));
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : MediaRecorder.isTypeSupported("audio/mp4")
+          ? "audio/mp4"
+          : "";
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(chunksRef.current, {
+          type: mimeType || "audio/webm",
+        });
+        cleanup();
+
+        // 录音太短（< 0.5s）视为误触
+        if (audioBlob.size < 500) {
+          pushToast("error", tr("voice_checkin_recognize_failed"));
+          setStatus("idle");
+          return;
+        }
+
+        setStatus("processing");
+        try {
+          const res = await voiceToCheckin(audioBlob);
+          setResult(res);
+          setValues(res.suggestedValues);
+          setStatus("result");
+          pushToast("success", tr("voice_checkin_recognized"));
+        } catch {
+          pushToast("error", tr("voice_checkin_recognize_failed"));
+          setStatus("idle");
+        }
+      };
+
+      recorder.start();
+      setStatus("recording");
+
+      // 实时计时
+      const startTime = Date.now();
+      timerRef.current = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        setRecordingSeconds(elapsed);
+        if (elapsed >= MAX_RECORD_SECONDS) {
+          stopRecording();
+        }
+      }, 250);
+    } catch (err) {
+      const name = (err as { name?: string })?.name;
+      if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+        pushToast("error", tr("voice_checkin_mic_denied"));
+      } else {
+        pushToast("error", tr("voice_checkin_mic_error"));
+      }
       setStatus("idle");
     }
   };
 
+  const stopRecording = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  const handleStopRecord = () => {
+    stopRecording();
+  };
+
   const handleCancel = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
+    cleanup();
     setStatus("idle");
     setResult(null);
   };
@@ -77,6 +170,8 @@ export default function VoiceCheckIn() {
       [key]: Math.max(0, Math.min(10, v[key] + delta)),
     }));
   };
+
+  const remainingSeconds = MAX_RECORD_SECONDS - recordingSeconds;
 
   return (
     <motion.div
@@ -146,12 +241,18 @@ export default function VoiceCheckIn() {
                 />
               ))}
             </div>
-            <p className="mt-2 text-xs text-ink-muted">{tr("voice_checkin_recording")}</p>
+            <p className="mt-2 text-xs text-ink-muted">
+              {tr("voice_checkin_recording")}
+            </p>
+            <p className="mt-1 font-mono text-sm tabular-nums text-primary">
+              {String(recordingSeconds).padStart(2, "0")}s / {MAX_RECORD_SECONDS}s
+            </p>
             <button
               onClick={handleStopRecord}
               className="mt-3 flex items-center gap-1.5 rounded-full bg-edge px-4 py-2 text-xs text-ink-muted transition-all duration-250 hover:bg-edge/80"
             >
               <MicOff size={14} /> {tr("voice_checkin_end_early")}
+              <span className="text-ink-faint">· {remainingSeconds}s</span>
             </button>
           </motion.div>
         )}

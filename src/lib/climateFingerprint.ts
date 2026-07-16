@@ -1,6 +1,7 @@
 import type { CheckIn, NeuroType, Phase } from "@/types";
 import { detectPhase } from "@/lib/stageEngine";
 import { getAxisProfile } from "@/lib/axisConfig";
+import { ttNow } from "@/lib/i18n";
 
 // 气候指纹（PRD 社区概念 · 非身份标识 · 不含原始数据）
 // 基于用户签到规律生成一段自然的气候描述
@@ -68,7 +69,7 @@ export function getClimateFingerprint(
     { label: profile.axes[2].label, value: toStrainValue(avgPredict, profile.axes[2].direction) },
   ].sort((a, b) => b.value - a.value);
 
-  const primaryChannel = `${strains[0].label}是你的主要敏感通道`;
+  const primaryChannel = `${ttNow(strains[0].label)}是你的主要敏感通道`;
 
   // 3. 签到频率特征
   const days = uniqueDays(checkins);

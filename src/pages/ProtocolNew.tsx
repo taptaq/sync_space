@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import { getAxisProfile, getBandLabel } from "@/lib/axisConfig";
 import { PHASE_MAP } from "@/lib/stageEngine";
 import { useT } from "@/lib/i18n";
+import { generateProtocolSuggestions, qwenApiConfigured } from "@/lib/qwenService";
+import { Loader2, Sparkles } from "lucide-react";
 
 // 创建新协议（PRD §05 F-06 协议管理 · 手动创建）
 // 轴选项按神经特质动态生成
@@ -16,6 +18,7 @@ export default function ProtocolNew() {
   const navigate = useNavigate();
   const addProtocol = useStore((s) => s.addProtocol);
   const neuroType = useStore((s) => s.neuroType);
+  const qwenEnabled = useStore((s) => s.qwenEnabled);
   const { tr, tt } = useT();
   const profile = getAxisProfile(neuroType);
   const AXIS_OPTIONS: { key: AxisKey | "none"; label: LocalText | string }[] = [
@@ -32,6 +35,8 @@ export default function ProtocolNew() {
   const [timer, setTimer] = useState(true);
   // 适用的阶段标签（不选 = 全阶段通用）
   const [phases, setPhases] = useState<Phase[]>([]);
+  const [suggestions, setSuggestions] = useState<Array<{ text: string; duration_minutes: number; source: string }>>([]);
+  const [suggesting, setSuggesting] = useState(false);
 
   const togglePhase = (p: Phase) => {
     setPhases((prev) =>
@@ -82,6 +87,23 @@ export default function ProtocolNew() {
   };
 
   const canSubmit = actionDesc.trim().length > 0;
+
+  const handleAiSuggest = async () => {
+    const triggerText = axis === "none" ? triggerDesc : autoTriggerDesc;
+    if (!triggerText.trim()) return;
+    setSuggesting(true);
+    try {
+      const result = await generateProtocolSuggestions(triggerText, neuroType, phases);
+      setSuggestions(result);
+    } finally {
+      setSuggesting(false);
+    }
+  };
+
+  const applySuggestion = (s: { text: string; duration_minutes: number }) => {
+    setActionDesc(s.text);
+    if (s.duration_minutes > 0) setDuration(s.duration_minutes);
+  };
 
   return (
     <div className="space-y-5 pt-6">
@@ -201,6 +223,48 @@ export default function ProtocolNew() {
         className="rounded-card border border-edge bg-white/60 p-5 shadow-soft"
       >
         <p className="mb-4 font-mono text-xs text-sage">{tr("protocol_new_then")}</p>
+
+        {/* AI 参考建议 */}
+        {qwenEnabled ? (
+          <div className="mb-3">
+            {qwenApiConfigured ? (
+              <button
+                type="button"
+                onClick={handleAiSuggest}
+                disabled={suggesting || (axis === "none" ? triggerDesc.trim().length === 0 : autoTriggerDesc.length === 0)}
+                className={cn(
+                  "flex w-full items-center justify-center gap-2 rounded-full py-2 text-xs transition-all duration-250",
+                  suggesting || (axis === "none" ? triggerDesc.trim().length === 0 : autoTriggerDesc.length === 0)
+                    ? "cursor-not-allowed bg-edge text-ink-muted"
+                    : "bg-primary-mist/50 text-primary hover:bg-primary-mist/70"
+                )}
+              >
+                {suggesting ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                {suggesting ? tr("protocol_new_ai_loading") : tr("protocol_new_ai_suggest")}
+              </button>
+            ) : (
+              <p className="rounded-full bg-warn-mist/30 px-3 py-2 text-xs text-warn">{tr("protocol_new_ai_not_configured")}</p>
+            )}
+
+            {suggestions.length > 0 && (
+              <div className="mt-2 space-y-2">
+                {suggestions.map((s, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => applySuggestion(s)}
+                    className="flex w-full items-start gap-2 rounded-lg border border-edge bg-white/50 p-2.5 text-left text-xs text-ink hover:bg-white/70"
+                  >
+                    <Sparkles size={12} className="mt-0.5 shrink-0 text-primary" />
+                    <span className="flex-1 leading-5">{s.text} · {s.duration_minutes}min</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="mb-3 rounded-full bg-edge/40 px-3 py-2 text-xs text-ink-muted">{tr("protocol_new_ai_disabled")}</p>
+        )}
 
         <textarea
           value={actionDesc}

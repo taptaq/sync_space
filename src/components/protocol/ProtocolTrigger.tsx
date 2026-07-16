@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Timer } from "lucide-react";
 import { useStore } from "@/store/useStore";
@@ -10,6 +10,11 @@ import type { Protocol } from "@/types";
 
 // 协议触发推送（PRD §05 F-03 + §09 不用突然弹窗，用 slide-up + backdrop fade）
 // 一次 tap 完成（"去"开始计时 / "推迟"30 分钟后再提醒）
+//
+// 推送策略分叉（重构后）：
+// - ASD：累积期主动推送"要不要先降载"（防止走向过载）
+// - ADHD：专注模式时不推送（保护 hyperfocus，不被打扰直到自己求助）
+// - 通用：过载后 24h 内不推送任何签到提醒
 export default function ProtocolTrigger() {
   const activeTrigger = useStore((s) => s.activeTrigger);
   const executeProtocol = useStore((s) => s.executeProtocol);
@@ -17,6 +22,7 @@ export default function ProtocolTrigger() {
   const dismissTrigger = useStore((s) => s.dismissTrigger);
   const pushToast = useStore((s) => s.pushToast);
   const neuroType = useStore((s) => s.neuroType);
+  const sessionMode = useStore((s) => s.sessionMode);
   const { tr, tt } = useT();
 
   // 气候恢复视觉状态：协议执行计时期间显示恢复过渡层
@@ -24,6 +30,17 @@ export default function ProtocolTrigger() {
   const [recoveryProtocol, setRecoveryProtocol] = useState<Protocol | null>(
     null,
   );
+
+  // ADHD 专注模式：自动抑制推送（保护 hyperfocus，不被打扰）
+  useEffect(() => {
+    if (sessionMode === "focus" && activeTrigger) {
+      dismissTrigger();
+      pushToast("info", tr("trigger_suppressed_focus"));
+    }
+  }, [sessionMode, activeTrigger, dismissTrigger, pushToast, tr]);
+
+  // 专注模式下完全不渲染推送卡
+  const suppressTrigger = sessionMode === "focus";
 
   // 算出触发条件的程度描述，让用户明白此刻达到了什么程度
   const trigger = activeTrigger?.protocol.trigger;
@@ -56,7 +73,7 @@ export default function ProtocolTrigger() {
   return (
     <>
     <AnimatePresence>
-      {activeTrigger && (
+      {activeTrigger && !suppressTrigger && (
         <>
           {/* backdrop fade */}
           <motion.div

@@ -12,10 +12,13 @@ import type {
   CollaboratorRole,
   ConnectionMoment,
   CrashMark,
+  DifficultyType,
   NeuroType,
   PersonalRule,
   Protocol,
   ProtocolExecution,
+  SessionMode,
+  SupportRule,
   TraitProfile,
   WeatherSnapshot,
 } from "@/types";
@@ -217,6 +220,9 @@ export interface SyncPayload {
   qwenEnabled: boolean;
   lowSensoryMode: boolean;
   language: Lang;
+  sessionMode: SessionMode;
+  lastDifficultyType: DifficultyType | null;
+  supportRules: SupportRule[];
   soundScapeType: SoundType | null;
   soundScapeVolume: number;
   soundScapeEnabled: boolean;
@@ -271,6 +277,9 @@ export async function loadAllData(): Promise<Partial<SyncPayload> | null> {
     qwenEnabled: s.qwen_enabled ?? false,
     lowSensoryMode: s.low_sensory_mode ?? false,
     language: s.language ?? "zh",
+    sessionMode: s.session_mode ?? "normal",
+    lastDifficultyType: s.last_difficulty_type ?? null,
+    supportRules: s.support_rules ?? [],
     soundScapeType: s.sound_scape_type ?? null,
     soundScapeVolume: s.sound_scape_volume ?? 0.3,
     soundScapeEnabled: s.sound_scape_enabled ?? false,
@@ -328,6 +337,9 @@ async function syncSettings(payload: SyncPayload) {
     qwen_enabled: payload.qwenEnabled,
     low_sensory_mode: payload.lowSensoryMode,
     language: payload.language,
+    session_mode: payload.sessionMode,
+    last_difficulty_type: payload.lastDifficultyType,
+    support_rules: payload.supportRules,
     sound_scape_type: payload.soundScapeType,
     sound_scape_volume: payload.soundScapeVolume,
     sound_scape_enabled: payload.soundScapeEnabled,

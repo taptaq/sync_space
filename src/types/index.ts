@@ -325,3 +325,36 @@ export interface ParentGuidancePack {
   avoidList: ParentGuidanceItem[]; // 不要做清单
   environment: ParentGuidanceItem[]; // 环境调整建议
 }
+
+// ============ 困难类型（替代锁死轴模型 · 此刻主要困难 5 选 1） ============
+// ASD 偏向 sensory/change，ADHD 偏向 startup/time，AuDHD/Other 不预设
+export type DifficultyType =
+  | "sensory" // 感官过载 → 减载包
+  | "change" // 变化/不可预测 → 预测补强包
+  | "startup" // 启动困难 → 加燃料包
+  | "time" // 时间管理 → 外部化包
+  | "communication"; // 交流困难 → 连接包
+
+// ============ 会话模式（专注/低感官/恢复） ============
+// 专注模式：ADHD hyperfocus 保护，UI 极简，无推送，可选自检
+// 低感官模式：ASD 过载自动进入，停动效/降亮度/只留 1 动作
+// 恢复模式：过载后或手动，只显示"现在只做这一件事"
+export type SessionMode = "normal" | "focus" | "low_sensory" | "recovery";
+
+// ============ 支持规则（合并个人规则 + 协议 · 统一模型） ============
+// trigger 信号 → action 行动 → effectiveness 效果分
+export interface SupportRule {
+  id: string;
+  trigger: string; // 反复出现的信号描述
+  action: string; // 支持行动
+  understanding?: string; // 自我理解（可选，来自原 PersonalRule）
+  difficultyType?: DifficultyType; // 困难类型分类
+  source: ProtocolSource; // 来源
+  status: ProtocolStatus; // 状态
+  phases?: Phase[]; // 适用阶段
+  uses: number; // 执行次数
+  helpfulCount: number; // 有效次数（helpful 反馈累计）
+  lastUsed: string | null;
+  lastFeedback?: "helpful" | "neutral" | "unhelpful";
+  created_at: string;
+}

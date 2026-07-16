@@ -1,9 +1,11 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, X, Sparkles } from "lucide-react";
+import { Download, X, Sparkles, Loader2, RotateCw } from "lucide-react";
 import type { CheckIn, NeuroType, Phase, WeatherSnapshot } from "@/types";
 import { detectPhase, getPhaseConfigForType } from "@/lib/stageEngine";
 import { getClimateFingerprint } from "@/lib/climateFingerprint";
+import { generatePostcardSlogan } from "@/lib/qwenService";
+import { useStore } from "@/store/useStore";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +44,13 @@ export default function ClimatePostcard({
   const [promptIndex] = useState(() => Math.floor(Math.random() * FEELING_PROMPT_KEYS.length));
   const { tr, tt } = useT();
 
+  // AI 专属标语
+  const qwenEnabled = useStore((s) => s.qwenEnabled);
+  const [slogan, setSlogan] = useState("");
+  const [sloganLoading, setSloganLoading] = useState(false);
+  const [sloganError, setSloganError] = useState(false);
+  const sloganAttemptedRef = useRef(false);
+
   const fingerprint = getClimateFingerprint(checkins, neuroType);
   const phase = detectPhase(currentWeather.climate, []);
   const phaseCfg = getPhaseConfigForType(phase, neuroType);
@@ -54,6 +63,49 @@ export default function ClimatePostcard({
   const phaseLabelText = tt(phaseCfg.label);
   const climateLabelText = tt(currentWeather.climate_label);
   const descriptionText = tt(currentWeather.description);
+
+  // 生成专属标语
+  const tryGenerateSlogan = useCallback(async () => {
+    if (!fingerprint || sloganLoading) return;
+    setSloganLoading(true);
+    setSloganError(false);
+    try {
+      const result = await generatePostcardSlogan(
+        fingerprint.summary,
+        phase,
+        neuroType,
+        checkins.length,
+      );
+      const cleaned = result.trim();
+      if (cleaned) {
+        setSlogan(cleaned);
+      } else {
+        setSloganError(true);
+      }
+    } catch {
+      setSloganError(true);
+    } finally {
+      setSloganLoading(false);
+    }
+  }, [fingerprint, phase, neuroType, checkins.length, sloganLoading]);
+
+  // 打开明信片时自动尝试生成一次（仅在 AI 模式开启时）
+  useEffect(() => {
+    if (!show || !qwenEnabled || !fingerprint) return;
+    if (sloganAttemptedRef.current) return;
+    sloganAttemptedRef.current = true;
+    tryGenerateSlogan();
+  }, [show, qwenEnabled, fingerprint, tryGenerateSlogan]);
+
+  // 关闭时重置尝试标记，下次打开可重新自动生成
+  useEffect(() => {
+    if (!show) {
+      sloganAttemptedRef.current = false;
+      setSlogan("");
+      setSloganError(false);
+      setSloganLoading(false);
+    }
+  }, [show]);
 
   // 在 Canvas 上绘制明信片
   const drawPostcard = useCallback(() => {
@@ -135,6 +187,13 @@ export default function ClimatePostcard({
       wrapText(ctx, fingerprint.summary, 24, 244, POSTCARD_WIDTH - 48, 20);
     }
 
+    // AI 专属标语
+    if (slogan.trim()) {
+      ctx.fillStyle = fingerprint?.colorCode ?? "#6B5FA0";
+      ctx.font = "italic 400 15px Georgia, serif";
+      wrapText(ctx, `「${slogan}」`, 24, 282, POSTCARD_WIDTH - 48, 20);
+    }
+
     // 用户感言（手写风格区域）
     if (feeling.trim()) {
       ctx.fillStyle = "#6B5FA0";
@@ -172,14 +231,14 @@ export default function ClimatePostcard({
     ctx.fillStyle = "#B5AC9E";
     ctx.fillText(checkinCountText, POSTCARD_WIDTH - 24, POSTCARD_HEIGHT - 30);
     ctx.textAlign = "left";
-  }, [fingerprint, phase, phaseCfg, currentWeather, feeling, checkins.length, brandText, fingerprintTitleText, anonymousText, checkinCountText, phaseLabelText, climateLabelText, descriptionText]);
+  }, [fingerprint, phase, phaseCfg, currentWeather, feeling, slogan, checkins.length, brandText, fingerprintTitleText, anonymousText, checkinCountText, phaseLabelText, climateLabelText, descriptionText]);
 
   useEffect(() => {
     if (show) {
       // 延迟绘制确保 DOM 已挂载
       requestAnimationFrame(() => drawPostcard());
     }
-  }, [show, drawPostcard, feeling]);
+  }, [show, drawPostcard, feeling, slogan]);
 
   // 导出图片
   const handleExport = () => {
@@ -216,23 +275,26 @@ export default function ClimatePostcard({
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-full max-w-sm rounded-2xl border border-white/30 bg-base/95 p-5 shadow-2xl"
+            className="relative flex max-h-[85vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl border border-white/30 bg-base/95 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 关闭按钮 */}
-            <button
-              onClick={onClose}
-              className="absolute -top-3 -right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-white/30 bg-base/95 shadow-soft"
-            >
-              <X size={16} className="text-ink-muted" />
-            </button>
-
-            <div>
-              <div className="mb-4 flex items-center gap-2">
+            {/* 头部标题 + 关闭按钮 */}
+            <div className="flex shrink-0 items-center justify-between px-5 pt-5 pb-3">
+              <div className="flex items-center gap-2">
                 <Sparkles size={14} className="text-primary" />
                 <span className="text-xs font-medium text-primary">{tr("postcard_card_title")}</span>
               </div>
+              <button
+                onClick={onClose}
+                className="flex h-7 w-7 items-center justify-center rounded-full border border-edge/40 bg-white/50 text-ink-muted transition-all duration-250 hover:bg-white/80 hover:text-ink"
+                aria-label={tr("close")}
+              >
+                <X size={15} />
+              </button>
+            </div>
 
+            {/* 滚动内容区 */}
+            <div className="flex-1 overflow-y-auto px-5 pb-5">
               {/* Canvas 预览 */}
               <div className="mb-4 overflow-hidden rounded-card">
                 <canvas
@@ -241,6 +303,38 @@ export default function ClimatePostcard({
                   className="block"
                 />
               </div>
+
+              {/* AI 专属标语区 */}
+              {qwenEnabled && (
+                <div className="mb-4 rounded-card bg-primary-mist/20 px-4 py-3">
+                  <p className="mb-1.5 flex items-center gap-1 text-[10px] font-medium text-primary">
+                    <Sparkles size={10} />
+                    {tr("postcard_slogan_title")}
+                  </p>
+                  {sloganLoading ? (
+                    <p className="flex items-center gap-1.5 text-xs text-ink-muted">
+                      <Loader2 size={12} className="animate-spin" />
+                      {tr("postcard_slogan_generating")}
+                    </p>
+                  ) : slogan ? (
+                    <p className="font-serif text-sm italic leading-relaxed text-ink">
+                      「{slogan}」
+                    </p>
+                  ) : (
+                    <button
+                      onClick={tryGenerateSlogan}
+                      disabled={sloganLoading}
+                      className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs text-primary transition-all duration-250 hover:bg-primary/20 active:scale-[0.98] disabled:opacity-60"
+                    >
+                      <RotateCw size={11} />
+                      {tr("postcard_slogan_generate_btn")}
+                    </button>
+                  )}
+                  {sloganError && !sloganLoading && !slogan && (
+                    <p className="mt-1.5 text-[10px] text-clay">{tr("postcard_slogan_failed")}</p>
+                  )}
+                </div>
+              )}
 
               {/* 感言输入 */}
               <div className="mb-4">
