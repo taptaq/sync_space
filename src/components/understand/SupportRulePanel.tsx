@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Check, Play, Plus, Trash2, X } from "lucide-react";
+import { Check, Play, Plus, Trash2, X, Sparkles, Loader2 } from "lucide-react";
 import type { DifficultyType, SupportRule } from "@/types";
 import { useStore } from "@/store/useStore";
 import { useT } from "@/lib/i18n";
 import { getDifficultyLabel } from "@/lib/difficultyPacks";
+import { cn } from "@/lib/utils";
+import { generateProtocolSuggestions, qwenApiConfigured } from "@/lib/qwenService";
 
 const DIFFICULTY_TYPES: DifficultyType[] = [
   "sensory",
@@ -28,17 +30,22 @@ export default function SupportRulePanel() {
   const executeRule = useStore((state) => state.executeSupportRule);
   const submitFeedback = useStore((state) => state.submitSupportRuleFeedback);
   const pushToast = useStore((state) => state.pushToast);
+  const neuroType = useStore((state) => state.neuroType);
+  const qwenEnabled = useStore((state) => state.qwenEnabled);
   const { tr, tt } = useT();
 
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState(EMPTY_FORM);
   const [feedbackRuleId, setFeedbackRuleId] = useState<string | null>(null);
+  const [actionSuggestions, setActionSuggestions] = useState<Array<{ text: string; duration_minutes: number; source: string }>>([]);
+  const [suggestingAction, setSuggestingAction] = useState(false);
 
   const sorted = [...rules].sort((a, b) => getEffectiveness(b) - getEffectiveness(a));
 
   const closeForm = () => {
     setAdding(false);
     setDraft(EMPTY_FORM);
+    setActionSuggestions([]);
   };
 
   const save = () => {
@@ -67,6 +74,23 @@ export default function SupportRulePanel() {
   const handleSkipFeedback = () => {
     setFeedbackRuleId(null);
     pushToast("info", tr("support_rule_feedback_skip_hint"));
+  };
+
+  const handleAiSuggestAction = async () => {
+    const triggerText = draft.trigger.trim();
+    if (!triggerText) return;
+    setSuggestingAction(true);
+    try {
+      const result = await generateProtocolSuggestions(triggerText, neuroType, []);
+      setActionSuggestions(result);
+    } finally {
+      setSuggestingAction(false);
+    }
+  };
+
+  const applyActionSuggestion = (s: { text: string; duration_minutes: number }) => {
+    setDraft((value) => ({ ...value, action: s.text }));
+    setActionSuggestions([]);
   };
 
   const handleDelete = (rule: SupportRule) => {
@@ -117,6 +141,47 @@ export default function SupportRulePanel() {
 
           <label className="mb-3 block">
             <span className="mb-1 block text-xs text-ink-muted">{tr("support_rule_action")}</span>
+
+            {/* AI 参考行动 */}
+            {qwenEnabled && (
+              <div className="mb-2">
+                {qwenApiConfigured ? (
+                  <button
+                    type="button"
+                    onClick={handleAiSuggestAction}
+                    disabled={suggestingAction || !draft.trigger.trim()}
+                    className={cn(
+                      "flex w-full items-center justify-center gap-2 rounded-full py-2 text-xs transition-all duration-250",
+                      suggestingAction || !draft.trigger.trim()
+                        ? "cursor-not-allowed bg-edge text-ink-muted"
+                        : "bg-primary-mist/50 text-primary hover:bg-primary-mist/70"
+                    )}
+                  >
+                    {suggestingAction ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                    {suggestingAction ? tr("support_rule_ai_loading") : tr("support_rule_ai_suggest")}
+                  </button>
+                ) : (
+                  <p className="rounded-full bg-warn-mist/30 px-3 py-2 text-xs text-warn">{tr("support_rule_ai_not_configured")}</p>
+                )}
+
+                {actionSuggestions.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    {actionSuggestions.map((s, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => applyActionSuggestion(s)}
+                        className="flex w-full items-start gap-2 rounded-lg border border-edge bg-white/50 p-2.5 text-left text-xs text-ink hover:bg-white/70"
+                      >
+                        <Sparkles size={12} className="mt-0.5 shrink-0 text-primary" />
+                        <span className="flex-1 leading-5">{s.text} · {s.duration_minutes}min</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             <input
               value={draft.action}
               onChange={(event) => setDraft((value) => ({ ...value, action: event.target.value }))}
