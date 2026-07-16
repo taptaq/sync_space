@@ -5,7 +5,7 @@ import { useStore } from "@/store/useStore";
 import { useT } from "@/lib/i18n";
 import { getDifficultyLabel } from "@/lib/difficultyPacks";
 import { cn } from "@/lib/utils";
-import { generateProtocolSuggestions, qwenApiConfigured } from "@/lib/qwenService";
+import { generateProtocolSuggestions } from "@/lib/qwenService";
 
 const DIFFICULTY_TYPES: DifficultyType[] = [
   "sensory",
@@ -145,24 +145,20 @@ export default function SupportRulePanel() {
             {/* AI 参考行动 */}
             {qwenEnabled && (
               <div className="mb-2">
-                {qwenApiConfigured ? (
-                  <button
-                    type="button"
-                    onClick={handleAiSuggestAction}
-                    disabled={suggestingAction || !draft.trigger.trim()}
-                    className={cn(
-                      "flex w-full items-center justify-center gap-2 rounded-full py-2 text-xs transition-all duration-250",
-                      suggestingAction || !draft.trigger.trim()
-                        ? "cursor-not-allowed bg-edge text-ink-muted"
-                        : "bg-primary-mist/50 text-primary hover:bg-primary-mist/70"
-                    )}
-                  >
-                    {suggestingAction ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                    {suggestingAction ? tr("support_rule_ai_loading") : tr("support_rule_ai_suggest")}
-                  </button>
-                ) : (
-                  <p className="rounded-full bg-warn-mist/30 px-3 py-2 text-xs text-warn">{tr("support_rule_ai_not_configured")}</p>
-                )}
+                <button
+                  type="button"
+                  onClick={handleAiSuggestAction}
+                  disabled={suggestingAction || !draft.trigger.trim()}
+                  className={cn(
+                    "flex w-full items-center justify-center gap-2 rounded-full py-2 text-xs transition-all duration-250",
+                    suggestingAction || !draft.trigger.trim()
+                      ? "cursor-not-allowed bg-edge text-ink-muted"
+                      : "bg-primary-mist/50 text-primary hover:bg-primary-mist/70"
+                  )}
+                >
+                  {suggestingAction ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                  {suggestingAction ? tr("support_rule_ai_loading") : tr("support_rule_ai_suggest")}
+                </button>
 
                 {actionSuggestions.length > 0 && (
                   <div className="mt-2 space-y-2">
@@ -175,6 +171,9 @@ export default function SupportRulePanel() {
                       >
                         <Sparkles size={12} className="mt-0.5 shrink-0 text-primary" />
                         <span className="flex-1 leading-5">{s.text} · {s.duration_minutes}min</span>
+                        {s.source === "template" && (
+                          <span className="shrink-0 rounded-full bg-edge/40 px-1.5 py-0.5 text-[9px] text-ink-faint">{tr("support_rule_ai_fallback")}</span>
+                        )}
                       </button>
                     ))}
                   </div>

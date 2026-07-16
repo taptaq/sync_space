@@ -8,6 +8,7 @@ import {
   Zap,
   Clock,
   MessageCircle,
+  Focus,
   X,
   ChevronRight,
   ChevronDown,
@@ -28,6 +29,7 @@ import VoiceCheckIn from "@/components/qwen/VoiceCheckIn";
 import QuickCapture from "@/components/today/QuickCapture";
 import ClimateFamiliar from "@/components/weather/ClimateFamiliar";
 import ActionRunner from "@/components/today/ActionRunner";
+import FocusStartCard from "@/components/today/FocusStartCard";
 
 // 今日页 · 卡住时的即时帮助
 // 理念：现在怎样 → 做一件事 → 有没有用
@@ -135,7 +137,7 @@ export default function Today() {
 
   // 低感官/恢复模式下隐藏困难选择，直接给 1 个动作
   const showDifficultyEntry = sessionMode === "normal";
-  const isInSpecialMode = sessionMode === "low_sensory" || sessionMode === "recovery";
+  const isInSpecialMode = sessionMode === "low_sensory" || sessionMode === "recovery" || sessionMode === "focus";
 
   // 获取当前要显示的干预包
   const activePack = selectedDifficulty ? getDifficultyPack(selectedDifficulty) : null;
@@ -147,10 +149,10 @@ export default function Today() {
 
   return (
     <div className="space-y-5">
-      {/* 0. 顶部：特殊模式退出 + 设置 */}
+      {/* 0. 顶部：特殊模式退出 + 专注入口 + 设置 */}
       <div className="flex items-center justify-between pt-5">
         <div className="flex items-center gap-2">
-          {isInSpecialMode && (
+          {isInSpecialMode ? (
             <button
               onClick={() => handleModeSwitch(sessionMode)}
               className="flex items-center gap-1.5 rounded-full border border-edge bg-white/40 px-3 py-1.5 text-xs text-ink-muted transition-all duration-250 hover:bg-white/60"
@@ -158,6 +160,17 @@ export default function Today() {
               <X size={12} />
               {tr("mode_exit_current")}
             </button>
+          ) : (
+            !isParentProxy && (
+              <button
+                onClick={() => handleModeSwitch("focus")}
+                className="flex items-center gap-1.5 rounded-full border border-edge bg-white/40 px-3 py-1.5 text-xs text-ink-muted transition-all duration-250 hover:bg-white/60"
+                title={tr("mode_focus")}
+              >
+                <Focus size={12} />
+                {tr("mode_focus")}
+              </button>
+            )
           )}
         </div>
         <button
@@ -177,6 +190,9 @@ export default function Today() {
       <div className="flex flex-col items-center pt-2 pb-1">
         <ClimateFamiliar phase={currentPhase} size={64} />
       </div>
+
+      {/* 0.6 专注模式：5 分钟微启动 + 保护 hyperfocus（抑制后台推送） */}
+      {sessionMode === "focus" && !isParentProxy && <FocusStartCard />}
 
       {/* 1. ASD 累积期主动提示低感官（拒绝后本次累积期不再弹） */}
       {showLowSensoryPrompt && (

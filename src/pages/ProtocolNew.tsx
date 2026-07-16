@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { getAxisProfile, getBandLabel } from "@/lib/axisConfig";
 import { PHASE_MAP } from "@/lib/stageEngine";
 import { useT } from "@/lib/i18n";
-import { generateProtocolSuggestions, qwenApiConfigured } from "@/lib/qwenService";
+import { generateProtocolSuggestions } from "@/lib/qwenService";
 import { Loader2, Sparkles } from "lucide-react";
 
 // 创建新协议（PRD §05 F-06 协议管理 · 手动创建）
@@ -227,24 +227,20 @@ export default function ProtocolNew() {
         {/* AI 参考建议 */}
         {qwenEnabled ? (
           <div className="mb-3">
-            {qwenApiConfigured ? (
-              <button
-                type="button"
-                onClick={handleAiSuggest}
-                disabled={suggesting || (axis === "none" ? triggerDesc.trim().length === 0 : autoTriggerDesc.length === 0)}
-                className={cn(
-                  "flex w-full items-center justify-center gap-2 rounded-full py-2 text-xs transition-all duration-250",
-                  suggesting || (axis === "none" ? triggerDesc.trim().length === 0 : autoTriggerDesc.length === 0)
-                    ? "cursor-not-allowed bg-edge text-ink-muted"
-                    : "bg-primary-mist/50 text-primary hover:bg-primary-mist/70"
-                )}
-              >
-                {suggesting ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                {suggesting ? tr("protocol_new_ai_loading") : tr("protocol_new_ai_suggest")}
-              </button>
-            ) : (
-              <p className="rounded-full bg-warn-mist/30 px-3 py-2 text-xs text-warn">{tr("protocol_new_ai_not_configured")}</p>
-            )}
+            <button
+              type="button"
+              onClick={handleAiSuggest}
+              disabled={suggesting || (axis === "none" ? triggerDesc.trim().length === 0 : autoTriggerDesc.length === 0)}
+              className={cn(
+                "flex w-full items-center justify-center gap-2 rounded-full py-2 text-xs transition-all duration-250",
+                suggesting || (axis === "none" ? triggerDesc.trim().length === 0 : autoTriggerDesc.length === 0)
+                  ? "cursor-not-allowed bg-edge text-ink-muted"
+                  : "bg-primary-mist/50 text-primary hover:bg-primary-mist/70"
+              )}
+            >
+              {suggesting ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+              {suggesting ? tr("protocol_new_ai_loading") : tr("protocol_new_ai_suggest")}
+            </button>
 
             {suggestions.length > 0 && (
               <div className="mt-2 space-y-2">
@@ -257,6 +253,9 @@ export default function ProtocolNew() {
                   >
                     <Sparkles size={12} className="mt-0.5 shrink-0 text-primary" />
                     <span className="flex-1 leading-5">{s.text} · {s.duration_minutes}min</span>
+                    {s.source === "template" && (
+                      <span className="shrink-0 rounded-full bg-edge/40 px-1.5 py-0.5 text-[9px] text-ink-faint">{tr("protocol_new_ai_fallback")}</span>
+                    )}
                   </button>
                 ))}
               </div>
