@@ -108,17 +108,17 @@ export default function ProtocolTrigger() {
 
               <div className="mt-2 rounded-card bg-primary-mist/50 p-3">
                 <p className="text-small text-ink-muted">
-                  <span className="font-mono text-primary">WHEN</span>{" "}
-                  {tt(activeTrigger.protocol.trigger.description)}
+                  <span className="font-mono text-primary">{tr("trigger_when")}</span>{" "}
+                  {tt(activeTrigger.protocol.trigger.description ?? { zh: "条件满足", en: "condition met" })}
                 </p>
                 {bandLabel && (
                   <p className="mt-0.5 text-xs text-ink-faint">
-                    {tr("trigger_reached_band", { axis: tt(axisCfg?.label ?? ""), band: tt(bandLabel) })}
+                    {tr("trigger_reached_band", { axis: tt(axisCfg?.label ?? { zh: "状态", en: "state" }), band: tt(bandLabel) })}
                   </p>
                 )}
                 <p className="mt-1 text-small text-ink-muted">
-                  <span className="font-mono text-sage">THEN</span>{" "}
-                  {tt(activeTrigger.protocol.action.description)}
+                  <span className="font-mono text-sage">{tr("trigger_then")}</span>{" "}
+                  {tt(activeTrigger.protocol.action.description ?? { zh: "做点支持自己的事", en: "do something supportive" })}
                 </p>
               </div>
 

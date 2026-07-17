@@ -9,6 +9,10 @@ import {
   RotateCcw,
   Sparkles,
   Moon,
+  BellRing,
+  Mic,
+  MicVocal,
+  Wand2,
   ChevronLeft,
 } from "lucide-react";
 import NeuroTypeSelector, { useNeuroTypeSelector } from "@/components/common/NeuroTypeSelector";
@@ -17,6 +21,7 @@ import { ModalPortal } from "@/components/common/ModalPortal";
 import { useStore } from "@/store/useStore";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { requestReminderPermission } from "@/lib/reminderScheduler";
 
 // 设置页 · 收纳从 Today 页迁出的偏好设置
 // 角色 / 语言 / 神经特质 / AI 增强 / 低感官模式
@@ -33,6 +38,10 @@ export default function Settings() {
   const setQwenEnabled = useStore((s) => s.setQwenEnabled);
   const lowSensoryMode = useStore((s) => s.lowSensoryMode);
   const setLowSensoryMode = useStore((s) => s.setLowSensoryMode);
+  const reminderEnabled = useStore((s) => s.reminderEnabled);
+  const setReminderEnabled = useStore((s) => s.setReminderEnabled);
+  const reminderTimes = useStore((s) => s.reminderTimes);
+  const setReminderTimes = useStore((s) => s.setReminderTimes);
   const pushToast = useStore((s) => s.pushToast);
 
   const { showSelector, openSelector, closeSelector } = useNeuroTypeSelector();
@@ -69,6 +78,23 @@ export default function Settings() {
     const next = !lowSensoryMode;
     setLowSensoryMode(next);
     pushToast("success", next ? tr("low_sensory_toast_on") : tr("low_sensory_toast_off"));
+  };
+
+  const handleReminderToggle = async () => {
+    const next = !reminderEnabled;
+    if (next) {
+      const granted = await requestReminderPermission();
+      if (!granted) {
+        pushToast("error", tr("reminder_permission_denied"));
+        return;
+      }
+    }
+    setReminderEnabled(next);
+    pushToast("success", next ? tr("reminder_toast_on") : tr("reminder_toast_off"));
+  };
+
+  const handleReminderTimeChange = (slot: "morning" | "noon" | "evening", value: string) => {
+    setReminderTimes({ ...reminderTimes, [slot]: value });
   };
 
   return (
@@ -196,6 +222,32 @@ export default function Settings() {
           </div>
           <Toggle enabled={qwenEnabled} onClick={handleAIToggle} />
         </div>
+
+        {/* AI 生效位置说明 · 简短清单 */}
+        <div className="mt-4 space-y-2 border-t border-edge/70 pt-4">
+          <p className="text-[11px] text-ink-faint">{tr("ai_scope_title")}</p>
+          <ul className="space-y-1.5">
+            <li className="flex items-start gap-2 text-xs text-ink-muted">
+              <Mic size={13} className="mt-0.5 shrink-0 text-primary" />
+              <span><span className="text-ink">{tr("ai_scope_voice_checkin_label")}</span> · {tr("ai_scope_voice_checkin_desc")}</span>
+            </li>
+            <li className="flex items-start gap-2 text-xs text-ink-muted">
+              <MicVocal size={13} className="mt-0.5 shrink-0 text-primary" />
+              <span><span className="text-ink">{tr("ai_scope_voice_crash_label")}</span> · {tr("ai_scope_voice_crash_desc")}</span>
+            </li>
+            <li className="flex items-start gap-2 text-xs text-ink-muted">
+              <Wand2 size={13} className="mt-0.5 shrink-0 text-primary" />
+              <span><span className="text-ink">{tr("ai_scope_action_suggest_label")}</span> · {tr("ai_scope_action_suggest_desc")}</span>
+            </li>
+            <li className="flex items-start gap-2 text-xs text-ink-muted">
+              <Sparkles size={13} className="mt-0.5 shrink-0 text-primary" />
+              <span><span className="text-ink">{tr("ai_scope_slogan_label")}</span> · {tr("ai_scope_slogan_desc")}</span>
+            </li>
+          </ul>
+          {!qwenEnabled && (
+            <p className="pt-1 text-[11px] leading-relaxed text-ink-faint">{tr("ai_scope_off_hint")}</p>
+          )}
+        </div>
       </section>
 
       {/* 低感官模式 */}
@@ -215,6 +267,48 @@ export default function Settings() {
           <Toggle enabled={lowSensoryMode} onClick={handleLowSensoryToggle} />
         </div>
         <p className="mt-3 text-xs leading-relaxed text-ink-faint">{tr("low_sensory_desc")}</p>
+      </section>
+
+      {/* 每日锚点提醒（PWA · ASD 友好：解决"后知后觉"） */}
+      <section className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-mist/50">
+              <BellRing size={15} className="text-primary" />
+            </div>
+            <div>
+              <h2 className="text-sm font-medium text-ink">{tr("reminder_title")}</h2>
+              <p className="mt-0.5 text-xs text-ink-muted">
+                {reminderEnabled ? tr("reminder_on") : tr("reminder_off")}
+              </p>
+            </div>
+          </div>
+          <Toggle enabled={reminderEnabled} onClick={handleReminderToggle} />
+        </div>
+
+        {reminderEnabled && (
+          <div className="mt-4 space-y-3 border-t border-edge/70 pt-4">
+            <p className="text-xs text-ink-muted">{tr("reminder_times_desc")}</p>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { key: "morning" as const, label: tr("reminder_morning") },
+                { key: "noon" as const, label: tr("reminder_noon") },
+                { key: "evening" as const, label: tr("reminder_evening") },
+              ]).map((slot) => (
+                <label key={slot.key} className="block">
+                  <span className="mb-1 block text-[11px] text-ink-muted">{slot.label}</span>
+                  <input
+                    type="time"
+                    value={reminderTimes[slot.key]}
+                    onChange={(e) => handleReminderTimeChange(slot.key, e.target.value)}
+                    className="w-full rounded-lg border border-edge bg-white/70 px-2 py-1.5 text-xs text-ink focus:border-primary/40"
+                  />
+                </label>
+              ))}
+            </div>
+            <p className="text-[11px] leading-relaxed text-ink-faint">{tr("reminder_limit_note")}</p>
+          </div>
+        )}
       </section>
 
       {/* 底部声明 */}

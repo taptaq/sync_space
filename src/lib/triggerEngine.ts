@@ -92,9 +92,10 @@ export function matchTriggers(
     axisCfg && p.trigger.value != null
       ? getBandLabel(p.trigger.value, axisCfg)
       : "";
+  const actionDesc = p.action.description?.zh ?? "做点支持自己的事";
   const reason = band
-    ? `你的${axisLabel(p.trigger.axis, neuroType)}到了「${band.zh}」——你和自己约定过：这时候${p.action.description.zh}。现在去吗？`
-    : `你的${axisLabel(p.trigger.axis, neuroType)}在升——你和自己约定过：这时候${p.action.description.zh}。现在去吗？`;
+    ? `你的${axisLabel(p.trigger.axis, neuroType)}到了「${band.zh}」——你和自己约定过：这时候${actionDesc}。现在去吗？`
+    : `你的${axisLabel(p.trigger.axis, neuroType)}在升——你和自己约定过：这时候${actionDesc}。现在去吗？`;
   return { matched: true, protocol: p, reason };
 }
 
@@ -114,7 +115,7 @@ function checkCumulativeCondition(
       const sensoryProtocol = protocols.find(
         (p) =>
           p.status === "active" &&
-          (p.trigger.axis === "sensory" || p.action.description.zh.includes("感官")),
+          (p.trigger.axis === "sensory" || p.action.description?.zh?.includes("感官")),
       );
       return sensoryProtocol ?? null;
     }
@@ -127,7 +128,7 @@ function checkCumulativeCondition(
       const execProtocol = protocols.find(
         (p) =>
           p.status === "active" &&
-          (p.trigger.axis === "predictability" || p.action.description.zh.includes("启动")),
+          (p.trigger.axis === "predictability" || p.action.description?.zh?.includes("启动")),
       );
       return execProtocol ?? null;
     }

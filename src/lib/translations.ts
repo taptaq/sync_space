@@ -349,6 +349,71 @@ export const STRINGS = {
   familiar_tooltip_title: { zh: "状态小精灵", en: "State familiar" },
   familiar_tooltip_desc: { zh: "它用姿态告诉你现在的阶段：趴着=平稳、坐着留意=累积、警觉=预警、蜷起来=过载、探头=恢复。它不催你，只是陪你看到状态。", en: "Its posture shows your current stage: resting=stable, noticing=accumulating, alert=warning, curled=overload, peeking=recovery. It doesn't push you — it just helps you see your state." },
 
+  // 每日锚点提醒（PWA · ASD 友好）
+  reminder_title: { zh: "每日锚点提醒", en: "Daily anchor reminders" },
+  reminder_on: { zh: "已开启 · 早/午/晚 3 个时点", en: "On · morning / noon / evening" },
+  reminder_off: { zh: "未开启", en: "Off" },
+  reminder_times_desc: { zh: "到点会推送一条系统通知，提醒你花 15 秒看看自己", en: "Sends a system notification at these times to check in for 15 seconds" },
+  reminder_morning: { zh: "早上", en: "Morning" },
+  reminder_noon: { zh: "中午", en: "Noon" },
+  reminder_evening: { zh: "晚上", en: "Evening" },
+  reminder_limit_note: { zh: "通知在 App 打开时一定能收到；App 关闭时依赖系统保留 service worker（Android 通常 24 小时内有效，iOS 暂不支持后台推送）。", en: "Notifications always fire when the app is open. When closed, they depend on the OS keeping the service worker alive (Android usually 24h; iOS doesn't support background push yet)." },
+  reminder_toast_on: { zh: "已开启每日锚点提醒", en: "Daily anchor reminders enabled" },
+  reminder_toast_off: { zh: "已关闭每日锚点提醒", en: "Daily anchor reminders disabled" },
+  reminder_permission_denied: { zh: "通知权限被拒绝，请在浏览器设置里开启", en: "Notification permission denied. Please enable it in browser settings." },
+
+  // AI 增强生效位置说明
+  ai_scope_title: { zh: "开启后会在这些地方生效", en: "Where it activates when on" },
+  ai_scope_voice_checkin_label: { zh: "语音签到", en: "Voice check-in" },
+  ai_scope_voice_checkin_desc: { zh: "用嘴说代替滑块，15 秒完成", en: "Speak instead of sliding, 15 seconds" },
+  ai_scope_voice_crash_label: { zh: "语音补记崩溃", en: "Voice crash note" },
+  ai_scope_voice_crash_desc: { zh: "过载后张嘴说就行，不用手打", en: "After overload, just talk — no typing" },
+  ai_scope_action_suggest_label: { zh: "协议 / 规则参考动作", en: "Protocol / rule action suggestions" },
+  ai_scope_action_suggest_desc: { zh: "不知道约定什么动作时给 3 条参考", en: "Get 3 reference ideas when you don't know what action to set" },
+  ai_scope_slogan_label: { zh: "气候明信片标语", en: "Climate postcard slogan" },
+  ai_scope_slogan_desc: { zh: "给你的状态生成一句专属话", en: "Generates a personal line for your state" },
+  ai_scope_off_hint: { zh: "关掉后这些位置回到基础版（滑块签到 / 手动填写）。开启 AI 不上传你的数据，所有调用都按需触发。", en: "When off, these spots fall back to basics (sliders / manual text). Enabling AI doesn't upload your data — calls are on-demand only." },
+
+  // 感官预算电池
+  sensory_battery_title: { zh: "今日感官预算", en: "Today's sensory budget" },
+  sensory_battery_desc: { zh: "基于今日签到推算", en: "Estimated from today's check-ins" },
+  sensory_battery_sample: { zh: "今日 {count} 次签到", en: "{count} check-ins today" },
+  sensory_battery_high: { zh: "预算充足 · 还能承受一些刺激", en: "Plenty of budget · can handle more input" },
+  sensory_battery_mid: { zh: "预算在下降 · 留意累积信号", en: "Budget dropping · watch for building signals" },
+  sensory_battery_low: { zh: "预算所剩不多 · 建议降载", en: "Budget running low · consider reducing load" },
+  sensory_battery_trend_up: { zh: "感官在累积", en: "Sensory input is building" },
+  sensory_battery_trend_down: { zh: "感官在恢复", en: "Sensory input is settling" },
+
+  // 明日预告
+  tomorrow_preview_title: { zh: "明日预告", en: "Tomorrow's preview" },
+  tomorrow_preview_desc: { zh: "基于你过去同一天的签到规律", en: "Based on your past check-ins on the same weekday" },
+  tomorrow_preview_no_data: { zh: "再多签到几次就能看到明日预告", en: "Check in a few more times to unlock tomorrow's preview" },
+
+  // 兴趣沉浸计时
+  interest_timer_title: { zh: "兴趣沉浸", en: "Interest immersion" },
+  interest_timer_subtitle: { zh: "做自己热爱的事也是照顾自己", en: "Doing what you love is self-care too" },
+  interest_timer_topic_placeholder: { zh: "现在沉浸在哪件事上？", en: "What are you immersing in right now?" },
+  interest_timer_start: { zh: "开始", en: "Start" },
+  interest_timer_pause: { zh: "暂停", en: "Pause" },
+  interest_timer_done: { zh: "完成", en: "Done" },
+  interest_timer_week_total: { zh: "本周累计", en: "This week total" },
+
+  // ASD 能量档案（理解页）
+  energy_archive_title: { zh: "能量档案", en: "Energy archive" },
+  energy_archive_subtitle: { zh: "什么能让你充电", en: "What recharges you" },
+  energy_archive_desc: { zh: "理解自己不只是看什么让你卡住，也包括看清什么能让你恢复能量。", en: "Understanding yourself isn't only about what blocks you — it's also seeing what recharges you." },
+  energy_archive_week_total: { zh: "本周充电总时长", en: "This week's recharge total" },
+  energy_archive_top_sources: { zh: "你的充电源", en: "Your recharge sources" },
+  energy_archive_session_count: { zh: "{count} 次", en: "{count} sessions" },
+  energy_archive_empty_hint: { zh: "还没有记录。下次沉浸在自己热爱的事里时，回来按一下开始——你会慢慢看清什么最能让你的电量回升。", en: "No records yet. Next time you're deep in something you love, come back and hit start — you'll gradually see what lifts your battery most." },
+
+  // ADHD hyperfocus 保护提醒
+  hyperfocus_reminder_title: { zh: "你已经在专注里待了一阵", en: "You've been focused for a while" },
+  hyperfocus_reminder_body_first: { zh: "不是要打断你。只是温和提醒一下：要不要喝口水、站起来动一下？", en: "Not trying to interrupt you. Just a gentle nudge — water? Stretch?" },
+  hyperfocus_reminder_body_repeat: { zh: "第 {count} 次提醒。你的身体可能已经需要照顾了，哪怕只是 30 秒站起来。", en: "Reminder #{count}. Your body might need care — even 30 seconds of standing up counts." },
+  hyperfocus_reminder_snooze: { zh: "好，喝口水", en: "Okay, water break" },
+  hyperfocus_reminder_dismiss: { zh: "继续专注", en: "Keep going" },
+
   // 模式系统
   mode_focus: { zh: "专注", en: "Focus" },
   mode_low_sensory: { zh: "低感官", en: "Low-sensory" },
@@ -1052,6 +1117,10 @@ export const STRINGS = {
 
   // ===== ProtocolTrigger =====
   trigger_title: { zh: "协议触发", en: "Protocol Trigger" },
+  trigger_when: { zh: "当", en: "When" },
+  trigger_then: { zh: "就", en: "Then" },
+  protocol_when_label: { zh: "当", en: "When" },
+  protocol_then_label: { zh: "就", en: "Then" },
   trigger_reached_band: { zh: "{axis}已达到「{band}」程度", en: "{axis} has reached \"{band}\"" },
   trigger_start_timer: { zh: "去 · 开始 {minutes} 分钟计时", en: "Go · start {minutes} min timer" },
   trigger_postpone: { zh: "推迟", en: "Postpone" },

@@ -98,7 +98,7 @@ export default function ProtocolRehearsal({
                 {tr(STEP_TITLE[0])}
               </p>
               <div className="mt-4 rounded-card border border-edge bg-white/60 p-5 text-left shadow-soft">
-                <p className="font-mono text-xs text-primary">WHEN</p>
+                <p className="font-mono text-xs text-primary">{tr("protocol_when_label")}</p>
                 <p className="mt-1 text-body leading-relaxed text-ink">
                   {tt(protocol.trigger.description)}
                 </p>
@@ -137,7 +137,7 @@ export default function ProtocolRehearsal({
                 {tr(STEP_TITLE[1])}
               </p>
               <div className="mt-4 rounded-card border border-edge bg-white/60 p-5 text-left shadow-soft">
-                <p className="font-mono text-xs text-sage">THEN</p>
+                <p className="font-mono text-xs text-sage">{tr("protocol_then_label")}</p>
                 <p className="mt-1 text-body leading-relaxed text-ink">
                   {tt(protocol.action.description)}
                 </p>

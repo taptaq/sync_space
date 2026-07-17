@@ -4,6 +4,7 @@ import { ChevronRight, History } from "lucide-react";
 import TrendChart from "@/components/climate/TrendChart";
 import SupportRulePanel from "@/components/understand/SupportRulePanel";
 import CaptureInbox from "@/components/understand/CaptureInbox";
+import EnergyArchive from "@/components/climate/EnergyArchive";
 import { useStore } from "@/store/useStore";
 import { useVoice, useT } from "@/lib/i18n";
 
@@ -56,6 +57,9 @@ export default function Climate() {
         </summary>
         <TrendChart checkins={checkins} executions={executions} />
       </details>
+
+      {/* ASD 能量档案 · 理解什么能让自己充电 */}
+      {neuroType === "asd" && !isParent && <EnergyArchive />}
     </div>
   );
 }

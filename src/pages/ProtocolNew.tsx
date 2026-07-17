@@ -345,7 +345,7 @@ export default function ProtocolNew() {
           {tr("protocol_new_preview")}
         </p>
         <p className="font-mono text-xs text-primary">
-          WHEN · {autoTriggerDesc}
+          {tr("protocol_when_label")} · {autoTriggerDesc}
         </p>
         <p className="mt-1.5 text-body text-ink">
           {actionDesc || tr("protocol_new_action_placeholder")}

@@ -30,6 +30,9 @@ import QuickCapture from "@/components/today/QuickCapture";
 import ClimateFamiliar from "@/components/weather/ClimateFamiliar";
 import ActionRunner from "@/components/today/ActionRunner";
 import FocusStartCard from "@/components/today/FocusStartCard";
+import HyperfocusGuard from "@/components/today/HyperfocusGuard";
+import SensoryBattery from "@/components/today/SensoryBattery";
+import TomorrowPreview from "@/components/today/TomorrowPreview";
 
 // 今日页 · 卡住时的即时帮助
 // 理念：现在怎样 → 做一件事 → 有没有用
@@ -191,8 +194,13 @@ export default function Today() {
         <ClimateFamiliar phase={currentPhase} size={64} />
       </div>
 
-      {/* 0.6 专注模式：5 分钟微启动 + 保护 hyperfocus（抑制后台推送） */}
+      {/* 0.55 ASD 友好直觉化：感官预算电池 + 明日预告（早期意识区） */}
+      {!isParentProxy && <SensoryBattery />}
+      {!isParentProxy && <TomorrowPreview />}
+
+      {/* 0.6 专注模式：5 分钟微启动 + ADHD hyperfocus 保护 */}
       {sessionMode === "focus" && !isParentProxy && <FocusStartCard />}
+      {sessionMode === "focus" && !isParentProxy && neuroType === "adhd" && <HyperfocusGuard />}
 
       {/* 1. ASD 累积期主动提示低感官（拒绝后本次累积期不再弹） */}
       {showLowSensoryPrompt && (
@@ -392,6 +400,8 @@ export default function Today() {
           <ChevronRight size={15} className="text-ink-faint" />
         </button>
       )}
+
+      {/* 兴趣沉浸计时已移至理解页 · ASD 能量档案 */}
 
     </div>
   );

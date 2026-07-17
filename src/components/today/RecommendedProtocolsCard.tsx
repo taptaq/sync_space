@@ -94,7 +94,7 @@ export default function RecommendedProtocolsCard() {
                 {tt(p.action.description)}
               </p>
               <p className="truncate text-xs text-ink-faint">
-                WHEN · {tt(p.trigger.description)}
+                {tr("protocol_when_label")} · {tt(p.trigger.description)}
               </p>
             </div>
             <span className="shrink-0 text-xs text-primary">{tr("recommended_execute")}</span>

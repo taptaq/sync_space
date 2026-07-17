@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "r
 import { AnimatePresence, motion } from "framer-motion";
 import { useStore } from "@/store/useStore";
 import { useCloudInit } from "@/hooks/useCloudInit";
+import { useReminderScheduler } from "@/lib/reminderScheduler";
 import AppShell from "@/components/layout/AppShell";
 import Toast from "@/components/common/Toast";
 import ProtocolTrigger from "@/components/protocol/ProtocolTrigger";
@@ -135,6 +136,8 @@ function AnimatedRoutes() {
 
 export default function App() {
   const cloudStatus = useCloudInit();
+  // PWA 每日锚点提醒：全局挂载一次，命中时点推送系统通知
+  useReminderScheduler();
 
   // Supabase 初始化中：显示加载屏（仅配置了 Supabase 时出现）
   if (cloudStatus === "loading") {

@@ -96,6 +96,16 @@ interface StoreState {
   // 协议执行效果反馈（PRD §09 反馈闭环 · 执行后延时询问是否有效）
   pendingFeedbackExecId: string | null;
 
+  // PWA 每日锚点提醒（早/午/晚 3 个时点 · Notification API）
+  reminderEnabled: boolean;
+  reminderTimes: { morning: string; noon: string; evening: string };
+  setReminderEnabled: (enabled: boolean) => void;
+  setReminderTimes: (times: { morning: string; noon: string; evening: string }) => void;
+
+  // 兴趣沉浸计时（ASD 能量来源 · 不只是追卡住也追充电）
+  interestSessions: { id: string; topic: string; started_at: string; duration_sec: number }[];
+  addInterestSession: (topic: string, durationSec: number) => void;
+
   // Toast（PRD §09：所有保存/操作成功或失败都有轻量 toast）
   toasts: ToastMessage[];
 
@@ -227,6 +237,27 @@ export const useStore = create<StoreState>()(
       soundScapeEnabled: false,
 
       pendingFeedbackExecId: null,
+
+      // PWA 提醒：默认开（如系统不支持会静默失败）
+      reminderEnabled: false,
+      reminderTimes: { morning: "09:00", noon: "14:00", evening: "20:00" },
+      setReminderEnabled: (enabled) => set({ reminderEnabled: enabled }),
+      setReminderTimes: (times) => set({ reminderTimes: times }),
+
+      // 兴趣沉浸记录
+      interestSessions: [],
+      addInterestSession: (topic, durationSec) =>
+        set((state) => ({
+          interestSessions: [
+            ...state.interestSessions,
+            {
+              id: genId("interest"),
+              topic,
+              started_at: new Date().toISOString(),
+              duration_sec: durationSec,
+            },
+          ],
+        })),
 
       toasts: [],
 
@@ -795,6 +826,9 @@ export const useStore = create<StoreState>()(
           soundScapeType: null,
           soundScapeVolume: 0.3,
           soundScapeEnabled: false,
+          reminderEnabled: false,
+          reminderTimes: { morning: "09:00", noon: "14:00", evening: "20:00" },
+          interestSessions: [],
           toasts: [],
         });
         // 同步清空云端数据（fire-and-forget）
@@ -829,6 +863,9 @@ export const useStore = create<StoreState>()(
         soundScapeType: state.soundScapeType,
         soundScapeVolume: state.soundScapeVolume,
         soundScapeEnabled: state.soundScapeEnabled,
+        reminderEnabled: state.reminderEnabled,
+        reminderTimes: state.reminderTimes,
+        interestSessions: state.interestSessions,
       }),
     },
   ),

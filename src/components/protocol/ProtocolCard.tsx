@@ -56,7 +56,7 @@ export default function ProtocolCard({ protocol }: { protocol: Protocol }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="font-mono text-xs text-primary">
-            WHEN · {tt(protocol.trigger.description)}
+            {tr("protocol_when_label")} · {tt(protocol.trigger.description)}
           </p>
           {bandLabel && (
             <p className="mt-0.5 text-xs text-ink-faint">

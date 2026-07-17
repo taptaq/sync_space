@@ -392,7 +392,7 @@ export default function Screen() {
                   transition={{ delay: i * 0.05, duration: 0.25 }}
                   className="rounded-card border border-dashed-candidate bg-white/40 p-4"
                 >
-                  <p className="font-mono text-xs text-primary">THEN</p>
+                  <p className="font-mono text-xs text-primary">{tr("protocol_then_label")}</p>
                   <p className="mt-1.5 text-body leading-relaxed text-ink">
                     {tt(proto)}
                   </p>
