@@ -2,10 +2,11 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "r
 import { AnimatePresence, motion } from "framer-motion";
 import { useStore } from "@/store/useStore";
 import { useCloudInit } from "@/hooks/useCloudInit";
-import { useReminderScheduler } from "@/lib/reminderScheduler";
+import { useReminderScheduler, usePostponedTriggerRecheck } from "@/lib/reminderScheduler";
 import AppShell from "@/components/layout/AppShell";
 import Toast from "@/components/common/Toast";
 import ProtocolTrigger from "@/components/protocol/ProtocolTrigger";
+import FeedbackPrompt from "@/components/today/FeedbackPrompt";
 import Onboarding from "@/pages/Onboarding";
 import Today from "@/pages/Today";
 import Climate from "@/pages/Climate";
@@ -138,6 +139,8 @@ export default function App() {
   const cloudStatus = useCloudInit();
   // PWA 每日锚点提醒：全局挂载一次，命中时点推送系统通知
   useReminderScheduler();
+  // 推迟协议重弹：30 分钟到点后重新激活触发器（PRD §07：先记后弹）
+  usePostponedTriggerRecheck();
 
   // Supabase 初始化中：显示加载屏（仅配置了 Supabase 时出现）
   if (cloudStatus === "loading") {
@@ -156,9 +159,10 @@ export default function App() {
       <AppShell>
         <AnimatedRoutes />
       </AppShell>
-      {/* 全局挂载：Toast 通知 + 协议触发推送（PRD §09：始终在最上层） */}
+      {/* 全局挂载：Toast 通知 + 协议触发推送 + 执行后反馈询问（PRD §09：始终在最上层） */}
       <Toast />
       <ProtocolTrigger />
+      <FeedbackPrompt />
     </Router>
   );
 }

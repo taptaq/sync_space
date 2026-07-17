@@ -174,10 +174,14 @@ function ActionDoneButton({ onDone }: { onDone: () => void }) {
 // ============ 5 分钟倒计时面板 ============
 function MicroStartPanel({ label, description, onClose }: { label: string; description: string; onClose: () => void }) {
   const { tr } = useT();
+  const addCapture = useStore((s) => s.addCapture);
+  const pushToast = useStore((s) => s.pushToast);
   const [seconds, setSeconds] = useState(300);
   const [running, setRunning] = useState(false);
   const [finished, setFinished] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // 防止 React StrictMode 双调用导致重复落盘
+  const loggedRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -193,6 +197,12 @@ function MicroStartPanel({ label, description, onClose }: { label: string; descr
           if (intervalRef.current) clearInterval(intervalRef.current);
           setFinished(true);
           setRunning(false);
+          // 落盘：完成一次微启动即产生效果数据（收件箱 → 规则形成线）
+          if (!loggedRef.current) {
+            loggedRef.current = true;
+            addCapture(tr("action_micro_start_logged"));
+            pushToast("success", tr("action_micro_start_logged"));
+          }
           return 0;
         }
         return prev - 1;

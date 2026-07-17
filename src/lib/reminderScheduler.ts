@@ -84,3 +84,23 @@ export function useReminderScheduler(): void {
 export async function requestReminderPermission(): Promise<boolean> {
   return ensurePermission();
 }
+
+// 推迟协议重弹调度器
+//
+// 工作原理：
+// - 每 30 秒检查一次是否有待重弹的 postponedTrigger
+// - 当当前时间 ≥ fireAfter 时，调用 checkPostponedTrigger 重新激活触发器
+// - 应用重新挂载（如从后台恢复/重开）时也会立刻检查一次，避免错过时点
+// - 每日上限 3 次仍由 store 内 checkPostponedTrigger 遵守
+//
+// 调用方式：在 App 顶层 usePostponedTriggerRecheck() 一次即可
+export function usePostponedTriggerRecheck(): void {
+  const checkPostponedTrigger = useStore((s) => s.checkPostponedTrigger);
+
+  useEffect(() => {
+    // 立刻检查一次（覆盖应用重开场景）
+    checkPostponedTrigger();
+    const timer = window.setInterval(checkPostponedTrigger, CHECK_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [checkPostponedTrigger]);
+}

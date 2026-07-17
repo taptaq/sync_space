@@ -78,7 +78,7 @@ export default function SensoryBattery() {
     trend > 0 ? tr("sensory_battery_trend_up") : trend < 0 ? tr("sensory_battery_trend_down") : null;
 
   return (
-    <section className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
+    <section data-tour-id="sensory-battery" className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
       <div className="flex items-start gap-3">
         <div
           className={cn(

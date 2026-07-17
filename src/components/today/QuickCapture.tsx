@@ -42,7 +42,7 @@ export default function QuickCapture() {
     const minutes = remaining === null ? null : Math.floor(remaining / 60);
     const seconds = remaining === null ? null : remaining % 60;
     return (
-      <section className="rounded-card border border-primary/20 bg-white/55 p-5">
+      <section data-tour-id="quick-capture" className="rounded-card border border-primary/20 bg-white/55 p-5">
         <p className="text-xs font-medium text-primary">{tr("quick_capture_focus_label")}</p>
         <p className="mt-2 text-base font-medium leading-relaxed text-ink">{focusItem.text}</p>
         <p className="mt-1 text-xs text-ink-muted">{tr("quick_capture_focus_hint")}</p>
@@ -71,7 +71,7 @@ export default function QuickCapture() {
   }
 
   return (
-    <section className="rounded-card border border-edge bg-white/45 p-4">
+    <section data-tour-id="quick-capture" className="rounded-card border border-edge bg-white/45 p-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-ink">{tr("quick_capture_inbox_title")}</p>

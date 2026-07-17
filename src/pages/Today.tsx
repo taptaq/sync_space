@@ -33,6 +33,7 @@ import FocusStartCard from "@/components/today/FocusStartCard";
 import HyperfocusGuard from "@/components/today/HyperfocusGuard";
 import SensoryBattery from "@/components/today/SensoryBattery";
 import TomorrowPreview from "@/components/today/TomorrowPreview";
+import NeuroOnboardingGuide from "@/components/today/NeuroOnboardingGuide";
 
 // 今日页 · 卡住时的即时帮助
 // 理念：现在怎样 → 做一件事 → 有没有用
@@ -152,6 +153,8 @@ export default function Today() {
 
   return (
     <div className="space-y-5">
+      {/* 神经特质新手引导 · 首次进入 Today 显示一次 */}
+      <NeuroOnboardingGuide />
       {/* 0. 顶部：特殊模式退出 + 专注入口 + 设置 */}
       <div className="flex items-center justify-between pt-5">
         <div className="flex items-center gap-2">
@@ -166,6 +169,7 @@ export default function Today() {
           ) : (
             !isParentProxy && (
               <button
+                data-tour-id="focus-mode-entry"
                 onClick={() => handleModeSwitch("focus")}
                 className="flex items-center gap-1.5 rounded-full border border-edge bg-white/40 px-3 py-1.5 text-xs text-ink-muted transition-all duration-250 hover:bg-white/60"
                 title={tr("mode_focus")}
@@ -177,6 +181,7 @@ export default function Today() {
           )}
         </div>
         <button
+          data-tour-id="settings-entry"
           onClick={() => navigate("/settings")}
           className="flex h-9 w-9 items-center justify-center rounded-full border border-edge bg-white/40 text-ink-muted transition-all duration-250 hover:bg-white/60 hover:text-ink"
           aria-label={tr("settings_title")}
@@ -247,7 +252,7 @@ export default function Today() {
 
       {/* 2. 困难类型入口（"你现在卡在哪？"）· 简化版 */}
       {showDifficultyEntry && !isParentProxy && (
-        <div className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
+        <div data-tour-id="difficulty-entry" className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
           <h2 className="mb-4 font-serif text-lg text-ink">{tr("today_stuck_question")}</h2>
           <div className="space-y-2">
             {visibleTypes.map((type) => {

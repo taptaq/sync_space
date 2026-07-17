@@ -331,6 +331,7 @@ export const STRINGS = {
   action_timer_running: { zh: "进行中 · 做不下去随时可停", en: "Running · you can stop anytime" },
   action_timer_ready: { zh: "按下开始 · 只做 5 分钟", en: "Press start · just 5 minutes" },
   action_timer_finished: { zh: "5 分钟到了 · 很棒", en: "5 minutes done · great" },
+  action_micro_start_logged: { zh: "完成 5 分钟微启动 · 已记入收件箱", en: "Completed 5-min micro-start · logged to inbox" },
   action_calc_remaining: { zh: "计算剩余时间", en: "Calculate remaining time" },
   action_remaining_label: { zh: "距离截止还有", en: "Remaining until deadline" },
   action_deadline_passed: { zh: "已过期", en: "Deadline passed" },
@@ -414,6 +415,34 @@ export const STRINGS = {
   hyperfocus_reminder_snooze: { zh: "好，喝口水", en: "Okay, water break" },
   hyperfocus_reminder_dismiss: { zh: "继续专注", en: "Keep going" },
 
+  // 神经特质新手引导
+  guide_skip: { zh: "跳过引导", en: "Skip tour" },
+  guide_start: { zh: "开始用", en: "Get started" },
+
+  // ASD 引导步骤
+  guide_asd_battery_title: { zh: "一眼看出感官预算", en: "See your sensory budget at a glance" },
+  guide_asd_battery_body: { zh: "首页会显示一个电池，绿橙红三档，不用看数字就知道现在该不该减速。基于你今天的签到自动算出。", en: "A battery on the home page shows green/orange/red — you'll know whether to slow down without reading numbers. Auto-calculated from today's check-ins." },
+  guide_asd_tomorrow_title: { zh: "明天会怎样，提前知道", en: "Know what tomorrow looks like, ahead of time" },
+  guide_asd_tomorrow_body: { zh: "基于你过去同一天的签到规律，App 会预告明天哪个时段你通常会累积。把不确定变成可预期，本身就是安抚。", en: "Based on your past check-ins on the same weekday, the app previews which time slot tomorrow you usually start accumulating. Turning uncertainty into predictability is itself soothing." },
+  guide_asd_energy_title: { zh: "记录什么能让你充电", en: "Track what recharges you" },
+  guide_asd_energy_body: { zh: "到「理解」页底部，记录你在热爱的事里沉浸了多久。App 会按话题聚合，帮你看清什么最能让你的电量回升。", en: "In the Understand page, log how long you immerse in what you love. The app aggregates by topic so you can see what lifts your battery most." },
+  guide_asd_lowsensory_title: { zh: "提前降载比过载后轻松", en: "Reducing load early is easier than after overload" },
+  guide_asd_lowsensory_body: { zh: "感官在累积时 App 会主动提示你开低感官模式。过载时 App 替你做决定——直接给 1 个动作，不让你选。", en: "When sensory input is building, the app proactively suggests low-sensory mode. At overload, it decides for you — gives you 1 action, no choices." },
+
+  // ADHD 引导步骤
+  guide_adhd_inbox_title: { zh: "脑子堵了？先倒出来", en: "Brain clogged? Empty it out first" },
+  guide_adhd_inbox_body: { zh: "首页顶部有个快速收件箱。任何想法、提醒、突然冒出的念头，随时丢进去。不要求分类、不要求立即完成。先倒出来，脑子就不堵了。", en: "A quick inbox sits at the top of the home page. Drop any thought, reminder, or random idea in. No sorting, no immediate action required. Just get it out of your head." },
+  guide_adhd_micro_start_title: { zh: "启动不了？只做 5 分钟", en: "Can't start? Just 5 minutes" },
+  guide_adhd_micro_start_body: { zh: "选「启动」困难，第一个动作是 5 分钟微启动。做不下去就停，不算失败。App 内置倒计时，按下开始才计时。", en: "Pick the \"Starting\" difficulty and the first action is a 5-minute micro-start. Stop if you can't continue — it's not a failure. Built-in timer starts only when you press start." },
+  guide_adhd_hyperfocus_title: { zh: "进入专注后，App 替你照顾身体", en: "When you're in hyperfocus, the app looks after your body" },
+  guide_adhd_hyperfocus_body: { zh: "点「专注」按钮进入专注模式，每 30 分钟会温和提醒你喝口水、站起来。不打断你，只提供出口。点「继续专注」就好。", en: "Tap \"Focus\" to enter focus mode. Every 30 minutes you'll get a gentle nudge to drink water or stretch. It won't interrupt you — just offers an exit. Tap \"Keep going\" to continue." },
+  guide_adhd_no_streak_title: { zh: "没有连续天数，断了不归零", en: "No streaks — a break doesn't reset you" },
+  guide_adhd_no_streak_body: { zh: "SyncSpace 故意去掉了 streak 连续天数。传统打卡对 ADHD 是有害的——一次断签会导致整个放弃。这里只记「这条规则过去 30 天用了 X 次，Y% 有用」。", en: "SyncSpace intentionally removes streaks. Traditional streaks harm ADHD users — one missed day can trigger all-or-nothing abandonment. Here we only record \"this rule was used X times in the past 30 days, Y% helpful.\"" },
+
+  // 其他特质引导
+  guide_other_explore_title: { zh: "ASD 和 ADHD 的工具都对你开放", en: "Both ASD and ADHD tools are open to you" },
+  guide_other_explore_body: { zh: "不确定自己的特质也没关系。你可以同时用两边的工具——感官降载、快速收件箱、5 分钟微启动、专注保护、兴趣沉浸。按需选用，随时在设置里切换特质。", en: "It's okay if you're unsure of your neurotype. You can use tools from both sides — low-sensory mode, quick inbox, 5-minute micro-start, focus guard, interest immersion. Use what you need, switch neurotype in Settings anytime." },
+
   // 模式系统
   mode_focus: { zh: "专注", en: "Focus" },
   mode_low_sensory: { zh: "低感官", en: "Low-sensory" },
@@ -450,6 +479,14 @@ export const STRINGS = {
   feedback_helpful: { zh: "有帮助", en: "Helpful" },
   feedback_neutral: { zh: "一般", en: "Neutral" },
   feedback_unhelpful: { zh: "没帮助", en: "Unhelpful" },
+
+  // ===== 协议聚合效果分（Climate 页） =====
+  protocol_effect_title: { zh: "协议效果", en: "Protocol effectiveness" },
+  protocol_effect_empty: { zh: "还没有执行过协议。下次协议触发时点「开始」，执行完告诉 App 有没有用——渐渐地你会看清哪些约定真正帮到你。", en: "No protocols executed yet. Next time one triggers, tap \"Start\" — then tell the app whether it helped. Over time you'll see which contracts truly work for you." },
+  protocol_effect_uses: { zh: "{count} 次", en: "{count} uses" },
+  protocol_effect_helpful_pct: { zh: "{percent}% 有效", en: "{percent}% helpful" },
+  protocol_effect_no_feedback: { zh: "还没有反馈数据", en: "No feedback yet" },
+  protocol_effect_feedback_detail: { zh: "{helpful}/{total} 次反馈为有用", en: "{helpful}/{total} feedback marked helpful" },
 
   // ===== Disclaimer / Settings =====
   low_sensory_toast_on: { zh: "已开启低感官模式", en: "Low-sensory mode on" },

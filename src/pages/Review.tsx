@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronRight, Clock, Filter, Zap } from "lucide-react";
+import { ArrowLeft, ChevronRight, Clock, Filter, Zap } from "lucide-react";
 import type { TimelineEntry } from "@/types";
 import { useStore } from "@/store/useStore";
 import { formatDateTime, formatTime, relativeTime } from "@/lib/format";
@@ -76,19 +76,29 @@ export default function Review() {
   const unreviewedCrash = crashMarks.find((c) => !c.reviewed);
 
   return (
-    <div className="space-y-5 pt-10">
-      <motion.header
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className="px-1"
+    <div className="space-y-5 pt-6">
+      {/* 顶部导航：返回按钮 */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-edge bg-white/50 text-ink-muted transition-all duration-250 hover:bg-white/80"
+        >
+          <ArrowLeft size={18} />
+        </button>
+        <div>
+          <p className="text-xs uppercase tracking-widest text-primary">{tr("review_header_label")}</p>
+          <p className="font-serif text-xl text-ink">{tr("review_title")}</p>
+        </div>
+      </div>
+
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, delay: 0.05 }}
+        className="px-1 text-small text-ink-muted"
       >
-        <p className="text-xs uppercase tracking-widest text-primary">{tr("review_header_label")}</p>
-        <h1 className="mt-1 font-serif text-3xl text-ink">{tr("review_title")}</h1>
-        <p className="mt-1 text-small text-ink-muted">
-          {tr("review_desc")}
-        </p>
-      </motion.header>
+        {tr("review_desc")}
+      </motion.p>
 
       {/* 待复盘提示（PRD：崩溃标记后下次打开温和提示） */}
       {unreviewedCrash && (

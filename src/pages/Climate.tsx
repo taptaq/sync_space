@@ -5,6 +5,7 @@ import TrendChart from "@/components/climate/TrendChart";
 import SupportRulePanel from "@/components/understand/SupportRulePanel";
 import CaptureInbox from "@/components/understand/CaptureInbox";
 import EnergyArchive from "@/components/climate/EnergyArchive";
+import ProtocolEffectivenessCard from "@/components/climate/ProtocolEffectivenessCard";
 import { useStore } from "@/store/useStore";
 import { useVoice, useT } from "@/lib/i18n";
 
@@ -37,6 +38,9 @@ export default function Climate() {
       {neuroType === "adhd" && <CaptureInbox />}
 
       <SupportRulePanel />
+
+      {/* 协议聚合效果分 · 与支持规则线对称 */}
+      <ProtocolEffectivenessCard />
 
       <button
         type="button"

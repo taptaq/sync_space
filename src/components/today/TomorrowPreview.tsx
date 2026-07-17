@@ -15,7 +15,7 @@ export default function TomorrowPreview() {
   if (!forecast) return null;
 
   return (
-    <section className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
+    <section data-tour-id="tomorrow-preview" className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
       <div className="flex items-start gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sage-mist/50 text-sage">
           <Sunrise size={18} />

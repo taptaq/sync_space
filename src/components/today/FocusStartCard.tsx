@@ -51,7 +51,7 @@ export default function FocusStartCard() {
   const seconds = secondsLeft % 60;
 
   return (
-    <section className="rounded-card border border-sage/30 bg-sage-mist/30 p-5">
+    <section data-tour-id="focus-start-card" className="rounded-card border border-sage/30 bg-sage-mist/30 p-5">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-medium text-sage">{tr("focus_title")}</p>

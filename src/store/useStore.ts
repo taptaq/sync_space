@@ -63,6 +63,8 @@ interface StoreState {
   activeTrigger: ActiveTrigger | null;
   triggerCountToday: number;
   triggerDateKey: string; // 用于每日重置
+  // 推迟后等待重弹的触发器（含重弹时间戳）
+  postponedTrigger: { trigger: ActiveTrigger; fireAfter: string } | null;
 
   // 神经特质自评画像（PRD §11 非诊断 · 补充画像）
   traitProfile: TraitProfile | null;
@@ -102,6 +104,10 @@ interface StoreState {
   setReminderEnabled: (enabled: boolean) => void;
   setReminderTimes: (times: { morning: string; noon: string; evening: string }) => void;
 
+  // 神经特质新手引导（首次进入 Today 显示一次）
+  hasSeenNeuroGuide: boolean;
+  setHasSeenNeuroGuide: (seen: boolean) => void;
+
   // 兴趣沉浸计时（ASD 能量来源 · 不只是追卡住也追充电）
   interestSessions: { id: string; topic: string; started_at: string; duration_sec: number }[];
   addInterestSession: (topic: string, durationSec: number) => void;
@@ -136,6 +142,7 @@ interface StoreState {
   deleteProtocol: (id: string) => void;
   executeProtocol: (id: string) => void;
   postponeProtocol: (id: string) => void;
+  checkPostponedTrigger: () => void;
   dismissTrigger: () => void;
   setActiveTrigger: (trigger: ActiveTrigger) => void;
   submitFeedback: (
@@ -214,6 +221,7 @@ export const useStore = create<StoreState>()(
       currentWeather: defaultWeather(),
 
       activeTrigger: null,
+      postponedTrigger: null,
       triggerCountToday: 0,
       triggerDateKey: todayKey(),
 
@@ -243,6 +251,10 @@ export const useStore = create<StoreState>()(
       reminderTimes: { morning: "09:00", noon: "14:00", evening: "20:00" },
       setReminderEnabled: (enabled) => set({ reminderEnabled: enabled }),
       setReminderTimes: (times) => set({ reminderTimes: times }),
+
+      // 神经特质新手引导
+      hasSeenNeuroGuide: false,
+      setHasSeenNeuroGuide: (seen) => set({ hasSeenNeuroGuide: seen }),
 
       // 兴趣沉浸记录
       interestSessions: [],
@@ -431,6 +443,9 @@ export const useStore = create<StoreState>()(
       },
 
       postponeProtocol: (id) => {
+        const now = Date.now();
+        const fireAfter = new Date(now + 30 * 60 * 1000).toISOString();
+        const currentTrigger = get().activeTrigger;
         set((state) => ({
           executions: [
             {
@@ -444,11 +459,36 @@ export const useStore = create<StoreState>()(
             ...state.executions,
           ],
           activeTrigger: null,
+          // 保存推迟的触发器 · 30 分钟后重弹（PRD §07：先记后弹）
+          postponedTrigger: currentTrigger ? { trigger: currentTrigger, fireAfter } : null,
         }));
         get().pushToast("info", "已推迟，30 分钟后再提醒你");
       },
 
-      dismissTrigger: () => set({ activeTrigger: null }),
+      // 重弹检查：当当前时间 ≥ fireAfter 时，重新激活触发器（每日上限仍生效）
+      checkPostponedTrigger: () => {
+        const { postponedTrigger, activeTrigger, triggerCountToday, triggerDateKey } = get();
+        if (!postponedTrigger || activeTrigger) return;
+        if (Date.now() < new Date(postponedTrigger.fireAfter).getTime()) return;
+        // 每日上限 3 次仍需遵守 · 超出则放弃重弹
+        const key = todayKey();
+        const countToday = key === triggerDateKey ? triggerCountToday : 0;
+        if (countToday >= 3) {
+          set({ postponedTrigger: null });
+          return;
+        }
+        set({
+          activeTrigger: {
+            ...postponedTrigger.trigger,
+            triggeredAt: new Date().toISOString(),
+          },
+          postponedTrigger: null,
+          triggerCountToday: countToday + 1,
+          triggerDateKey: key,
+        });
+      },
+
+      dismissTrigger: () => set({ activeTrigger: null, postponedTrigger: null }),
 
       setActiveTrigger: (trigger) => set({ activeTrigger: trigger }),
 
@@ -813,6 +853,7 @@ export const useStore = create<StoreState>()(
           ruleSeed: null,
           currentWeather: defaultWeather(),
           activeTrigger: null,
+          postponedTrigger: null,
           triggerCountToday: 0,
           triggerDateKey: todayKey(),
           traitProfile: null,
@@ -828,6 +869,7 @@ export const useStore = create<StoreState>()(
           soundScapeEnabled: false,
           reminderEnabled: false,
           reminderTimes: { morning: "09:00", noon: "14:00", evening: "20:00" },
+          hasSeenNeuroGuide: false,
           interestSessions: [],
           toasts: [],
         });
@@ -865,7 +907,9 @@ export const useStore = create<StoreState>()(
         soundScapeEnabled: state.soundScapeEnabled,
         reminderEnabled: state.reminderEnabled,
         reminderTimes: state.reminderTimes,
+        hasSeenNeuroGuide: state.hasSeenNeuroGuide,
         interestSessions: state.interestSessions,
+        postponedTrigger: state.postponedTrigger,
       }),
     },
   ),
