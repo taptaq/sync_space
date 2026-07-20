@@ -529,6 +529,15 @@ export const STRINGS = {
   feedback_neutral: { zh: "一般", en: "Neutral" },
   feedback_unhelpful: { zh: "没帮助", en: "Unhelpful" },
 
+  // ===== NextActionPrompt · 合并 feedback + 下一步（ADHD 计划延续启动） =====
+  next_action_title: { zh: "下一步做点什么？", en: "What's next?" },
+  next_action_helpful_repeat: { zh: "有用，再做一次", en: "Helpful — do it again" },
+  next_action_helpful_hint: { zh: "重新启动同一协议", en: "Restart the same protocol" },
+  next_action_neutral_switch: { zh: "一般，换一个试试", en: "Neutral — try another" },
+  next_action_neutral_hint: { zh: "去协议列表挑一个新的", en: "Pick a different one from the list" },
+  next_action_unhelpful_rest: { zh: "没用，先停下休息", en: "Didn't help — rest a bit" },
+  next_action_unhelpful_hint: { zh: "不强迫自己，停顿也是策略", en: "Pausing is also a strategy" },
+
   // ===== 协议聚合效果分（Climate 页） =====
   protocol_effect_title: { zh: "协议效果", en: "Protocol effectiveness" },
   protocol_effect_empty: { zh: "还没有执行过协议。下次协议触发时点「开始」，执行完告诉 App 有没有用——渐渐地你会看清哪些约定真正帮到你。", en: "No protocols executed yet. Next time one triggers, tap \"Start\" — then tell the app whether it helped. Over time you'll see which contracts truly work for you." },
@@ -536,6 +545,31 @@ export const STRINGS = {
   protocol_effect_helpful_pct: { zh: "{percent}% 有效", en: "{percent}% helpful" },
   protocol_effect_no_feedback: { zh: "还没有反馈数据", en: "No feedback yet" },
   protocol_effect_feedback_detail: { zh: "{helpful}/{total} 次反馈为有用", en: "{helpful}/{total} feedback marked helpful" },
+
+  // ===== SupportRuleEffectivenessCard · 支持规则效果（补足 ProtocolEffectivenessCard 看不到 SupportRule 使用情况的问题） =====
+  support_rule_effect_title: { zh: "支持规则效果", en: "Support rule effectiveness" },
+  support_rule_effect_uses: { zh: "用过 {count} 次", en: "Used {count} times" },
+  support_rule_effect_connections: { zh: "自我 {self} · 对他人 {other}", en: "self {self} · other {other}" },
+  support_rule_effect_helpful_pct: { zh: "{percent}% 有用", en: "{percent}% helpful" },
+  support_rule_effect_no_feedback: { zh: "暂无反馈", en: "No feedback yet" },
+
+  // ===== ClimateInsightsCard · 模式识别洞察（ASD 多巴胺奖励：识别一个模式） =====
+  insight_title: { zh: "你的模式", en: "Your patterns" },
+  insight_protocol_streak: { zh: "「{action}」最近 {n} 次都对你有用 — 这条真的帮到你。", en: "\"{action}\" helped you the last {n} times — this one really works for you." },
+  insight_rule_bridge: { zh: "「{trigger}」你既留给自己，也说给别人 — 你正在把对自己的理解也传递出去。", en: "\"{trigger}\" — you've kept it for yourself and told others. You're passing your self-understanding outward." },
+  insight_rule_helpful: { zh: "「{trigger}」已经帮你 {n} 次 — 你和这条规则之间有了信任。", en: "\"{trigger}\" has helped you {n} times — you and this rule have built trust." },
+
+  // ===== Climate 页统计折叠区标题 =====
+  climate_stats_summary: { zh: "数据与回顾", en: "Stats & review" },
+
+  // ===== WeeklyMilestoneCard · 本周回顾小卡（不上 streak 惩罚，只是回顾） =====
+  weekly_title: { zh: "本周回顾", en: "This week" },
+  weekly_checkin: { zh: "签到", en: "Check-ins" },
+  weekly_protocol: { zh: "协议执行", en: "Protocols" },
+  weekly_self: { zh: "看见自己", en: "Self-connection" },
+  weekly_other: { zh: "说给别人", en: "Other-connection" },
+  weekly_count: { zh: "{n} 次", en: "{n}" },
+  weekly_sunday_hint: { zh: "周日了 · 这周你做了 {total} 件照顾自己的事。", en: "It's Sunday — you did {total} self-care actions this week." },
 
   // ===== Disclaimer / Settings =====
   low_sensory_toast_on: { zh: "已开启低感官模式", en: "Low-sensory mode on" },
@@ -655,6 +689,39 @@ export const STRINGS = {
   connection_msg_quick_send: { zh: "我现在有点卡住了（{signal}）。如果你能{support}，会对我很有帮助。谢谢你在旁边。", en: "I'm a bit stuck right now ({signal}). It would really help if you could {support}. Thanks for being here." },
   connection_mode_self: { zh: "留给自己", en: "Keep for myself" },
   connection_mode_other: { zh: "说给别人", en: "Tell someone" },
+  connection_mode_self_hint: { zh: "看见信号，默念理解，给自己 30 秒", en: "See the signal, read the understanding, give yourself 30s" },
+  connection_mode_other_hint: { zh: "整理成一段可复制的话", en: "Turn it into a message you can copy" },
+  connection_switch_mode: { zh: "切换模式", en: "Switch mode" },
+  connection_recipient_label: { zh: "这次想说给谁", en: "Who is this for" },
+  connection_recipient_family: { zh: "家人", en: "Family" },
+  connection_recipient_partner: { zh: "伴侣", en: "Partner" },
+  connection_recipient_friend: { zh: "朋友", en: "Friend" },
+  connection_recipient_colleague: { zh: "同事", en: "Colleague" },
+  connection_recipient_other: { zh: "其他", en: "Other" },
+  connection_self_step3_redo: { zh: "再来一次 30 秒", en: "Do another 30s" },
+  connection_empty_cta: { zh: "点按去建立第一条", en: "Tap to create your first one" },
+
+  // ===== AI 生成话术（self 换个理解 / other 帮我写草稿） =====
+  connection_ai_self_btn: { zh: "AI 帮我换个角度", en: "AI: new perspective" },
+  connection_ai_other_btn: { zh: "AI 帮我写", en: "AI: write for me" },
+  connection_ai_loading: { zh: "正在生成...", en: "Generating..." },
+  connection_ai_new_understanding: { zh: "AI 给你的新理解", en: "A new perspective from AI" },
+  connection_ai_success: { zh: "已生成 · 可继续编辑", en: "Generated · you can edit" },
+  connection_ai_template: { zh: "已生成模板 · 可继续编辑", en: "Template generated · you can edit" },
+  connection_ai_failed: { zh: "生成失败，请稍后再试", en: "Generation failed, try again later" },
+
+  // ===== 完成态 · 衔接下一步（ADHD 计划延续） =====
+  connection_completed_title: { zh: "记下这次连接了", en: "Recorded this connection" },
+  connection_completed_hint: { zh: "看见本身就是一种自我连接。要不要再来一次，或者换个地方看看？", en: "Seeing itself is self-connection. Want to do another, or look elsewhere?" },
+  connection_completed_again: { zh: "再来一次", en: "Do another" },
+  connection_completed_review: { zh: "看协议效果", en: "See effect" },
+  connection_completed_today: { zh: "回今日", en: "Back to today" },
+  connection_completed_toast: { zh: "已记录，谢谢你看见自己", en: "Recorded — thank you for seeing yourself" },
+  connection_self_count: { zh: "这是你第 {n} 次看见自己", en: "This is your {n}th time seeing yourself" },
+  connection_self_step2_empty: { zh: "还没写下对这条信号的理解。", en: "No understanding written for this signal yet." },
+  connection_self_step2_cta: { zh: "去「我的方法」补上 →", en: "Add it in My Methods →" },
+  connection_past_understandings: { zh: "AI 给你的新视角", en: "New perspectives from AI" },
+  connection_past_helpful_badge: { zh: "当时有用", en: "helpful then" },
   connection_label_rule: { zh: "这次使用哪条支持规则", en: "Which support rule to use" },
   connection_label_style: { zh: "这次怎样表达最省力", en: "Easiest way to express this time" },
   connection_style_short: { zh: "短消息", en: "Short message" },
@@ -961,6 +1028,8 @@ export const STRINGS = {
   // ===== CaptureInbox =====
   inbox_title: { zh: "收件箱 · 一次一条", en: "Inbox · One at a time" },
   inbox_remaining: { zh: "还有 {count} 条", en: "{count} more" },
+  inbox_state: { zh: "第 {current} / {total} 条", en: "{current} / {total}" },
+  inbox_queue_preview: { zh: "后面还有：", en: "Up next:" },
   inbox_prompt: { zh: "它现在更像什么？", en: "What does it look like now?" },
   inbox_next: { zh: "下一步", en: "Next" },
   inbox_to_understanding: { zh: "变成理解", en: "Turn into understanding" },
@@ -1103,8 +1172,28 @@ export const STRINGS = {
   // ===== QuickCapture =====
   quick_capture_add_label: { zh: "记一笔", en: "Capture a thought" },
   quick_capture_collapse: { zh: "收起", en: "Collapse" },
+
+  // ===== FocusBanner (ADHD) =====
+  adhd_focus_week_state: { zh: "本周：{checkins} 次签到 · {rules} 条规则 · {executions} 次执行", en: "This week: {checkins} check-ins · {rules} rules · {executions} runs" },
+  protocol_card_time_estimate: { zh: "约 {minutes} 分钟", en: "~{minutes} min" },
+  adhd_focus_capture_title: { zh: "先整理这一条", en: "Triage this first" },
+  adhd_focus_capture_body: { zh: "你收下了想法还没处理，先来过一遍", en: "You captured something unsorted. Let's go through it." },
+  adhd_focus_capture_cta: { zh: "去整理", en: "Triage" },
+  adhd_focus_checkin_title: { zh: "今天还没签到", en: "No check-in today" },
+  adhd_focus_checkin_body: { zh: "10 秒就知道自己在哪，不用想清楚再签", en: "10 seconds to know where you are. No need to figure it out first." },
+  adhd_focus_checkin_cta: { zh: "去签到", en: "Check in" },
+  adhd_focus_default_title: { zh: "今天已经在轨道上", en: "On track today" },
+  adhd_focus_default_body: { zh: "签到做完了，捕获也空了。可以挑一个协议试试", en: "Checked in, inbox clear. Maybe try a protocol." },
+  adhd_focus_default_cta: { zh: "看协议", en: "See protocols" },
   quick_capture_focus_label: { zh: "现在只做这一步", en: "Just this step now" },
   quick_capture_focus_hint: { zh: "这不是意志力考试，完成一小步也有效。", en: "This isn't a willpower test. A small step counts." },
+  quick_capture_focus_time_hint: { zh: "约 10 分钟 · 大概能写完一封邮件或回两条消息", en: "~10 min · enough for an email or two replies" },
+  quick_capture_added_toast: { zh: "已收下，共 {count} 条待整理", en: "Captured · {count} in inbox" },
+  quick_capture_next_toast: { zh: "已衔接下一条 · 不用想下一步该做什么", en: "Auto-advanced to the next one" },
+  quick_capture_celebrate_toast: { zh: "收件箱清空了 · 你做到了", en: "Inbox cleared — you did it" },
+  quick_capture_celebrate_title: { zh: "全部处理完了", en: "All caught up" },
+  quick_capture_celebrate_hint: { zh: "不是「做完所有事」，是「做了下一步」。给自己一个停顿。", en: "Not \"done everything\" — just \"done the next step\". Take a pause." },
+  quick_capture_celebrate_dismiss: { zh: "好的，知道了", en: "OK, got it" },
   quick_capture_time_up: { zh: "时间到了，可以继续，也可以停下", en: "Time's up. Continue or stop." },
   quick_capture_timer_option: { zh: "可选：10 分钟", en: "Optional: 10 min" },
   quick_capture_complete_toast: { zh: "完成了一小步，这就是有效推进", en: "Completed a small step — that's real progress" },
@@ -1125,6 +1214,19 @@ export const STRINGS = {
   recommended_execute: { zh: "立即执行", en: "Run now" },
   recommended_collapse: { zh: "收起其他选择", en: "Collapse" },
   recommended_more: { zh: "还有 {count} 个选择", en: "{count} more options" },
+
+  // ===== PostCheckinRecommendation · 签到完成 → 基于状态推协议（ADHD P1 改进3） =====
+  post_checkin_title: { zh: "刚签到完 · 下一步试试这个", en: "Just checked in — try this next" },
+  post_checkin_reason_phase: { zh: "当前处于「{phase}」阶段，下面这个协议可能更适合现在的你。", en: "You're in the {phase} phase. This one might fit your current state." },
+  post_checkin_start: { zh: "开始", en: "Start" },
+  post_checkin_swap: { zh: "换一个", en: "Try another" },
+  post_checkin_dismiss: { zh: "跳过", en: "Skip" },
+
+  // ===== IdleNudge · 卡住 5 分钟无活动时轻提示（ADHD P2 改进4） =====
+  idle_nudge_title: { zh: "好像停下来一会儿了", en: "Seems like you've paused" },
+  idle_nudge_hint: { zh: "不是必须做完，只是问一句：要不要选一件小事开始？", en: "You don't have to finish — just asking: want to pick one small thing to start?" },
+  idle_nudge_cta: { zh: "看看能做什么", en: "See what to do" },
+  idle_nudge_dismiss: { zh: "再等等", en: "Not yet" },
 
   // ===== ParentGuidanceCard =====
   parent_guidance_tab_measures: { zh: "可以这样做", en: "What to Do" },
@@ -1240,6 +1342,7 @@ export const STRINGS = {
   support_rule_title: { zh: "对我有用的方法", en: "What Helps Me" },
   support_rule_desc: { zh: "记下发生了什么，以及你愿意尝试的办法", en: "Note what happened and what you want to try" },
   support_rule_empty: { zh: "还没有记录。可以从最近一次卡住、过载或难以开口的时刻开始。", en: "Nothing saved yet. Start with a recent moment of feeling stuck, overloaded, or unable to speak." },
+  support_rule_empty_cta: { zh: "点按添加第一条", en: "Tap to add your first one" },
   support_rule_add: { zh: "记一个方法", en: "Save something that helps" },
   support_rule_trigger: { zh: "发生了什么", en: "What happened" },
   support_rule_trigger_ph: { zh: "例如：周围声音开始变得刺耳", en: "For example: sounds started to feel sharp" },

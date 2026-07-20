@@ -92,6 +92,9 @@ export async function requestReminderPermission(): Promise<boolean> {
 // - 当当前时间 ≥ fireAfter 时，调用 checkPostponedTrigger 重新激活触发器
 // - 应用重新挂载（如从后台恢复/重开）时也会立刻检查一次，避免错过时点
 // - 每日上限 3 次仍由 store 内 checkPostponedTrigger 遵守
+// - 重弹时如果 app 不在前台，会推送系统通知（ADHD P3 改进5）
+//   · 不在前台 = 用户切到其他 tab 或最小化窗口，需要外部提醒拉回
+//   · 前台时不重复推（避免与 in-app banner 重复）
 //
 // 调用方式：在 App 顶层 usePostponedTriggerRecheck() 一次即可
 export function usePostponedTriggerRecheck(): void {
@@ -103,4 +106,35 @@ export function usePostponedTriggerRecheck(): void {
     const timer = window.setInterval(checkPostponedTrigger, CHECK_INTERVAL_MS);
     return () => window.clearInterval(timer);
   }, [checkPostponedTrigger]);
+
+  // 监听状态变化：postponedTrigger 由非空变空 + activeTrigger 被设置 → 刚刚重弹
+  // 此时若 app 不在前台，推送系统通知拉回用户
+  useEffect(() => {
+    const unsub = useStore.subscribe((state, prev) => {
+      const justFired =
+        prev.postponedTrigger && !state.postponedTrigger && state.activeTrigger;
+      if (!justFired) return;
+      if (typeof Notification === "undefined") return;
+      if (Notification.permission !== "granted") return;
+      // 前台时不推（in-app banner 已足够）
+      if (typeof document !== "undefined" && document.visibilityState === "visible") return;
+
+      try {
+        const lang = state.language;
+        const title = lang === "en" ? "SyncSpace · 30 min passed" : "SyncSpace · 30 分钟到啦";
+        const body =
+          lang === "en"
+            ? "Earlier you postponed a protocol. Want to try it now?"
+            : "刚才推迟的协议到了，要不要现在试一下？";
+        new Notification(title, {
+          body,
+          tag: "syncspace-postponed",
+          icon: "/icon.svg",
+        });
+      } catch {
+        // 静默失败：某些环境不允许直接 new Notification
+      }
+    });
+    return unsub;
+  }, []);
 }

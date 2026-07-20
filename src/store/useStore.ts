@@ -33,6 +33,7 @@ import type { Lang } from "@/lib/translations";
 import type { SoundType } from "@/lib/soundEngine";
 import { genId } from "@/lib/format";
 import { clearCloudData } from "@/lib/db";
+import { getWarmPhrase } from "@/lib/warmPhrases";
 
 // 协议触发推送状态
 export interface ActiveTrigger {
@@ -190,7 +191,7 @@ interface StoreState {
   updatePersonalRule: (id: string, updates: Pick<PersonalRule, "signal" | "understanding" | "support">) => void;
   reinforcePersonalRule: (id: string) => void;
   deletePersonalRule: (id: string) => void;
-  recordConnection: (ruleId: string, mode: ConnectionMoment["mode"]) => void;
+  recordConnection: (ruleId: string, mode: ConnectionMoment["mode"], extras?: { duration_sec?: number; recipient?: string; message?: string; ai_understanding?: string }) => void;
   setConnectionPreferences: (preferences: string[]) => void;
   submitRuleFeedback: (ruleId: string, feedback: "helpful" | "unhelpful") => void;
   addCapture: (text: string) => void;
@@ -494,14 +495,19 @@ export const useStore = create<StoreState>()(
           ),
           activeTrigger: null,
         }));
+        // 完成可见 · ADHD 友好的"赢"反馈（规则 7：让完成可见）
+        const weekCount = get().executions.filter((e) => {
+          const ageDays = (Date.now() - new Date(e.executed_at).getTime()) / 86400000;
+          return ageDays < 7 && e.protocol_id === id;
+        }).length;
         get().pushToast(
           "success",
-          `协议已执行，开始 ${protocol.action.duration_minutes} 分钟计时`,
+          `✓ 已完成 · 本周第 ${weekCount} 次 · ${getWarmPhrase(get().language)}`,
         );
-        // 3 秒后弹出效果反馈（PRD §09 反馈闭环 · 不打断执行，仅轻量提示）
+        // 10 秒后弹 feedback · 延长到自然停顿点，不打断下一个动作（规则 4：压制跑题）
         setTimeout(() => {
           set({ pendingFeedbackExecId: execution.id });
-        }, 3000);
+        }, 10000);
       },
 
       postponeProtocol: (id) => {
@@ -685,7 +691,7 @@ export const useStore = create<StoreState>()(
         get().pushToast("info", "已移除这条旧理解");
       },
 
-      recordConnection: (ruleId, mode) => {
+      recordConnection: (ruleId, mode, extras) => {
         const now = new Date();
         const dayKey = now.toLocaleDateString("zh-CN");
         const alreadyRecorded = get().connectionMoments.some(
@@ -702,6 +708,11 @@ export const useStore = create<StoreState>()(
               rule_id: ruleId,
               mode,
               connected_at: now.toISOString(),
+              // 可选字段：self 记录内化时长 + AI 新理解，other 记录对谁说 + 消息内容
+              ...(extras?.duration_sec !== undefined ? { duration_sec: extras.duration_sec } : {}),
+              ...(extras?.recipient ? { recipient: extras.recipient } : {}),
+              ...(extras?.message ? { message: extras.message } : {}),
+              ...(extras?.ai_understanding ? { ai_understanding: extras.ai_understanding } : {}),
             },
             ...state.connectionMoments,
           ],

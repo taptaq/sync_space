@@ -1003,6 +1003,111 @@ function getLocalProtocolSuggestions(
   return suggestions.slice(0, 3);
 }
 
+// ============ 连接话术 AI 生成 ============
+
+export type ConnectionMessageType = "self_understanding" | "other_message";
+
+export interface ConnectionMessageResult {
+  text: string;
+  source: "ai" | "template";
+}
+
+/**
+ * 根据支持规则生成连接话术。
+ * - self 模式：生成一段「新的自我理解」/「对自己说的话」（给 ASD/ADHD 一个新视角）
+ * - other 模式：生成一段「对别人说的话」/可复制的消息草稿
+ * 未配置 backend 或失败时降级到本地模板。
+ */
+export async function generateConnectionMessage(
+  signal: string,
+  support: string,
+  understanding: string | undefined,
+  neuroType: NeuroType,
+  mode: ConnectionMessageType,
+  recipient: string | undefined,
+  lang: "zh" | "en",
+): Promise<ConnectionMessageResult> {
+  const fallback = getLocalConnectionMessage(signal, support, understanding, mode, recipient, lang);
+  if (!HAS_BACKEND) return fallback;
+
+  try {
+    const recipientLabel = recipient
+      ? ({ family: "家人", partner: "伴侣", friend: "朋友", colleague: "同事", other: "对方" } as Record<string, string>)[recipient] ?? "对方"
+      : "对方";
+
+    const taskDesc = mode === "self_understanding"
+      ? "为用户生成一段新的、温和的自我理解，让 ta 用新的视角看见此刻的自己"
+      : `为用户生成一段对${recipientLabel}说的话，温和、具体、可执行`;
+
+    const prompt = `你是一位熟悉 ASD/ADHD 自我表达的专业辅助者。
+用户记录的支持规则如下：
+- 信号（发生了什么）：${signal}
+- 理解（这意味着什么）：${understanding ?? "（未填写）"}
+- 支持（希望怎么做）：${support}
+
+任务：${taskDesc}。
+
+要求：
+- 神经特质：${getNeuroLabel(neuroType)}（${neuroType === "asd" ? "需要可预测、感官安全、清晰的边界" : neuroType === "adhd" ? "需要外部脚手架、低摩擦启动、明确的下一步" : "需要温和、不评判的陪伴"}）
+- 语气：温和、不评判、不说教、不夸大
+- 长度：${mode === "self_understanding" ? "40-80 字" : "60-120 字"}
+- 不要使用"你应该"开头；尽量用"我现在..."或"对我来说..."的第一人称
+- ${mode === "other_message" ? "结尾给出一个具体的、对方可以做的事" : "结尾给出一个 30 秒内可以做的微小动作"}
+- 语言：${lang === "en" ? "English" : "中文"}
+
+返回 JSON：{"text":"生成的话术"}`;
+
+    const result = await chatCompletion(
+      QWEN_TEXT_MODEL,
+      [
+        { role: "system", content: "你是神经多样性自我表达辅助助手。" },
+        { role: "user", content: prompt },
+      ],
+      { jsonMode: true, temperature: 0.6 },
+    );
+
+    const parsed = extractJson<{ text?: string }>(result);
+    if (parsed?.text && parsed.text.trim().length > 0) {
+      return { text: parsed.text.trim(), source: "ai" as const };
+    }
+  } catch (e) {
+    console.warn("[Qwen] 连接话术 AI 生成失败，使用本地模板:", e);
+  }
+
+  return fallback;
+}
+
+function getLocalConnectionMessage(
+  signal: string,
+  support: string,
+  understanding: string | undefined,
+  mode: ConnectionMessageType,
+  recipient: string | undefined,
+  lang: "zh" | "en",
+): ConnectionMessageResult {
+  if (mode === "self_understanding") {
+    // self 模板：换一个视角的「新理解」
+    const zh = `我注意到${signal}。这不一定是我做错了什么，更可能是我的神经系统在告诉我：现在的环境/任务和我现在的状态不太匹配。我可以${support}。这不是逃避，是在照顾自己。`;
+    const en = `I notice ${signal}. This isn't me doing something wrong — it's my nervous system telling me the current environment/task doesn't fit my state right now. I can ${support}. This isn't avoidance; it's self-care.`;
+    return { text: lang === "en" ? en : zh, source: "template" };
+  }
+
+  // other 模板：对别人说的话
+  const recipientPrefix = recipient
+    ? ({ family: "家人", partner: "伴侣", friend: "朋友", colleague: "同事", other: "" } as Record<string, string>)[recipient] ?? ""
+    : "";
+
+  const zh = understanding
+    ? `${recipientPrefix ? `${recipientPrefix}，` : ""}我现在遇到的情况是：${signal}。对我来说，这通常意味着${understanding}。如果你能${support}，会对我很有帮助。不用马上回复，看到就好。`
+    : `${recipientPrefix ? `${recipientPrefix}，` : ""}我现在遇到的情况是：${signal}。如果你能${support}，会对我很有帮助。不用马上回复，看到就好。`;
+
+  const en = understanding
+    ? `${recipientPrefix ? `${recipientPrefix}, ` : ""}I'm experiencing: ${signal}. For me, this usually means ${understanding}. It would really help if you could ${support}. No need to reply right away — just seeing this is enough.`
+    : `${recipientPrefix ? `${recipientPrefix}, ` : ""}I'm experiencing: ${signal}. It would really help if you could ${support}. No need to reply right away — just seeing this is enough.`;
+
+  return { text: lang === "en" ? en : zh, source: "template" };
+}
+
 // ============ 导出配置状态 ============
 
 export const qwenApiConfigured = HAS_BACKEND;

@@ -6,7 +6,7 @@ import { useReminderScheduler, usePostponedTriggerRecheck } from "@/lib/reminder
 import AppShell from "@/components/layout/AppShell";
 import Toast from "@/components/common/Toast";
 import ProtocolTrigger from "@/components/protocol/ProtocolTrigger";
-import FeedbackPrompt from "@/components/today/FeedbackPrompt";
+import NextActionPrompt from "@/components/today/NextActionPrompt";
 import Onboarding from "@/pages/Onboarding";
 import Today from "@/pages/Today";
 import Climate from "@/pages/Climate";
@@ -164,7 +164,7 @@ export default function App() {
       {/* 全局挂载：Toast 通知 + 协议触发推送 + 执行后反馈询问（PRD §09：始终在最上层） */}
       <Toast />
       <ProtocolTrigger />
-      <FeedbackPrompt />
+      <NextActionPrompt />
     </Router>
   );
 }

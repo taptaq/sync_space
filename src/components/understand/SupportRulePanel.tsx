@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Play, Plus, Trash2, X, Sparkles, Loader2 } from "lucide-react";
+import { Check, Play, Plus, PlusCircle, Trash2, X, Sparkles, Loader2 } from "lucide-react";
 import type { DifficultyType, SupportRule } from "@/types";
 import { useStore } from "@/store/useStore";
 import { useT } from "@/lib/i18n";
@@ -320,9 +320,15 @@ export default function SupportRulePanel() {
             setAdding(true);
             setDraft(EMPTY_FORM);
           }}
-          className="w-full rounded-card border border-dashed border-edge bg-white/30 p-7 text-sm text-ink-muted"
+          className="group flex w-full flex-col items-center gap-2 rounded-card border border-dashed border-primary/40 bg-primary-mist/20 p-6 text-center transition-all duration-250 hover:border-primary/60 hover:bg-primary-mist/30 active:scale-[0.99]"
         >
-          {tr("support_rule_empty")}
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/60 shadow-sm transition-colors group-hover:bg-white/80">
+            <PlusCircle size={18} className="text-primary" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-ink">{tr("support_rule_empty")}</p>
+            <p className="mt-1 text-xs text-primary">{tr("support_rule_empty_cta")}</p>
+          </div>
         </button>
       )}
     </section>

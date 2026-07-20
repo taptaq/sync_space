@@ -29,6 +29,9 @@ import CheckInCard from "@/components/checkin/CheckInCard";
 import ParentCheckInCard from "@/components/checkin/ParentCheckInCard";
 import VoiceCheckIn from "@/components/qwen/VoiceCheckIn";
 import QuickCapture from "@/components/today/QuickCapture";
+import FocusBanner from "@/components/today/FocusBanner";
+import PostCheckinRecommendation from "@/components/today/PostCheckinRecommendation";
+import IdleNudge from "@/components/today/IdleNudge";
 import ClimateFamiliar from "@/components/weather/ClimateFamiliar";
 import ActionRunner from "@/components/today/ActionRunner";
 import FocusStartCard from "@/components/today/FocusStartCard";
@@ -202,6 +205,9 @@ export default function Today() {
           <SettingsIcon size={17} />
         </button>
       </div>
+
+      {/* ADHD 焦点卡片 · 首屏单一焦点 + 本周状态重述（规则 1+5） */}
+      {!isParentProxy && neuroType === "adhd" && <FocusBanner />}
 
       {/* ADHD 外部记忆优先：想到的事先安全落地，再决定是否处理 */}
       {!isParentProxy && neuroType === "adhd" && <QuickCapture />}
@@ -418,6 +424,12 @@ export default function Today() {
           )}
         </div>
       )}
+
+      {/* 签到完成 → 基于状态推协议（ADHD 计划延续 · P1 改进3） */}
+      {!isParentProxy && neuroType === "adhd" && <PostCheckinRecommendation />}
+
+      {/* 卡住 5 分钟无活动时轻提示（ADHD 计划延续 · P2 改进4） */}
+      {!isParentProxy && neuroType === "adhd" && <IdleNudge />}
 
       {/* 6. 动作执行器浮层 */}
       {runnerAction && (

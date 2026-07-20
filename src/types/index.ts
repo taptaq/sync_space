@@ -66,6 +66,13 @@ export interface ConnectionMoment {
   mode: "self" | "other";
   connected_at: string;
   feedback?: "helpful" | "unhelpful";
+  // self 模式：内化时长（秒），未走完 30 秒可省略
+  duration_sec?: number;
+  // other 模式：对谁说 + 复制的消息内容
+  recipient?: string;
+  message?: string;
+  // self 模式：AI 生成的新视角（自动保存，方便后续回看）
+  ai_understanding?: string;
 }
 
 // ADHD 外部记忆：先统一收下，再一次处理一条

@@ -78,11 +78,15 @@ export default function ProtocolCard({ protocol }: { protocol: Protocol }) {
         <span>{tr("protocol_card_source_label")}{tr(SOURCE_LABEL_KEY[protocol.source])}</span>
         <span>·</span>
         <span>{tr("protocol_card_exec_count", { count: protocol.execution_count })}</span>
+        <span>·</span>
+        <span className="flex items-center gap-1">
+          <Clock size={11} /> {tr("protocol_card_time_estimate", { minutes: protocol.action.duration_minutes })}
+        </span>
         {protocol.last_executed_at && (
           <>
             <span>·</span>
-            <span className="flex items-center gap-1">
-              <Clock size={11} /> {tr("protocol_card_last_label")}{relativeTime(protocol.last_executed_at)}
+            <span>
+              {tr("protocol_card_last_label")}{relativeTime(protocol.last_executed_at)}
             </span>
           </>
         )}
