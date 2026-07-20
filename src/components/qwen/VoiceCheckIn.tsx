@@ -299,57 +299,71 @@ export default function VoiceCheckIn() {
                 >
                   {tr("voice_checkin_confidence")} {result.confidence === "high" ? tr("voice_checkin_conf_high") : result.confidence === "mid" ? tr("voice_checkin_conf_mid") : tr("voice_checkin_conf_low")}
                 </span>
-                <button
-                  onClick={() => setShowDetail((v) => !v)}
-                  className="flex items-center gap-0.5 text-[11px] text-ink-muted hover:text-ink"
-                >
-                  {tr("voice_checkin_adjust_values")}
-                  <ChevronDown
-                    size={11}
-                    className={cn("transition-transform duration-250", showDetail && "rotate-180")}
-                  />
-                </button>
+                {/* 高 confidence：未展开时显示小链接，展开后隐藏（三轴区域会显示） */}
+                {result.confidence === "high" && !showDetail && (
+                  <button
+                    onClick={() => setShowDetail(true)}
+                    className="text-[11px] text-ink-muted underline underline-offset-2 hover:text-ink"
+                  >
+                    {tr("voice_checkin_adjust_values")}
+                  </button>
+                )}
+                {/* 中低 confidence：保持原有的展开/收起切换 */}
+                {result.confidence !== "high" && (
+                  <button
+                    onClick={() => setShowDetail((v) => !v)}
+                    className="flex items-center gap-0.5 text-[11px] text-ink-muted hover:text-ink"
+                  >
+                    {tr("voice_checkin_adjust_values")}
+                    <ChevronDown
+                      size={11}
+                      className={cn("transition-transform duration-250", showDetail && "rotate-180")}
+                    />
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* 三轴建议值 */}
-            <div className="space-y-2.5">
-              {([axis1, axis2, axis3] as const).map((axis) => (
-                <div key={axis.key} className="flex items-center gap-3">
-                  <span className={cn("w-16 shrink-0 text-xs", axis.color)}>
-                    {tt(axis.label)}
-                  </span>
-                  <div className="relative h-2 flex-1 rounded-full bg-edge">
-                    <div
-                      className="absolute left-0 top-0 h-2 rounded-full transition-all duration-300"
-                      style={{
-                        width: `${values[axis.key] * 10}%`,
-                        backgroundColor: axis.stroke,
-                      }}
-                    />
-                  </div>
-                  <span className="w-6 shrink-0 text-center font-mono text-xs text-ink">
-                    {values[axis.key].toFixed(0)}
-                  </span>
-                  {showDetail && (
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => adjustValue(axis.key, -1)}
-                        className="flex h-5 w-5 items-center justify-center rounded-full bg-edge text-xs text-ink-muted hover:bg-edge/80"
-                      >
-                        −
-                      </button>
-                      <button
-                        onClick={() => adjustValue(axis.key, 1)}
-                        className="flex h-5 w-5 items-center justify-center rounded-full bg-edge text-xs text-ink-muted hover:bg-edge/80"
-                      >
-                        +
-                      </button>
+            {/* 三轴建议值 · 高 confidence 且未展开时隐藏，减少认知负担（ADHD 路径最短） */}
+            {(result.confidence !== "high" || showDetail) && (
+              <div className="space-y-2.5">
+                {([axis1, axis2, axis3] as const).map((axis) => (
+                  <div key={axis.key} className="flex items-center gap-3">
+                    <span className={cn("w-16 shrink-0 text-xs", axis.color)}>
+                      {tt(axis.label)}
+                    </span>
+                    <div className="relative h-2 flex-1 rounded-full bg-edge">
+                      <div
+                        className="absolute left-0 top-0 h-2 rounded-full transition-all duration-300"
+                        style={{
+                          width: `${values[axis.key] * 10}%`,
+                          backgroundColor: axis.stroke,
+                        }}
+                      />
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                    <span className="w-6 shrink-0 text-center font-mono text-xs text-ink">
+                      {values[axis.key].toFixed(0)}
+                    </span>
+                    {showDetail && (
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => adjustValue(axis.key, -1)}
+                          className="flex h-5 w-5 items-center justify-center rounded-full bg-edge text-xs text-ink-muted hover:bg-edge/80"
+                        >
+                          −
+                        </button>
+                        <button
+                          onClick={() => adjustValue(axis.key, 1)}
+                          className="flex h-5 w-5 items-center justify-center rounded-full bg-edge text-xs text-ink-muted hover:bg-edge/80"
+                        >
+                          +
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="flex gap-2">
               <button
@@ -360,7 +374,11 @@ export default function VoiceCheckIn() {
               </button>
               <button
                 onClick={handleSubmit}
-                className="flex-1 rounded-full bg-primary py-2.5 text-small font-medium text-white transition-all duration-250 hover:bg-primary/90 active:scale-[0.98]"
+                className={cn(
+                  "flex-1 rounded-full bg-primary font-medium text-white transition-all duration-250 hover:bg-primary/90 active:scale-[0.98]",
+                  // 高 confidence 且未展开时用大按钮，路径最短
+                  result.confidence === "high" && !showDetail ? "py-3.5" : "py-2.5",
+                )}
               >
                 {tr("voice_checkin_confirm")}
               </button>

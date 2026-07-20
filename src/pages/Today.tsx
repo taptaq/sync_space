@@ -14,9 +14,10 @@ import {
   ChevronDown,
   BellRing,
 } from "lucide-react";
-import type { DifficultyType, SessionMode } from "@/types";
+import type { DifficultyType, Phase, SessionMode } from "@/types";
 import { useStore } from "@/store/useStore";
 import { useT } from "@/lib/i18n";
+import type { StringKey } from "@/lib/translations";
 import { cn } from "@/lib/utils";
 import { detectPhase } from "@/lib/stageEngine";
 import {
@@ -25,6 +26,7 @@ import {
   getDifficultyLabel,
 } from "@/lib/difficultyPacks";
 import CheckInCard from "@/components/checkin/CheckInCard";
+import ParentCheckInCard from "@/components/checkin/ParentCheckInCard";
 import VoiceCheckIn from "@/components/qwen/VoiceCheckIn";
 import QuickCapture from "@/components/today/QuickCapture";
 import ClimateFamiliar from "@/components/weather/ClimateFamiliar";
@@ -35,6 +37,8 @@ import SensoryBattery from "@/components/today/SensoryBattery";
 import TomorrowPreview from "@/components/today/TomorrowPreview";
 import NeuroOnboardingGuide from "@/components/today/NeuroOnboardingGuide";
 import WearableSignalPrompt from "@/components/today/WearableSignalPrompt";
+import Toolbox from "@/components/today/Toolbox";
+import ParentGuidanceCard from "@/components/parent/ParentGuidanceCard";
 
 // 今日页 · 卡住时的即时帮助
 // 理念：现在怎样 → 做一件事 → 有没有用
@@ -202,17 +206,32 @@ export default function Today() {
       {/* ADHD 外部记忆优先：想到的事先安全落地，再决定是否处理 */}
       {!isParentProxy && neuroType === "adhd" && <QuickCapture />}
 
-      {/* 0.5 状态小精灵 · 陪伴感（根据当前阶段显示不同姿态） */}
+      {/* 0.5 状态小精灵 + 阶段锚点 · ASD 可预测性：明确"我现在在哪里" */}
       <div className="flex flex-col items-center pt-2 pb-1">
         <ClimateFamiliar phase={currentPhase} size={64} />
+        <span className={cn(
+          "mt-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium",
+          getPhaseBadgeClass(currentPhase),
+        )}>
+          {tr(getPhaseShortKey(currentPhase))}
+        </span>
       </div>
 
       {/* 可选设备只提供待确认线索；纯软件模式下不渲染任何占位。 */}
       <WearableSignalPrompt />
 
       {/* 0.55 ASD 友好直觉化：感官预算电池 + 明日预告（早期意识区） */}
-      {!isParentProxy && <SensoryBattery />}
-      {!isParentProxy && <TomorrowPreview />}
+      {/* ASD 累积期弹窗时降低周围密度，让弹窗成为唯一视觉焦点 */}
+      {!isParentProxy && (
+        <div className={cn("transition-all duration-300", showLowSensoryPrompt && "opacity-40 pointer-events-none")}>
+          <SensoryBattery />
+        </div>
+      )}
+      {!isParentProxy && (
+        <div className={cn("transition-all duration-300", showLowSensoryPrompt && "opacity-40 pointer-events-none")}>
+          <TomorrowPreview />
+        </div>
+      )}
 
       {/* 0.6 专注模式：5 分钟微启动 + ADHD hyperfocus 保护 */}
       {sessionMode === "focus" && !isParentProxy && <FocusStartCard />}
@@ -410,16 +429,14 @@ export default function Today() {
         />
       )}
 
-      {/* 家长代理签到 */}
-      {isParentProxy && (
-        <button
-          onClick={() => navigate("/climate")}
-          className="flex w-full items-center justify-between rounded-card border border-edge/60 bg-white/40 px-4 py-3 text-left transition-all duration-250 hover:bg-white/60"
-        >
-          <span className="text-sm text-ink-muted">{tr("today_parent_checkin")}</span>
-          <ChevronRight size={15} className="text-ink-faint" />
-        </button>
-      )}
+      {/* 家长代理签到 · 家长观察行为选择 → 映射三轴 */}
+      {isParentProxy && <ParentCheckInCard />}
+
+      {/* 家长引导卡 · 按当前阶段展示措施/话术/不要做/环境调整 */}
+      {isParentProxy && <ParentGuidanceCard />}
+
+      {/* 工具箱：补记过载低频出口 · 可折叠 */}
+      {!isParentProxy && <Toolbox qwenEnabled={qwenEnabled} />}
 
       {/* 兴趣沉浸计时已移至理解页 · ASD 能量档案 */}
 
@@ -459,4 +476,28 @@ function getDifficultyIcon(type: DifficultyType) {
     communication: <MessageCircle size={17} className="text-primary" />,
   };
   return icons[type];
+}
+
+// ============ 阶段锚点配色 + 翻译 key ============
+// 给 ASD 用户提供"我现在在哪里"的轻量视觉锚点
+function getPhaseBadgeClass(phase: Phase): string {
+  switch (phase) {
+    case "stable": return "bg-sage-mist/60 text-sage";
+    case "accumulating": return "bg-clay-mist/60 text-clay";
+    case "warning": return "bg-warn-mist/60 text-warn";
+    case "overload": return "bg-warn-mist/60 text-warn";
+    case "recovery": return "bg-primary-mist/60 text-primary";
+    default: return "bg-edge text-ink-muted";
+  }
+}
+
+function getPhaseShortKey(phase: Phase): StringKey {
+  switch (phase) {
+    case "stable": return "phase_short_stable";
+    case "accumulating": return "phase_short_accumulating";
+    case "warning": return "phase_short_warning";
+    case "overload": return "phase_short_overload";
+    case "recovery": return "phase_short_recovery";
+    default: return "phase_short_checkin";
+  }
 }

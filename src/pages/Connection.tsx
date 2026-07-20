@@ -4,6 +4,8 @@ import { Check, Copy, Heart, MessageCircle } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import LoopProgressCard from "@/components/connection/LoopProgressCard";
+import SpotlightGuide from "@/components/common/SpotlightGuide";
 
 type ConnectionMode = "self" | "other";
 type DisplayRule = {
@@ -171,7 +173,10 @@ export default function Connection() {
         <p className="mt-1 text-sm text-ink-muted">{tr("connection_desc_simple")}</p>
       </header>
 
-      <div className="grid grid-cols-2 rounded-lg border border-edge bg-white/45 p-1">
+      {/* 一周循环进度 · 预警/理解/连接/协议的完成情况 */}
+      <LoopProgressCard />
+
+      <div data-tour-id="connection-mode" className="grid grid-cols-2 rounded-lg border border-edge bg-white/45 p-1">
         <ModeButton active={mode === "self"} icon={Heart} label={tr("connection_mode_self")} onClick={() => switchMode("self")} />
         <ModeButton active={mode === "other"} icon={MessageCircle} label={tr("connection_mode_other")} onClick={() => switchMode("other")} />
       </div>
@@ -202,7 +207,7 @@ export default function Connection() {
             <>
               {/* step 0：开始入口 */}
               {selfStep === 0 && (
-                <section className="border-l-4 border-sage bg-sage-mist/20 px-5 py-4">
+                <section data-tour-id="connection-self-flow" className="border-l-4 border-sage bg-sage-mist/20 px-5 py-4">
                   <p className="text-sm leading-7 text-ink">
                     {tr("connection_self_step1_q")}
                   </p>
@@ -439,13 +444,34 @@ export default function Connection() {
           )}
         </>
       ) : (
-        <button type="button" onClick={() => navigate("/climate")} className="w-full rounded-card border border-primary/20 bg-white/55 p-5 text-left">
+        <button type="button" data-tour-id="connection-empty" onClick={() => navigate("/climate")} className="w-full rounded-card border border-primary/20 bg-white/55 p-5 text-left">
           <p className="text-sm font-medium text-ink">{tr("connection_empty_title")}</p>
           <p className="mt-1 text-xs text-ink-muted">{tr("connection_empty_desc")}</p>
         </button>
       )}
 
       <p className="px-5 text-center text-xs leading-relaxed text-ink-faint">{tr("connection_footer")}</p>
+
+      <SpotlightGuide
+        pageKey="connection"
+        steps={[
+          {
+            targetId: "connection-mode",
+            titleKey: "guide_conn_mode_title",
+            bodyKey: "guide_conn_mode_body",
+          },
+          {
+            targetId: selectedRule ? "connection-self-flow" : "connection-empty",
+            titleKey: "guide_conn_flow_title",
+            bodyKey: "guide_conn_flow_body",
+          },
+          {
+            targetId: "loop-progress",
+            titleKey: "guide_conn_loop_title",
+            bodyKey: "guide_conn_loop_body",
+          },
+        ]}
+      />
     </div>
   );
 }

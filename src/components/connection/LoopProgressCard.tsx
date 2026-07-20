@@ -36,7 +36,7 @@ export default function LoopProgressCard() {
   const loopComplete = stages.every((stage) => stage.done);
 
   return (
-    <section className="border-t border-edge/70 pt-5">
+    <section data-tour-id="loop-progress" className="border-t border-edge/70 pt-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-medium text-primary">{tr("loop_progress_recent_7")}</p>

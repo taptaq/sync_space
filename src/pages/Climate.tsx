@@ -5,6 +5,9 @@ import TrendChart from "@/components/climate/TrendChart";
 import SupportRulePanel from "@/components/understand/SupportRulePanel";
 import CaptureInbox from "@/components/understand/CaptureInbox";
 import EnergyArchive from "@/components/climate/EnergyArchive";
+import ProtocolEffectivenessCard from "@/components/climate/ProtocolEffectivenessCard";
+import AIObservationCard from "@/components/ai/AIObservationCard";
+import SpotlightGuide from "@/components/common/SpotlightGuide";
 import { useStore } from "@/store/useStore";
 import { useVoice, useT } from "@/lib/i18n";
 
@@ -15,6 +18,7 @@ export default function Climate() {
   const executions = useStore((state) => state.executions);
   const neuroType = useStore((state) => state.neuroType);
   const traitProfile = useStore((state) => state.traitProfile);
+  const observation = useStore((state) => state.observation);
   const { isParent } = useVoice();
   const { tr } = useT();
   const completedCount = traitProfile?.results.length ?? 0;
@@ -38,7 +42,19 @@ export default function Climate() {
 
       {neuroType === "adhd" && <CaptureInbox />}
 
-      <SupportRulePanel />
+      <div data-tour-id="climate-support-panel">
+        <SupportRulePanel />
+      </div>
+
+      {/* 协议聚合效果分 · 与支持规则线对称 */}
+      <div data-tour-id="climate-protocol-effect">
+        <ProtocolEffectivenessCard />
+      </div>
+
+      {/* AI 模式观察 · 攒够两周数据后 AI 在周日生成观察建议 */}
+      {observation && observation.status === "pending" && (
+        <AIObservationCard observation={observation} />
+      )}
 
       <button
         type="button"
@@ -85,6 +101,22 @@ export default function Climate() {
 
       {/* ASD 能量档案 · 理解什么能让自己充电 */}
       {neuroType === "asd" && !isParent && <EnergyArchive />}
+
+      <SpotlightGuide
+        pageKey="climate"
+        steps={[
+          {
+            targetId: "climate-support-panel",
+            titleKey: "guide_climate_support_title",
+            bodyKey: "guide_climate_support_body",
+          },
+          {
+            targetId: "climate-protocol-effect",
+            titleKey: "guide_climate_effect_title",
+            bodyKey: "guide_climate_effect_body",
+          },
+        ]}
+      />
     </div>
   );
 }

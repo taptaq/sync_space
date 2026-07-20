@@ -3,6 +3,15 @@
 // 未配置 Supabase 时所有函数 no-op，应用降级为纯 localStorage 模式
 
 import { supabase, isSupabaseConfigured } from "./supabase";
+
+// 从当前 Supabase session 获取 user_id（确保与 RLS auth.uid() 完全一致）
+// 不再缓存，每次同步时实时读取，避免 session 刷新后 user_id 不一致导致 RLS 403
+async function getAuthUserId(): Promise<string | null> {
+  if (!supabase) return null;
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user?.id ?? null;
+}
+
 import type {
   AIObservation,
   ADHDSubtype,
@@ -299,36 +308,44 @@ export async function loadAllData(): Promise<Partial<SyncPayload> | null> {
 
 // ============ 增量同步 ============
 
-// 同步单张数组表：upsert 当前数据 + delete 已删除的数据
+// 同步单张数组表：delete + insert 模式
+// 不用 upsert ON CONFLICT DO UPDATE，因为它在 id 冲突时会检查旧行的 USING 策略，
+// 当冲突行属于其他匿名用户（换浏览器/清 session 后新匿名账号与旧数据 id 冲突）时，
+// USING 失败导致 RLS 403。改用 delete 当前用户所有行 + insert(ignoreDuplicates) 彻底避免。
 async function syncArray<T extends { id: string }>(
   table: string,
   items: T[],
   toRow: (item: T) => Record<string, unknown>,
+  userId: string,
 ) {
   if (!supabase) return;
 
-  const currentIds = items.map((i) => i.id);
-
-  // 查询现有 ID，计算需要删除的
-  const { data: existing } = await supabase.from(table).select("id");
-  const existingIds = (existing?.map((r) => r.id as string)) ?? [];
-  const removedIds = existingIds.filter((id) => !currentIds.includes(id));
-
-  if (removedIds.length > 0) {
-    await supabase.from(table).delete().in("id", removedIds);
+  // 1. Delete 当前用户的所有行（RLS USING 自动限制只删 auth.uid() = user_id 的行）
+  // 用 neq("id", "___never___") 作为 filter 满足 Supabase 客户端 delete 必须有 filter 的要求
+  const { error: delErr } = await supabase.from(table).delete().neq("id", "___never___");
+  if (delErr) {
+    console.warn(`[SyncSpace] ${table} delete 失败:`, delErr.message);
   }
 
-  // Upsert 当前数据
+  // 2. Insert 新行，ignoreDuplicates 跳过与其他用户 id 冲突的行（ON CONFLICT DO NOTHING）
+  // 这样不触发 USING 检查，彻底避免 RLS 403
   if (items.length > 0) {
-    await supabase.from(table).upsert(items.map(toRow), { onConflict: "id" });
+    const rows = items.map((item) => ({ ...toRow(item), user_id: userId }));
+    const { error: insErr } = await supabase
+      .from(table)
+      .upsert(rows, { onConflict: "id", ignoreDuplicates: true });
+    if (insErr) {
+      console.warn(`[SyncSpace] ${table} insert 部分失败:`, insErr.message);
+    }
   }
 }
 
 // 同步 user_settings 单行
-async function syncSettings(payload: SyncPayload) {
+async function syncSettings(payload: SyncPayload, userId: string) {
   if (!supabase) return;
 
   await supabase.from("user_settings").upsert({
+    user_id: userId,
     onboarded: payload.onboarded,
     neuro_type: payload.neuroType,
     adhd_subtype: payload.adhdSubtype,
@@ -354,16 +371,24 @@ async function syncSettings(payload: SyncPayload) {
 export async function syncAllData(payload: SyncPayload): Promise<void> {
   if (!supabase || !isSupabaseConfigured) return;
 
+  // 每次同步前实时获取 user_id，确保与 RLS auth.uid() 完全一致
+  // 避免 session 刷新后缓存值过期导致 RLS 403
+  const userId = await getAuthUserId();
+  if (!userId) {
+    console.warn("[SyncSpace] 无有效 session，跳过同步");
+    return;
+  }
+
   try {
     await Promise.all([
-      syncSettings(payload),
-      syncArray("checkins", payload.checkins, checkinToRow),
-      syncArray("protocols", payload.protocols, protocolToRow),
-      syncArray("protocol_executions", payload.executions, executionToRow),
-      syncArray("crash_marks", payload.crashMarks, crashMarkToRow),
-      syncArray("personal_rules", payload.personalRules, personalRuleToRow),
-      syncArray("connection_moments", payload.connectionMoments, connectionMomentToRow),
-      syncArray("capture_items", payload.captureItems, captureItemToRow),
+      syncSettings(payload, userId),
+      syncArray("checkins", payload.checkins, checkinToRow, userId),
+      syncArray("protocols", payload.protocols, protocolToRow, userId),
+      syncArray("protocol_executions", payload.executions, executionToRow, userId),
+      syncArray("crash_marks", payload.crashMarks, crashMarkToRow, userId),
+      syncArray("personal_rules", payload.personalRules, personalRuleToRow, userId),
+      syncArray("connection_moments", payload.connectionMoments, connectionMomentToRow, userId),
+      syncArray("capture_items", payload.captureItems, captureItemToRow, userId),
     ]);
   } catch (err) {
     console.warn("[SyncSpace] 同步到 Supabase 失败（本地数据不受影响）:", err);

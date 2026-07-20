@@ -122,6 +122,10 @@ interface StoreState {
   hasSeenNeuroGuide: boolean;
   setHasSeenNeuroGuide: (seen: boolean) => void;
 
+  // 各页面首次进入引导（轻量单步卡片 · 不同步云端 · 每个设备首次显示）
+  seenPageGuides: Record<string, boolean>;
+  setSeenPageGuide: (page: string, seen: boolean) => void;
+
   // 兴趣沉浸计时（ASD 能量来源 · 不只是追卡住也追充电）
   interestSessions: { id: string; topic: string; started_at: string; duration_sec: number }[];
   addInterestSession: (topic: string, durationSec: number) => void;
@@ -281,6 +285,13 @@ export const useStore = create<StoreState>()(
       // 神经特质新手引导
       hasSeenNeuroGuide: false,
       setHasSeenNeuroGuide: (seen) => set({ hasSeenNeuroGuide: seen }),
+
+      // 各页面首次进入引导
+      seenPageGuides: {},
+      setSeenPageGuide: (page, seen) =>
+        set((state) => ({
+          seenPageGuides: { ...state.seenPageGuides, [page]: seen },
+        })),
 
       // 兴趣沉浸记录
       interestSessions: [],
@@ -970,6 +981,7 @@ export const useStore = create<StoreState>()(
         reminderEnabled: state.reminderEnabled,
         reminderTimes: state.reminderTimes,
         hasSeenNeuroGuide: state.hasSeenNeuroGuide,
+        seenPageGuides: state.seenPageGuides,
         interestSessions: state.interestSessions,
         postponedTrigger: state.postponedTrigger,
       }),

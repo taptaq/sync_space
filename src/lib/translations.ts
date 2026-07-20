@@ -420,6 +420,47 @@ export const STRINGS = {
   // 神经特质新手引导
   guide_skip: { zh: "跳过引导", en: "Skip tour" },
   guide_start: { zh: "开始用", en: "Get started" },
+
+  // 各页面首次进入引导 · spotlight 多步
+  page_guide_got_it: { zh: "知道了", en: "Got it" },
+
+  // Connection 引导
+  guide_conn_mode_title: { zh: "选一种连接方式", en: "Choose how to connect" },
+  guide_conn_mode_body: { zh: "「自己」模式走完看见→理解→支持；「发给TA」复制一段话发给信任的人。", en: "Self mode: walk through see→understand→support. Send: copy a message to someone you trust." },
+  guide_conn_flow_title: { zh: "从这里开始", en: "Start here" },
+  guide_conn_flow_body: { zh: "先确认此刻有没有这个信号，有的话走完三步，没有就跳过。", en: "Confirm if this signal is present. If yes, walk through three steps. If not, skip." },
+  guide_conn_loop_title: { zh: "一周循环进度", en: "Weekly loop progress" },
+  guide_conn_loop_body: { zh: "预警、理解、连接、协议这周完成了多少，一目了然。", en: "See how many check-ins, rules, connections, and protocols you've done this week." },
+
+  // Protocol 引导
+  guide_proto_new_title: { zh: "新建协议", en: "Create a protocol" },
+  guide_proto_new_body: { zh: "点这里创建你的第一个调节协议：触发条件 + 行动 + 阶段。", en: "Tap here to create your first regulation protocol: trigger + action + phases." },
+  guide_proto_list_title: { zh: "你的协议列表", en: "Your protocol list" },
+  guide_proto_list_body: { zh: "已创建的协议在这里，候选状态排前面。点开可以执行或编辑。", en: "Your protocols live here. Candidates first. Tap to run or edit." },
+  guide_proto_library_title: { zh: "模板库", en: "Template library" },
+  guide_proto_library_body: { zh: "不知道从哪开始？展开这里，一键导入适合 ASD/ADHD 的协议模板。", en: "Not sure where to start? Expand this to import ASD/ADHD-friendly protocol templates." },
+
+  // Climate 引导
+  guide_climate_support_title: { zh: "把经历变成规则", en: "Turn experience into rules" },
+  guide_climate_support_body: { zh: "这里把签到和过载整理成支持规则：信号 → 理解 → 支持行动。", en: "Check-ins and crashes become support rules here: signal → understanding → support action." },
+  guide_climate_effect_title: { zh: "协议效果分", en: "Protocol effectiveness" },
+  guide_climate_effect_body: { zh: "所有协议的聚合效果，帮你看哪些办法真正有用。", en: "Aggregated effectiveness of all your protocols — see what actually helps." },
+
+  // Review 引导
+  guide_review_filter_title: { zh: "按类型筛选", en: "Filter by type" },
+  guide_review_filter_body: { zh: "点标签切换：全部 / 崩溃 / 协议 / 签到。专注看一类事件。", en: "Tap labels to filter: All / Crash / Protocol / Check-in. Focus on one type." },
+  guide_review_timeline_title: { zh: "事件时间线", en: "Event timeline" },
+  guide_review_timeline_body: { zh: "按时间倒序排列。崩溃标记可点开复盘，其余为只读记录。", en: "Reverse chronological. Crash marks are tappable for review, others are read-only." },
+
+  // Settings 引导
+  guide_settings_role_title: { zh: "角色切换", en: "Role switch" },
+  guide_settings_role_body: { zh: "「自我模式」给自己用，「家长模式」替孩子观察和记录。", en: "Self mode for yourself, Parent mode to observe and log for your child." },
+  guide_settings_ai_title: { zh: "AI 增强", en: "AI assist" },
+  guide_settings_ai_body: { zh: "开启后语音签到、崩溃标记、行动建议会接入 AI，理解更准。", en: "Enables AI for voice check-ins, crash marks, and action suggestions." },
+
+  // Screen 引导
+  guide_screen_list_title: { zh: "选一份量表", en: "Pick a scale" },
+  guide_screen_list_body: { zh: "点开逐题作答，完成后生成特质画像。不是诊断，只是自我参照。", en: "Tap to answer questions and get a trait portrait. Not a diagnosis — self-reference only." },
   guide_plain_pick_title: { zh: "第一步：选一个现在的困难", en: "Step 1: Pick what's hard right now" },
   guide_plain_pick_body: { zh: "不用先签到，也不用弄懂所有功能。只选此刻最影响你的一项。", en: "No check-in or setup needed. Pick the one thing affecting you most right now." },
   guide_plain_try_title: { zh: "第二步：只试一个小办法", en: "Step 2: Try one small support" },
@@ -1060,6 +1101,8 @@ export const STRINGS = {
   focus_hint: { zh: "第一步自动保留在本机，不用靠脑内记住。", en: "The first step is saved on your device. You don't need to remember it." },
 
   // ===== QuickCapture =====
+  quick_capture_add_label: { zh: "记一笔", en: "Capture a thought" },
+  quick_capture_collapse: { zh: "收起", en: "Collapse" },
   quick_capture_focus_label: { zh: "现在只做这一步", en: "Just this step now" },
   quick_capture_focus_hint: { zh: "这不是意志力考试，完成一小步也有效。", en: "This isn't a willpower test. A small step counts." },
   quick_capture_time_up: { zh: "时间到了，可以继续，也可以停下", en: "Time's up. Continue or stop." },

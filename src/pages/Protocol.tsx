@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { BookOpen, Plus, X } from "lucide-react";
 import ProtocolTemplateLibrary from "@/components/protocol/ProtocolTemplateLibrary";
 import ProtocolCard from "@/components/protocol/ProtocolCard";
+import SpotlightGuide from "@/components/common/SpotlightGuide";
 import { useStore } from "@/store/useStore";
 import { useVoice, useT } from "@/lib/i18n";
 
@@ -50,10 +51,11 @@ export default function Protocol() {
       </motion.header>
 
       {/* 我的协议 */}
-      <section>
+      <section data-tour-id="protocol-list">
         <div className="mb-4 flex items-center justify-between px-1">
           <h2 className="font-serif text-xl text-ink">{tr("protocol_existing")}</h2>
           <button
+            data-tour-id="protocol-new"
             onClick={() => navigate("/protocol/new")}
             className="flex items-center gap-1 rounded-full border border-edge bg-white/50 px-3.5 py-1.5 text-xs text-primary transition-all duration-250 hover:bg-primary-mist/40 active:scale-[0.98]"
           >
@@ -84,7 +86,7 @@ export default function Protocol() {
         )}
       </section>
 
-      <section className="border-t border-edge/70 pt-5">
+      <section data-tour-id="protocol-library" className="border-t border-edge/70 pt-5">
         <button
           type="button"
           onClick={() => setShowLibrary((value) => !value)}
@@ -104,6 +106,27 @@ export default function Protocol() {
         <br />
         {isParent ? tr("protocol_footer_2_parent") : tr("protocol_footer_2_self")}
       </p>
+
+      <SpotlightGuide
+        pageKey="protocol"
+        steps={[
+          {
+            targetId: "protocol-new",
+            titleKey: "guide_proto_new_title",
+            bodyKey: "guide_proto_new_body",
+          },
+          {
+            targetId: "protocol-list",
+            titleKey: "guide_proto_list_title",
+            bodyKey: "guide_proto_list_body",
+          },
+          {
+            targetId: "protocol-library",
+            titleKey: "guide_proto_library_title",
+            bodyKey: "guide_proto_library_body",
+          },
+        ]}
+      />
     </div>
   );
 }

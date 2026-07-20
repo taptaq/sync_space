@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import NeuroTypeSelector, { useNeuroTypeSelector } from "@/components/common/NeuroTypeSelector";
 import Disclaimer from "@/components/common/Disclaimer";
+import SpotlightGuide from "@/components/common/SpotlightGuide";
 import { ModalPortal } from "@/components/common/ModalPortal";
 import { useStore } from "@/store/useStore";
 import { useT } from "@/lib/i18n";
@@ -123,7 +124,7 @@ export default function Settings() {
       </div>
 
       {/* 角色切换 */}
-      <section className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
+      <section data-tour-id="settings-role" className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
         <div className="mb-4 flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-mist/50">
             <User size={15} className="text-primary" />
@@ -215,7 +216,7 @@ export default function Settings() {
       </section>
 
       {/* AI 增强 */}
-      <section className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
+      <section data-tour-id="settings-ai" className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-mist/50">
@@ -375,6 +376,22 @@ export default function Settings() {
           </ModalPortal>
         )}
       </AnimatePresence>
+
+      <SpotlightGuide
+        pageKey="settings"
+        steps={[
+          {
+            targetId: "settings-role",
+            titleKey: "guide_settings_role_title",
+            bodyKey: "guide_settings_role_body",
+          },
+          {
+            targetId: "settings-ai",
+            titleKey: "guide_settings_ai_title",
+            bodyKey: "guide_settings_ai_body",
+          },
+        ]}
+      />
     </div>
   );
 }

@@ -17,6 +17,7 @@ import { computeResult, levelColor, levelBg, detectAdhdSubtype } from "@/lib/tra
 import { useStore } from "@/store/useStore";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import SpotlightGuide from "@/components/common/SpotlightGuide";
 
 // 神经特质自评页（PRD §11 非诊断声明 · §03 可预测可退出）
 // 三阶段：选量表 → 逐题作答 → 结果画像（保存到特质档案）
@@ -133,7 +134,7 @@ export default function Screen() {
             {tr("screen_intro_2")}
           </p>
 
-          <div className="mt-6 space-y-3">
+          <div className="mt-6 space-y-3" data-tour-id="screen-scale-list">
             {SCALE_LIST.map((scale) => {
               const Icon = NEURO_ICON[scale.neuro_type] ?? Brain;
               const doneResult = traitProfile?.results.find(
@@ -183,6 +184,17 @@ export default function Screen() {
             {tr("screen_scale_note_2")}
           </p>
         </motion.div>
+
+        <SpotlightGuide
+          pageKey="screen"
+          steps={[
+            {
+              targetId: "screen-scale-list",
+              titleKey: "guide_screen_list_title",
+              bodyKey: "guide_screen_list_body",
+            },
+          ]}
+        />
       </div>
     );
   }

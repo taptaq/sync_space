@@ -103,8 +103,9 @@ export default function CheckInCard({ onSubmitted }: CheckInCardProps) {
     return { sensory: 5, social: 5, predictability: 5 };
   });
   const [done, setDone] = useState(false);
-  // ASD 用户默认展开早期信号（述情障碍需要可观察的行为线索而非内感受词汇）
-  const [signalsOpen, setSignalsOpen] = useState(neuroType === "asd");
+  // 早期信号默认折叠（渐进披露 · 避免签到环节认知过载）
+  // ASD 用户仍可主动展开，但不强制展示
+  const [signalsOpen, setSignalsOpen] = useState(false);
   const [selectedSignals, setSelectedSignals] = useState<string[]>([]);
   const [noteText, setNoteText] = useState("");
   const downAtRef = useRef<number>(0);

@@ -132,6 +132,8 @@ ALTER TABLE connection_moments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE capture_items ENABLE ROW LEVEL SECURITY;
 
 -- 策略：用户只能 CRUD 自己的数据
+-- USING + WITH CHECK 都严格匹配 auth.uid() = user_id
+-- db.ts 的 syncAllData 每次从 supabase.auth.getSession() 实时获取 user_id 注入 upsert
 CREATE POLICY "own_settings" ON user_settings FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "own_checkins" ON checkins FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "own_protocols" ON protocols FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);

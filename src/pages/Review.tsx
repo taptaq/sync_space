@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, ChevronRight, Clock, Filter, Zap } from "lucide-react";
+import { ArrowLeft, ChevronRight, Clock, Filter, History, Zap } from "lucide-react";
 import type { TimelineEntry } from "@/types";
 import { useStore } from "@/store/useStore";
 import { formatDateTime, formatTime, relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
 import type { StringKey } from "@/lib/translations";
+import SpotlightGuide from "@/components/common/SpotlightGuide";
 
 // 回看页 · 过载后循环（PRD §05 页面3）
 // 时间线 · 按时间倒序排列所有事件
@@ -125,7 +126,7 @@ export default function Review() {
       )}
 
       {/* 筛选 */}
-      <div className="flex items-center gap-2 px-1">
+      <div data-tour-id="review-filter" className="flex items-center gap-2 px-1">
         <Filter size={14} className="text-ink-muted" />
         {FILTER_LABELS.map(({ key, label }) => (
           <button
@@ -144,7 +145,7 @@ export default function Review() {
       </div>
 
       {/* 时间线 */}
-      <div className="space-y-3">
+      <div data-tour-id="review-timeline" className="space-y-3">
         {timeline.length === 0 && (
           <div className="rounded-card border border-edge bg-white/40 p-8 text-center text-small text-ink-muted">
             {tr("review_empty")}
@@ -214,6 +215,22 @@ export default function Review() {
           </motion.button>
         ))}
       </div>
+
+      <SpotlightGuide
+        pageKey="review"
+        steps={[
+          {
+            targetId: "review-filter",
+            titleKey: "guide_review_filter_title",
+            bodyKey: "guide_review_filter_body",
+          },
+          {
+            targetId: "review-timeline",
+            titleKey: "guide_review_timeline_title",
+            bodyKey: "guide_review_timeline_body",
+          },
+        ]}
+      />
     </div>
   );
 }
