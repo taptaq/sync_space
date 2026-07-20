@@ -6,6 +6,7 @@ import { getPhaseConfig } from "@/lib/stageEngine";
 import { getFamiliarLocalImage } from "@/components/weather/FamiliarImage";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
+import { ModalPortal } from "@/components/common/ModalPortal";
 
 // 气候精灵——"小小的我"（PRD 理念：外化投射 · 不需要问"我感受怎样"，看一眼精灵姿态就懂）
 // 精灵是住在天气卡里的"另一个我"，它替用户感知自己的状态
@@ -41,7 +42,7 @@ const MOTIONS: Record<Phase, { animate: TargetAndTransition; transition: Transit
 };
 
 export default function ClimateFamiliar({ phase, size = 72, className }: ClimateFamiliarProps) {
-  const { tr } = useT();
+  const { tr, tt } = useT();
   const phaseCfg = getPhaseConfig(phase);
   const imgUrl = getFamiliarLocalImage(phase);
   const mot = MOTIONS[phase];
@@ -69,7 +70,7 @@ export default function ClimateFamiliar({ phase, size = 72, className }: Climate
           />
           <motion.img
             src={imgUrl}
-            alt={`小小的我 · ${phaseCfg.label}`}
+            alt={`小小的我 · ${tt(phaseCfg.label)}`}
             className="relative rounded-full object-contain"
             style={{ width: size, height: size }}
             draggable={false}
@@ -98,8 +99,9 @@ export default function ClimateFamiliar({ phase, size = 72, className }: Climate
         {tr("familiar_tooltip_title")}
       </button>
 
-      <AnimatePresence>
-        {showHelp && (
+      <ModalPortal>
+        <AnimatePresence>
+          {showHelp && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -120,7 +122,8 @@ export default function ClimateFamiliar({ phase, size = 72, className }: Climate
                 <button
                   type="button"
                   onClick={() => setShowHelp(false)}
-                  className="flex h-7 w-7 items-center justify-center rounded-full bg-white/50 text-ink-muted"
+                  aria-label={tr("close")}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white/50 text-ink-muted"
                 >
                   <X size={14} />
                 </button>
@@ -128,8 +131,9 @@ export default function ClimateFamiliar({ phase, size = 72, className }: Climate
               <p className="text-sm leading-7 text-ink-muted">{tr("familiar_tooltip_desc")}</p>
             </motion.div>
           </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
+      </ModalPortal>
     </div>
   );
 }

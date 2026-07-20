@@ -13,6 +13,7 @@ import {
   Mic,
   MicVocal,
   Wand2,
+  BookOpenText,
   ChevronLeft,
 } from "lucide-react";
 import NeuroTypeSelector, { useNeuroTypeSelector } from "@/components/common/NeuroTypeSelector";
@@ -22,6 +23,7 @@ import { useStore } from "@/store/useStore";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { requestReminderPermission } from "@/lib/reminderScheduler";
+import WearableSettingsCard from "@/components/settings/WearableSettingsCard";
 
 // 设置页 · 收纳从 Today 页迁出的偏好设置
 // 角色 / 语言 / 神经特质 / AI 增强 / 低感官模式
@@ -38,6 +40,8 @@ export default function Settings() {
   const setQwenEnabled = useStore((s) => s.setQwenEnabled);
   const lowSensoryMode = useStore((s) => s.lowSensoryMode);
   const setLowSensoryMode = useStore((s) => s.setLowSensoryMode);
+  const readingAidEnabled = useStore((s) => s.readingAidEnabled);
+  const setReadingAidEnabled = useStore((s) => s.setReadingAidEnabled);
   const reminderEnabled = useStore((s) => s.reminderEnabled);
   const setReminderEnabled = useStore((s) => s.setReminderEnabled);
   const reminderTimes = useStore((s) => s.reminderTimes);
@@ -78,6 +82,10 @@ export default function Settings() {
     const next = !lowSensoryMode;
     setLowSensoryMode(next);
     pushToast("success", next ? tr("low_sensory_toast_on") : tr("low_sensory_toast_off"));
+  };
+
+  const handleReadingAidToggle = () => {
+    setReadingAidEnabled(!readingAidEnabled);
   };
 
   const handleReminderToggle = async () => {
@@ -268,6 +276,27 @@ export default function Settings() {
         </div>
         <p className="mt-3 text-xs leading-relaxed text-ink-faint">{tr("low_sensory_desc")}</p>
       </section>
+
+      {/* 阅读减负：可选，不默认套用实验性的半词加粗 */}
+      <section className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-mist/50">
+              <BookOpenText size={15} className="text-primary" />
+            </div>
+            <div>
+              <h2 className="text-sm font-medium text-ink">{tr("reading_aid_title")}</h2>
+              <p className="mt-0.5 text-xs text-ink-muted">
+                {readingAidEnabled ? tr("reading_aid_on") : tr("reading_aid_off")}
+              </p>
+            </div>
+          </div>
+          <Toggle enabled={readingAidEnabled} onClick={handleReadingAidToggle} />
+        </div>
+        <p className="mt-3 text-xs leading-relaxed text-ink-faint">{tr("reading_aid_desc")}</p>
+      </section>
+
+      <WearableSettingsCard />
 
       {/* 每日锚点提醒（PWA · ASD 友好：解决"后知后觉"） */}
       <section className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">

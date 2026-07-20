@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, Copy, Heart, MessageCircle } from "lucide-react";
 import { useStore } from "@/store/useStore";
@@ -29,7 +29,6 @@ export default function Connection() {
   const submitPersonalFeedback = useStore((state) => state.submitRuleFeedback);
   const recordConnection = useStore((state) => state.recordConnection);
   const pushToast = useStore((state) => state.pushToast);
-  const neuroType = useStore((state) => state.neuroType);
   const { tr } = useT();
 
   const rules: DisplayRule[] = supportRules.length > 0
@@ -56,22 +55,46 @@ export default function Connection() {
   const [supportSecondsLeft, setSupportSecondsLeft] = useState(SUPPORT_SECONDS);
   const [supportRunning, setSupportRunning] = useState(false);
   const selectedRule = rules.find((rule) => rule.id === selectedRuleId) ?? rules[0];
-
-  // other 模式消息（含 understanding 时走三段式，否则简短版）
-  const otherMessage = useMemo(() => {
-    if (!selectedRule) return "";
-    if (selectedRule.understanding) {
-      return tr("connection_msg_other_v2", {
+  const [literalSource, setLiteralSource] = useState(selectedRule?.signal ?? "");
+  const [literalSupport, setLiteralSupport] = useState(selectedRule?.support ?? "");
+  const [includeUnderstanding, setIncludeUnderstanding] = useState(false);
+  const [messageDraft, setMessageDraft] = useState(() => selectedRule
+    ? tr("connection_literal_template", {
         signal: selectedRule.signal,
-        understanding: selectedRule.understanding,
         support: selectedRule.support,
-      });
-    }
-    return tr("connection_support_other", {
-      signal: selectedRule.signal,
-      support: selectedRule.support,
-    });
-  }, [selectedRule, tr]);
+      })
+    : "");
+  const makeDraftSignature = (signal: string, support: string, include: boolean) =>
+    `${signal.trim()}\u0000${support.trim()}\u0000${include}`;
+  const [draftInputSignature, setDraftInputSignature] = useState(() =>
+    makeDraftSignature(selectedRule?.signal ?? "", selectedRule?.support ?? "", false),
+  );
+
+  const buildLiteralDraft = (
+    signal: string,
+    support: string,
+    understanding?: string,
+    includeCurrentUnderstanding = false,
+  ) => {
+    const literal = tr("connection_literal_template", { signal, support });
+    if (!includeCurrentUnderstanding || !understanding) return literal;
+    return literal + tr("connection_literal_understanding", { understanding });
+  };
+
+  const resetMessageFields = (rule: DisplayRule) => {
+    setLiteralSource(rule.signal);
+    setLiteralSupport(rule.support);
+    setIncludeUnderstanding(false);
+    setMessageDraft(buildLiteralDraft(rule.signal, rule.support));
+    setDraftInputSignature(makeDraftSignature(rule.signal, rule.support, false));
+  };
+
+  const currentDraftInputSignature = makeDraftSignature(
+    literalSource,
+    literalSupport,
+    includeUnderstanding,
+  );
+  const draftNeedsRefresh = draftInputSignature !== currentDraftInputSignature;
 
   // 30 秒倒计时
   useEffect(() => {
@@ -112,7 +135,7 @@ export default function Connection() {
   const completeOtherConnection = async () => {
     if (!selectedRule) return;
     try {
-      await navigator.clipboard.writeText(otherMessage);
+      await navigator.clipboard.writeText(messageDraft);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -141,7 +164,7 @@ export default function Connection() {
   };
 
   return (
-    <div className="space-y-6 pt-10">
+    <div className="space-y-6 pb-24 pt-10">
       <header className="px-1">
         <p className="text-xs font-medium text-primary">{tr("connection_section_label")}</p>
         <h1 className="mt-1 font-serif text-3xl text-ink">{tr("connection_title")}</h1>
@@ -161,7 +184,9 @@ export default function Connection() {
               <select
                 value={selectedRule.id}
                 onChange={(event) => {
+                  const nextRule = rules.find((rule) => rule.id === event.target.value);
                   setSelectedRuleId(event.target.value);
+                  if (nextRule) resetMessageFields(nextRule);
                   resetSelfFlow();
                   setAwaitingFeedback(false);
                 }}
@@ -307,32 +332,99 @@ export default function Connection() {
           {/* ============ other 模式：消息 + 发送前提醒 ============ */}
           {mode === "other" && (
             <>
-              <section className="border-l-4 border-primary bg-primary-mist/20 px-5 py-4">
-                <p className="text-base leading-8 text-ink">{otherMessage}</p>
+              <section className="space-y-4 rounded-card border border-edge bg-white/55 p-5">
+                <label className="block">
+                  <span className="block text-sm font-medium text-ink">{tr("connection_literal_source")}</span>
+                  <span className="mt-0.5 block text-[11px] leading-5 text-ink-muted">
+                    {tr("connection_literal_source_hint")}
+                  </span>
+                  <textarea
+                    value={literalSource}
+                    onChange={(event) => setLiteralSource(event.target.value)}
+                    rows={3}
+                    className="mt-2 w-full rounded-lg border border-edge bg-white/75 p-3 text-sm leading-6 text-ink"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="block text-sm font-medium text-ink">{tr("connection_literal_support")}</span>
+                  <textarea
+                    value={literalSupport}
+                    onChange={(event) => setLiteralSupport(event.target.value)}
+                    rows={2}
+                    className="mt-2 w-full rounded-lg border border-edge bg-white/75 p-3 text-sm leading-6 text-ink"
+                  />
+                </label>
+
+                {selectedRule.understanding && (
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={includeUnderstanding}
+                    onClick={() => setIncludeUnderstanding((value) => !value)}
+                    className={cn(
+                      "flex min-h-11 w-full items-center justify-between rounded-lg border px-3 text-left text-xs",
+                      includeUnderstanding
+                        ? "border-primary/30 bg-primary-mist/25 text-primary"
+                        : "border-edge bg-white/55 text-ink-muted",
+                    )}
+                  >
+                    {tr("connection_literal_include_understanding")}
+                    <span className={cn(
+                      "flex h-5 w-5 items-center justify-center rounded-full border",
+                      includeUnderstanding ? "border-primary bg-primary text-white" : "border-edge",
+                    )}>
+                      {includeUnderstanding && <Check size={12} />}
+                    </span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMessageDraft(buildLiteralDraft(
+                      literalSource.trim(),
+                      literalSupport.trim(),
+                      selectedRule.understanding,
+                      includeUnderstanding,
+                    ));
+                    setDraftInputSignature(currentDraftInputSignature);
+                  }}
+                  disabled={!literalSource.trim() || !literalSupport.trim()}
+                  className="flex min-h-11 w-full items-center justify-center rounded-full border border-primary/25 bg-primary-mist/20 px-4 text-sm text-primary disabled:opacity-40"
+                >
+                  {tr("connection_literal_refresh")}
+                </button>
+
+                <label className="block border-t border-edge/70 pt-4">
+                  <span className="block text-sm font-medium text-ink">{tr("connection_literal_draft")}</span>
+                  <textarea
+                    value={messageDraft}
+                    onChange={(event) => setMessageDraft(event.target.value)}
+                    rows={5}
+                    className="mt-2 w-full rounded-lg border border-primary/20 bg-primary-mist/10 p-3 text-sm leading-7 text-ink"
+                  />
+                </label>
+
+                <p className="rounded-lg bg-warn-mist/15 px-3 py-2 text-[11px] leading-5 text-ink-muted">
+                  {tr("connection_literal_boundary")}
+                </p>
+
+                {draftNeedsRefresh && (
+                  <p className="text-xs font-medium text-warn">{tr("connection_literal_needs_refresh")}</p>
+                )}
+
                 <button
                   type="button"
                   onClick={completeOtherConnection}
-                  className="mt-4 flex min-h-11 items-center gap-2 rounded-full bg-ink px-4 text-sm text-base"
+                  disabled={!messageDraft.trim() || draftNeedsRefresh}
+                  className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-ink px-4 text-sm text-base disabled:opacity-40"
                 >
                   {copied ? <Check size={16} /> : <Copy size={16} />}
                   {copied ? tr("connection_btn_copied") : tr("connection_btn_copy_card")}
                 </button>
               </section>
 
-              {/* 发送前提醒卡片（预判对方反应 + 兜底话术） */}
-              <section className="rounded-card border border-edge bg-warn-mist/15 p-4">
-                <p className="text-xs font-medium text-warn">{tr("connection_other_tip_title")}</p>
-                <div className="mt-3 space-y-2.5">
-                  <div>
-                    <p className="text-[11px] text-ink-muted">{tr("connection_other_tip_react")}</p>
-                    <p className="mt-0.5 text-xs leading-5 text-ink">{tr("connection_other_tip_react_msg")}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] text-ink-muted">{tr("connection_other_tip_backup")}</p>
-                    <p className="mt-0.5 text-xs leading-5 text-ink">{tr("connection_other_backup_msg")}</p>
-                  </div>
-                </div>
-              </section>
             </>
           )}
 

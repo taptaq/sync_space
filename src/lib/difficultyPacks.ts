@@ -26,12 +26,12 @@ export const DIFFICULTY_PACKS: DifficultyPack[] = [
   // ========== sensory · 减法：降低输入 ==========
   {
     type: "sensory",
-    title: { zh: "感官减载", en: "Sensory Load-Down" },
+    title: { zh: "先让周围安静一点", en: "Make things quieter first" },
     direction: { zh: "减法：降低输入", en: "Subtraction: reduce input" },
     actions: [
       {
         id: "low_sensory_mode",
-        label: { zh: "一键低感官模式", en: "One-tap Low-Sensory Mode" },
+        label: { zh: "减少屏幕动效和视觉刺激", en: "Reduce motion and visual input" },
         description: {
           zh: "停止动效、降低亮度，只留一个动作入口",
           en: "Stop animations, dim brightness, keep only one action entry",
@@ -40,9 +40,9 @@ export const DIFFICULTY_PACKS: DifficultyPack[] = [
       },
       {
         id: "brown_noise",
-        label: { zh: "播放 brown noise", en: "Play brown noise" },
+        label: { zh: "播放低沉、连续的背景声", en: "Play a low, steady background sound" },
         description: {
-          zh: "用低频持续噪声掩蔽环境声响，快速感官降载",
+          zh: "可能帮助盖住忽高忽低的环境声；不舒服就立即关闭",
           en: "Mask environmental sound with continuous low-frequency noise for rapid sensory load-down",
         },
         instant: true,
@@ -62,7 +62,7 @@ export const DIFFICULTY_PACKS: DifficultyPack[] = [
   // ========== change · 加法：增加可预测性 ==========
   {
     type: "change",
-    title: { zh: "预测补强", en: "Predictability Boost" },
+    title: { zh: "先看清接下来会发生什么", en: "See what happens next" },
     direction: { zh: "加法：增加可预测性", en: "Addition: increase predictability" },
     actions: [
       {
@@ -98,7 +98,7 @@ export const DIFFICULTY_PACKS: DifficultyPack[] = [
   // ========== startup · 加法：外部化 + 微启动 ==========
   {
     type: "startup",
-    title: { zh: "启动加燃料", en: "Startup Fuel" },
+    title: { zh: "先把第一步变小", en: "Make the first step smaller" },
     direction: { zh: "加法：外部化 + 微启动", en: "Addition: externalize + micro-start" },
     actions: [
       {
@@ -112,7 +112,7 @@ export const DIFFICULTY_PACKS: DifficultyPack[] = [
       },
       {
         id: "paper_externalize",
-        label: { zh: "纸面外化：把脑子里的事写下来", en: "Paper externalize: write out what's in your head" },
+        label: { zh: "把脑子里的事先写下来", en: "Write down what's in your head" },
         description: {
           zh: "不整理不排序，全部倒到纸上释放工作记忆",
           en: "No sorting, no ordering—dump it all onto paper to release working memory",
@@ -121,9 +121,9 @@ export const DIFFICULTY_PACKS: DifficultyPack[] = [
       },
       {
         id: "body_double",
-        label: { zh: "body doubling 提示：找人陪着做", en: "Body doubling prompt: do it with someone" },
+        label: { zh: "找一个人陪我开始 10 分钟", en: "Ask someone to stay for the first 10 minutes" },
         description: {
-          zh: "他人在场提供外部结构，弥补启动动力",
+          zh: "线上或线下都可以；如果陪伴让你更累，就换其他办法",
           en: "Another person's presence adds external structure to offset low startup drive",
         },
         instant: true,
@@ -134,12 +134,12 @@ export const DIFFICULTY_PACKS: DifficultyPack[] = [
   // ========== time · 加法：外部化时间结构 ==========
   {
     type: "time",
-    title: { zh: "时间外部化", en: "Time Externalization" },
+    title: { zh: "把剩余时间摆到眼前", en: "Put remaining time where you can see it" },
     direction: { zh: "加法：外部化时间结构", en: "Addition: externalize time structure" },
     actions: [
       {
         id: "time_visualize",
-        label: { zh: "时间可视化：现在到截止还有多久", en: "Time visualize: how long until the deadline" },
+        label: { zh: "显示现在到截止还有多久", en: "Show how long until the deadline" },
         description: {
           zh: "把剩余时间摆到眼前，补偿内在时间感缺失",
           en: "Put remaining time in front of you to offset missing inner time sense",
@@ -148,7 +148,7 @@ export const DIFFICULTY_PACKS: DifficultyPack[] = [
       },
       {
         id: "anchor_endpoint",
-        label: { zh: "截止点锚定：设一个明确的中止点", en: "Anchor an end point: set a clear stop" },
+        label: { zh: "先定一个明确的停止时间", en: "Choose a clear stopping time" },
         description: {
           zh: "给任务设一个明确的停点，避免无限延伸",
           en: "Give the task a clear stop point so it doesn't expand endlessly",
@@ -206,11 +206,11 @@ export const DIFFICULTY_PACKS: DifficultyPack[] = [
 
 // 困难类型显示标签
 const DIFFICULTY_LABELS: Record<DifficultyType, LocalText> = {
-  sensory: { zh: "感官过载", en: "Sensory overload" },
-  change: { zh: "变化/不可预测", en: "Change / unpredictability" },
-  startup: { zh: "启动困难", en: "Startup difficulty" },
-  time: { zh: "时间管理", en: "Time management" },
-  communication: { zh: "交流困难", en: "Communication difficulty" },
+  sensory: { zh: "声音、光线或触感受不了", en: "Sound, light, or touch feels too much" },
+  change: { zh: "计划变了，不知道接下来怎么办", en: "Plans changed and I don't know what's next" },
+  startup: { zh: "知道要做，但开始不了", en: "I know what to do but can't start" },
+  time: { zh: "忘了时间，或者快来不及了", en: "I lost track of time or I'm running late" },
+  communication: { zh: "想说，但现在说不出来", en: "I want to speak but can't right now" },
 };
 
 // 按 neuroType 排序困难类型

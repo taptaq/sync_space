@@ -20,6 +20,11 @@ import type {
   ToastMessage,
   TraitProfile,
   WeatherSnapshot,
+  WearableConnectionStatus,
+  WearableContextSignal,
+  WearableMode,
+  WearableProvider,
+  WearableSignalRecord,
 } from "@/types";
 import { generateWeather, defaultWeather } from "@/lib/weatherEngine";
 import { matchTriggers } from "@/lib/triggerEngine";
@@ -81,7 +86,16 @@ interface StoreState {
   // 开启后降级装饰性动效、降低色彩饱和度、减少阴影
   // 对光敏感/前庭敏感/HSP 用户尤为重要（WCAG 2.3.3 · Microsoft Inclusive Design）
   lowSensoryMode: boolean;
+  // 可选阅读减负：增大正文/按钮文字并增加行距，不改变内容语义
+  readingAidEnabled: boolean;
   language: Lang;
+
+  // 可选设备辅助；不保存生理原始数据，纯软件路径始终可用
+  wearableMode: WearableMode;
+  wearableProvider: WearableProvider;
+  wearableConnectionStatus: WearableConnectionStatus;
+  pendingWearableSignal: WearableContextSignal | null;
+  wearableSignalRecords: WearableSignalRecord[];
 
   // 会话模式（专注/低感官/恢复 · 重构后的统一模式系统）
   sessionMode: SessionMode;
@@ -122,6 +136,12 @@ interface StoreState {
   setAppMode: (mode: AppMode) => void;
   setQwenEnabled: (enabled: boolean) => void;
   setLowSensoryMode: (enabled: boolean) => void;
+  setReadingAidEnabled: (enabled: boolean) => void;
+  setWearableMode: (mode: WearableMode) => void;
+  setWearableProvider: (provider: WearableProvider) => void;
+  setWearableConnectionStatus: (status: WearableConnectionStatus) => void;
+  setPendingWearableSignal: (signal: WearableContextSignal | null) => void;
+  confirmWearableSignal: (feedback: "relevant" | "not_relevant") => void;
   setLanguage: (lang: Lang) => void;
   setSoundScape: (type: SoundType | null, volume?: number) => void;
   setSoundScapeVolume: (volume: number) => void;
@@ -232,7 +252,13 @@ export const useStore = create<StoreState>()(
       qwenEnabled: false,
 
       lowSensoryMode: false,
+      readingAidEnabled: false,
       language: "zh" as Lang,
+      wearableMode: "software_only" as WearableMode,
+      wearableProvider: "huawei_health" as WearableProvider,
+      wearableConnectionStatus: "not_connected" as WearableConnectionStatus,
+      pendingWearableSignal: null,
+      wearableSignalRecords: [],
 
       // 重构：会话模式 + 困难类型 + 支持规则
       sessionMode: "normal" as SessionMode,
@@ -287,6 +313,31 @@ export const useStore = create<StoreState>()(
       setQwenEnabled: (enabled) => set({ qwenEnabled: enabled }),
 
       setLowSensoryMode: (enabled) => set({ lowSensoryMode: enabled }),
+      setReadingAidEnabled: (enabled) => set({ readingAidEnabled: enabled }),
+      setWearableMode: (mode) => set({
+        wearableMode: mode,
+        ...(mode === "software_only"
+          ? { wearableConnectionStatus: "not_connected" as const, pendingWearableSignal: null }
+          : {}),
+      }),
+      setWearableProvider: (provider) => set({ wearableProvider: provider }),
+      setWearableConnectionStatus: (status) => set({ wearableConnectionStatus: status }),
+      setPendingWearableSignal: (signal) => set({ pendingWearableSignal: signal }),
+      confirmWearableSignal: (feedback) => set((state) => {
+        if (!state.pendingWearableSignal) return state;
+        return {
+          pendingWearableSignal: null,
+          wearableSignalRecords: [
+            ...state.wearableSignalRecords,
+            {
+              ...state.pendingWearableSignal,
+              id: genId("wearable-signal"),
+              user_feedback: feedback,
+              confirmed_at: new Date().toISOString(),
+            },
+          ],
+        };
+      }),
       setLanguage: (lang) => set({ language: lang }),
 
       setSoundScape: (type, volume) => {
@@ -860,7 +911,13 @@ export const useStore = create<StoreState>()(
           collaborator: "self",
           qwenEnabled: false,
           lowSensoryMode: false,
+          readingAidEnabled: false,
           language: "zh" as Lang,
+          wearableMode: "software_only" as WearableMode,
+          wearableProvider: "huawei_health" as WearableProvider,
+          wearableConnectionStatus: "not_connected" as WearableConnectionStatus,
+          pendingWearableSignal: null,
+          wearableSignalRecords: [],
           sessionMode: "normal" as SessionMode,
           lastDifficultyType: null,
           supportRules: [],
@@ -898,7 +955,12 @@ export const useStore = create<StoreState>()(
         collaborator: state.collaborator,
         qwenEnabled: state.qwenEnabled,
         lowSensoryMode: state.lowSensoryMode,
+        readingAidEnabled: state.readingAidEnabled,
         language: state.language,
+        wearableMode: state.wearableMode,
+        wearableProvider: state.wearableProvider,
+        wearableConnectionStatus: state.wearableConnectionStatus,
+        wearableSignalRecords: state.wearableSignalRecords,
         sessionMode: state.sessionMode,
         lastDifficultyType: state.lastDifficultyType,
         supportRules: state.supportRules,

@@ -216,6 +216,33 @@ input[type="range"]::-moz-range-thumb {
   font-weight: 500;
 }
 
+/* 可选阅读减负：提高字号、行距和按钮辨识度。
+   不默认使用“半词加粗”，避免制造额外的视觉跳动。 */
+.reading-aid main .text-xs {
+  font-size: 0.875rem;
+  line-height: 1.55rem;
+}
+
+.reading-aid main .text-small,
+.reading-aid main .text-sm {
+  font-size: 1rem;
+  line-height: 1.8rem;
+}
+
+.reading-aid main .text-\[11px\] {
+  font-size: 0.8125rem;
+  line-height: 1.45rem;
+}
+
+.reading-aid main button,
+.reading-aid main summary {
+  font-weight: 500;
+}
+
+.reading-aid main p {
+  letter-spacing: 0.012em;
+}
+
 /* 系统级降低动效偏好：禁用所有装饰性运动动画（保留信息性过渡如 opacity/颜色变化） */
 @media (prefers-reduced-motion: reduce) {
   *,

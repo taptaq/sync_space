@@ -17,6 +17,7 @@ import ProtocolNew from "@/pages/ProtocolNew";
 import Screen from "@/pages/Screen";
 import Connection from "@/pages/Connection";
 import Settings from "@/pages/Settings";
+import { useWearableBridge } from "@/hooks/useWearableBridge";
 
 // 页面切换过渡：纯 opacity · 不使用 y 位移
 // 原因：framer-motion 的 transform 会创建 containing block，
@@ -141,6 +142,7 @@ export default function App() {
   useReminderScheduler();
   // 推迟协议重弹：30 分钟到点后重新激活触发器（PRD §07：先记后弹）
   usePostponedTriggerRecheck();
+  useWearableBridge();
 
   // Supabase 初始化中：显示加载屏（仅配置了 Supabase 时出现）
   if (cloudStatus === "loading") {

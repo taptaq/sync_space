@@ -9,6 +9,26 @@ export type ADHDSubtype = "inattentive" | "hyperactive" | "combined" | "unknown"
 // 双语文本类型 · 数据层用此类型存储中英文文案
 export type LocalText = { zh: string; en: string };
 
+// 可穿戴设备是可选辅助层；纯软件模式始终可完整使用。
+export type WearableMode = "software_only" | "software_with_wearable";
+export type WearableProvider = "huawei_health" | "other";
+export type WearableConnectionStatus = "not_connected" | "connecting" | "connected" | "error";
+
+export interface WearableContextSignal {
+  kind: "heart_rate_change" | "movement_change" | "manual_marker";
+  captured_at: string;
+  source: WearableProvider;
+  summary: string;
+  // 设备只能提供待确认线索，不能直接输出情绪、诊断或过载结论。
+  requires_user_confirmation: true;
+}
+
+export interface WearableSignalRecord extends WearableContextSignal {
+  id: string;
+  user_feedback: "relevant" | "not_relevant";
+  confirmed_at: string;
+}
+
 // 气候类型（PRD §09 气候类型非好坏）
 export type ClimateType =
   | "stuffy_rain" // 闷热待雨 · 感官气压升高

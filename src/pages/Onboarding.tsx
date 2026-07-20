@@ -9,7 +9,7 @@ import {
   User,
   Baby,
 } from "lucide-react";
-import type { AppMode, CollaboratorRole, NeuroType, ADHDSubtype } from "@/types";
+import type { AppMode, CollaboratorRole, NeuroType } from "@/types";
 import { useStore } from "@/store/useStore";
 import { useT } from "@/lib/i18n";
 import type { StringKey } from "@/lib/translations";
@@ -67,14 +67,12 @@ const MODE_OPTIONS: {
 export default function Onboarding() {
   const navigate = useNavigate();
   const setOnboarded = useStore((s) => s.setOnboarded);
-  const setStoreAdhdSubtype = useStore((s) => s.setAdhdSubtype);
   const setCollaborator = useStore((s) => s.setCollaborator);
   const setAppMode = useStore((s) => s.setAppMode);
   const setQwenEnabled = useStore((s) => s.setQwenEnabled);
   const { tr } = useT();
   const [step, setStep] = useState(0);
   const [neuro, setNeuro] = useState<NeuroType>("asd");
-  const [adhdSub, setAdhdSub] = useState<ADHDSubtype>("unknown");
   const collab: CollaboratorRole = "self";
   const [mode, setMode] = useState<AppMode>("self");
   const [qwenOn, setQwenOn] = useState(false);
@@ -85,7 +83,6 @@ export default function Onboarding() {
     setQwenEnabled(qwenOn);
     setCollaborator(collab);
     setOnboarded(neuro);
-    if (neuro === "adhd") setStoreAdhdSubtype(adhdSub);
     if (skipProtocol) {
       navigate("/today");
     } else {
@@ -233,76 +230,6 @@ export default function Onboarding() {
                 </button>
               ))}
             </div>
-
-            {/* ADHD 子类型选择 · 仅当选了 ADHD 时显示 */}
-            {neuro === "adhd" && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.2 }}
-                className="mt-4"
-              >
-                <p className="mb-1 text-xs font-medium text-primary">
-                  {tr("adhd_subtype_title")}
-                </p>
-                <p className="mb-3 text-[11px] text-ink-muted">
-                  {tr("adhd_subtype_desc")}
-                </p>
-                <div className="space-y-2">
-                  {([
-                    { key: "inattentive" as const, label: "adhd_subtype_inattentive", desc: "adhd_subtype_inattentive_desc" },
-                    { key: "hyperactive" as const, label: "adhd_subtype_hyperactive", desc: "adhd_subtype_hyperactive_desc" },
-                    { key: "combined" as const, label: "adhd_subtype_combined", desc: "adhd_subtype_combined_desc" },
-                    { key: "unknown" as const, label: "adhd_subtype_unknown", desc: "adhd_subtype_unknown_desc" },
-                  ]).map(({ key, label, desc }) => (
-                    <button
-                      key={key}
-                      onClick={() => {
-                        setAdhdSub(key);
-                        if (key === "unknown") {
-                          setOnboarded(neuro);
-                          navigate("/screen?scale=dsm5a18b");
-                        }
-                      }}
-                      className={cn(
-                        "flex w-full items-center gap-3 rounded-card border p-3 text-left transition-all duration-250",
-                        adhdSub === key
-                          ? "border-primary bg-primary-mist/30"
-                          : "border-edge bg-white/30 hover:bg-white/50",
-                      )}
-                    >
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-ink">{tr(label as StringKey)}</p>
-                        <p className="text-[11px] text-ink-muted">{tr(desc as StringKey)}</p>
-                      </div>
-                      {adhdSub === key && (
-                        <div className="h-2 w-2 rounded-full bg-primary" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-
-            {/* 神经特质自评可选入口（PRD §11 非诊断 · 让更多人有效加入） */}
-            <button
-              onClick={() => {
-                setOnboarded(neuro);
-                navigate("/screen");
-              }}
-              className="mt-3 flex w-full items-center gap-3 rounded-card border border-dashed-candidate bg-white/30 p-3.5 text-left transition-all duration-250 hover:bg-white/50 active:scale-[0.99]"
-            >
-              <Sparkles size={16} className="shrink-0 text-primary" />
-              <div className="flex-1">
-                <p className="text-small text-ink">
-                  {tr("onb_self_assess")}
-                </p>
-                <p className="text-xs text-ink-muted">
-                  {tr("onb_self_assess_desc")}
-                </p>
-              </div>
-              <ChevronRight size={14} className="shrink-0 text-ink-faint" />
-            </button>
 
             <div className="mt-auto pb-8 pt-6">
               <button
@@ -560,13 +487,13 @@ export default function Onboarding() {
 
             <div className="mt-auto pb-8 pt-6 space-y-3">
               <button
-                onClick={() => finish(false)}
+                onClick={() => finish(true)}
                 className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-body font-medium text-white transition-all duration-250 hover:bg-primary/90 active:scale-[0.98]"
               >
                 {tr("onb_protocol_create")}
               </button>
               <button
-                onClick={() => finish(true)}
+                onClick={() => finish(false)}
                 className="w-full text-center text-xs text-ink-muted underline-offset-2 hover:underline"
               >
                 {tr("onb_protocol_later")}

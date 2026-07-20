@@ -34,6 +34,7 @@ import HyperfocusGuard from "@/components/today/HyperfocusGuard";
 import SensoryBattery from "@/components/today/SensoryBattery";
 import TomorrowPreview from "@/components/today/TomorrowPreview";
 import NeuroOnboardingGuide from "@/components/today/NeuroOnboardingGuide";
+import WearableSignalPrompt from "@/components/today/WearableSignalPrompt";
 
 // 今日页 · 卡住时的即时帮助
 // 理念：现在怎样 → 做一件事 → 有没有用
@@ -63,6 +64,7 @@ export default function Today() {
   const [runnerAction, setRunnerAction] = useState<{ id: string; label: string; description: string } | null>(null);
   const [showMoreActions, setShowMoreActions] = useState(false);
   const [showAllDifficulties, setShowAllDifficulties] = useState(false);
+  const actionPackRef = useRef<HTMLDivElement>(null);
 
   const currentPhase = detectPhase(currentWeather.climate, crashMarks);
   const voiceCheckinBlocked = currentPhase === "warning" || currentPhase === "overload";
@@ -117,6 +119,12 @@ export default function Today() {
     setSelectedDifficulty(type);
     setShowMoreActions(false);
   };
+
+  // 选完困难后把“现在能做什么”带入视口，避免用户不知道页面下方已经出现内容。
+  useEffect(() => {
+    if (!selectedDifficulty) return;
+    actionPackRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [selectedDifficulty]);
 
   const handleModeSwitch = (mode: SessionMode) => {
     if (sessionMode === mode) {
@@ -198,6 +206,9 @@ export default function Today() {
       <div className="flex flex-col items-center pt-2 pb-1">
         <ClimateFamiliar phase={currentPhase} size={64} />
       </div>
+
+      {/* 可选设备只提供待确认线索；纯软件模式下不渲染任何占位。 */}
+      <WearableSignalPrompt />
 
       {/* 0.55 ASD 友好直觉化：感官预算电池 + 明日预告（早期意识区） */}
       {!isParentProxy && <SensoryBattery />}
@@ -301,6 +312,7 @@ export default function Today() {
       {/* 3. 干预包内容（第一个动作标"先做这个"） */}
       {displayPack && !isParentProxy && (
         <motion.div
+          ref={actionPackRef}
           key={displayPack.type}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -314,12 +326,15 @@ export default function Today() {
             {(showMoreActions ? displayPack.actions : displayPack.actions.slice(0, 1)).map((action, idx) => (
               <button
                 key={action.id}
-                onClick={() => handleExecuteAction(action.id, tt(action.label), tt(action.description), action.instant)}
+                onClick={() => handleExecuteAction(action.id, tt(action.label), tt(action.description))}
                 className="flex w-full items-center gap-3 rounded-xl bg-white/50 px-4 py-3 text-left transition-all duration-250 hover:bg-white/70 active:scale-[0.99]"
               >
                 <div className="flex-1">
                   <p className="text-sm font-medium text-ink">{tt(action.label)}</p>
-                  <p className="mt-0.5 text-[11px] text-ink-muted">{tt(action.description)}</p>
+                  <p className="mt-0.5 text-[11px] text-ink-muted">
+                    <span className="font-medium text-ink-muted">{tr("today_after_tap")}</span>
+                    {tt(action.description)}
+                  </p>
                 </div>
                 {idx === 0 && (
                   <span className="rounded-full bg-primary-mist/50 px-2 py-0.5 text-[10px] text-primary">
@@ -411,7 +426,7 @@ export default function Today() {
     </div>
   );
 
-  function handleExecuteAction(actionId: string, label: string, description: string, instant?: boolean) {
+  function handleExecuteAction(actionId: string, label: string, description: string) {
     if (actionId === "low_sensory_toggle" || actionId === "low_sensory_mode") {
       handleModeSwitch("low_sensory");
       return;

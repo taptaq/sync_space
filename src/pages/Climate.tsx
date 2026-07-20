@@ -1,11 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronRight, History } from "lucide-react";
+import { Brain, ChevronRight, History } from "lucide-react";
 import TrendChart from "@/components/climate/TrendChart";
 import SupportRulePanel from "@/components/understand/SupportRulePanel";
 import CaptureInbox from "@/components/understand/CaptureInbox";
 import EnergyArchive from "@/components/climate/EnergyArchive";
-import ProtocolEffectivenessCard from "@/components/climate/ProtocolEffectivenessCard";
 import { useStore } from "@/store/useStore";
 import { useVoice, useT } from "@/lib/i18n";
 
@@ -15,8 +14,10 @@ export default function Climate() {
   const checkins = useStore((state) => state.checkins);
   const executions = useStore((state) => state.executions);
   const neuroType = useStore((state) => state.neuroType);
+  const traitProfile = useStore((state) => state.traitProfile);
   const { isParent } = useVoice();
   const { tr } = useT();
+  const completedCount = traitProfile?.results.length ?? 0;
 
   return (
     <div className="space-y-7 pt-12">
@@ -39,9 +40,6 @@ export default function Climate() {
 
       <SupportRulePanel />
 
-      {/* 协议聚合效果分 · 与支持规则线对称 */}
-      <ProtocolEffectivenessCard />
-
       <button
         type="button"
         onClick={() => navigate("/review")}
@@ -61,6 +59,29 @@ export default function Climate() {
         </summary>
         <TrendChart checkins={checkins} executions={executions} />
       </details>
+
+      {/* 神经特质自评入口 · 10 份公开量表 · 非诊断 */}
+      <button
+        type="button"
+        onClick={() => navigate("/screen")}
+        className="glass-card flex w-full items-center gap-4 rounded-card border border-edge/60 p-4 text-left"
+      >
+        <Brain size={17} className="text-primary" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-ink">
+            {tr("climate_assess_title")}
+            {completedCount > 0 && (
+              <span className="ml-2 align-middle text-xs font-normal text-primary">
+                · {tr("climate_trait_done")} {completedCount} {tr("climate_assess_count")}
+              </span>
+            )}
+          </p>
+          <p className="mt-1 text-xs text-ink-muted">
+            {isParent ? tr("climate_assess_desc_parent") : tr("climate_assess_desc_self")}
+          </p>
+        </div>
+        <ChevronRight size={15} className="text-ink-faint" />
+      </button>
 
       {/* ASD 能量档案 · 理解什么能让自己充电 */}
       {neuroType === "asd" && !isParent && <EnergyArchive />}

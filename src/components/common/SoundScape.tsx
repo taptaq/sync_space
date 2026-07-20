@@ -99,6 +99,9 @@ export default function SoundScape() {
 
   const currentOption = SOUND_OPTIONS.find((o) => o.type === soundScapeType);
 
+  // 不播放时不占用核心界面；音景可由具体支持动作开启，开启后才显示控制器。
+  if (!soundScapeEnabled || soundScapeType === "silence") return null;
+
   return (
     <>
       {/* 底栏悬浮入口 */}
@@ -106,17 +109,11 @@ export default function SoundScape() {
         onClick={() => setShowPanel(true)}
         className={cn(
           "fixed bottom-24 left-3 z-40 flex h-10 w-10 items-center justify-center rounded-full shadow-soft transition-all duration-250",
-          soundScapeEnabled && soundScapeType !== "silence"
-            ? "bg-primary text-white"
-            : "bg-white/70 text-ink-muted hover:bg-white/90",
+          "bg-primary text-white",
         )}
         aria-label={tr("soundscape_aria_control")}
       >
-        {soundScapeEnabled && soundScapeType !== "silence" ? (
-          <Volume2 size={16} className="animate-pulse-slow" />
-        ) : (
-          <VolumeX size={16} />
-        )}
+        <Volume2 size={16} className="animate-pulse-slow" />
       </button>
 
       {/* 音景选择面板 */}
@@ -212,7 +209,7 @@ export default function SoundScape() {
               </div>
 
               {/* 音量滑块 */}
-              {soundScapeEnabled && soundScapeType !== "silence" && (
+              {soundScapeEnabled && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}

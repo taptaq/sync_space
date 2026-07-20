@@ -17,6 +17,7 @@ const TAB_KEYS = [
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const lowSensoryMode = useStore((s) => s.lowSensoryMode);
+  const readingAidEnabled = useStore((s) => s.readingAidEnabled);
   const { tr } = useT();
   const tabs = TAB_KEYS.map((t) => ({ ...t, label: tr(t.key) }));
   // 深度专注页隐藏底部 nav（PRD §09：单一任务空间）
@@ -28,16 +29,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     location.pathname.startsWith("/review/");
 
   return (
-    <div className={cn("relative mx-auto flex h-screen max-w-md flex-col bg-base", lowSensoryMode && "low-sensory-mode")}>
+    <div className={cn(
+      "relative mx-auto flex h-screen max-w-md flex-col bg-base",
+      lowSensoryMode && "low-sensory-mode",
+      readingAidEnabled && "reading-aid",
+    )}>
       <main className="relative z-10 flex-1 overflow-y-auto px-5 pb-5">
         {children}
       </main>
 
       {!hideNav && (
         <nav className="glass-card fixed inset-x-0 bottom-0 z-40 mx-auto max-w-md border-t border-edge/60">
-          <div className="absolute -top-16 right-3">
-            <CrisisSupport compact />
-          </div>
           <div className="flex items-stretch justify-around px-2 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
             {tabs.map(({ to, label, icon: Icon, paths }) => {
               const isActive = paths.some((path) =>
@@ -82,6 +84,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* 全局音景控制器（底栏左侧悬浮 · 不在 onboarding 等深度专注页显示） */}
       {!hideNav && <SoundScape />}
+
+      {/* 求助入口：独立固定右下角 · 除 onboarding 外所有页面可用（含深度专注页） */}
+      {location.pathname !== "/onboarding" && (
+        <div
+          className={cn(
+            "fixed right-3 z-40 transition-all duration-250",
+            hideNav ? "bottom-6" : "bottom-24",
+          )}
+        >
+          <CrisisSupport compact />
+        </div>
+      )}
     </div>
   );
 }

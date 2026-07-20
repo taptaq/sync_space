@@ -4,6 +4,7 @@ import { X, Check, Timer, Pencil, Clock } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
+import { ModalPortal } from "@/components/common/ModalPortal";
 
 // 动作执行器：让困难包里的每个动作点击后都有明确的下一步
 // 不是弹重型模态，而是覆盖一层简洁的执行面板
@@ -44,11 +45,6 @@ export default function ActionRunner({ actionId, label, description, onClose }: 
   const kind = ACTION_KIND_MAP[actionId] ?? "generic";
   const pushToast = useStore((s) => s.pushToast);
   const addCapture = useStore((s) => s.addCapture);
-  const [done, setDone] = useState(false);
-
-  // 防止点击背景关闭时触发内部元素
-  const panelRef = useRef<HTMLDivElement>(null);
-
   // body_double / generic：直接显示提示
   if (kind === "body_double" || kind === "generic") {
     return (
@@ -60,7 +56,7 @@ export default function ActionRunner({ actionId, label, description, onClose }: 
               {tr("action_body_double_tip")}
             </div>
           )}
-          <ActionDoneButton onDone={() => { setDone(true); pushToast("success", tr("action_done")); onClose(); }} />
+          <ActionDoneButton onDone={() => { pushToast("success", tr("action_done")); onClose(); }} />
         </Panel>
       </Overlay>
     );
@@ -125,31 +121,38 @@ export default function ActionRunner({ actionId, label, description, onClose }: 
 // ============ 通用结构 ============
 function Overlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/30 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      {children}
-    </motion.div>
+    <ModalPortal>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/30 backdrop-blur-sm"
+        onClick={onClose}
+      >
+        {children}
+      </motion.div>
+    </ModalPortal>
   );
 }
 
 function Panel({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  const { tr } = useT();
   return (
     <motion.div
       initial={{ y: 40, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 40, opacity: 0 }}
       transition={{ duration: 0.25 }}
-      className="w-full max-w-md rounded-t-2xl border-t border-white/30 bg-base/95 p-5 pb-8 shadow-2xl"
+      className="w-full max-w-md rounded-t-2xl border-t border-white/30 bg-base/95 p-5 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-2xl"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="mb-4 flex items-center justify-between">
         <h3 className="font-serif text-lg text-ink">{title}</h3>
-        <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/50 text-ink-muted">
+        <button
+          onClick={onClose}
+          aria-label={tr("close")}
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white/50 text-ink-muted"
+        >
           <X size={16} />
         </button>
       </div>
