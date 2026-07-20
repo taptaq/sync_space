@@ -426,9 +426,9 @@ export const STRINGS = {
 
   // Connection 引导
   guide_conn_mode_title: { zh: "选一种连接方式", en: "Choose how to connect" },
-  guide_conn_mode_body: { zh: "「自己」模式走完看见→理解→支持；「发给TA」复制一段话发给信任的人。", en: "Self mode: walk through see→understand→support. Send: copy a message to someone you trust." },
+  guide_conn_mode_body: { zh: "「留给自己」走完看见→理解→支持三步，可选「AI 帮我换个角度」；「说给别人」整理一段可复制的话，可选「AI 帮我写」。", en: "Self mode walks through see→understand→support (with optional AI perspective). Tell someone turns it into a copyable message (with optional AI draft)." },
   guide_conn_flow_title: { zh: "从这里开始", en: "Start here" },
-  guide_conn_flow_body: { zh: "先确认此刻有没有这个信号，有的话走完三步，没有就跳过。", en: "Confirm if this signal is present. If yes, walk through three steps. If not, skip." },
+  guide_conn_flow_body: { zh: "先确认此刻有没有这个信号，有的话走完三步，AI 可帮你换个角度；没有就跳过。完成 self 模式会累计一颗「看见自己」的珠子。", en: "Confirm if this signal is present. If yes, walk through three steps (AI can offer a new angle). If not, skip. Each self completion adds a 'saw yourself' dot." },
   guide_conn_loop_title: { zh: "一周循环进度", en: "Weekly loop progress" },
   guide_conn_loop_body: { zh: "预警、理解、连接、协议这周完成了多少，一目了然。", en: "See how many check-ins, rules, connections, and protocols you've done this week." },
 
@@ -443,8 +443,8 @@ export const STRINGS = {
   // Climate 引导
   guide_climate_support_title: { zh: "把经历变成规则", en: "Turn experience into rules" },
   guide_climate_support_body: { zh: "这里把签到和过载整理成支持规则：信号 → 理解 → 支持行动。", en: "Check-ins and crashes become support rules here: signal → understanding → support action." },
-  guide_climate_effect_title: { zh: "协议效果分", en: "Protocol effectiveness" },
-  guide_climate_effect_body: { zh: "所有协议的聚合效果，帮你看哪些办法真正有用。", en: "Aggregated effectiveness of all your protocols — see what actually helps." },
+  guide_climate_effect_title: { zh: "数据与回顾", en: "Stats & review" },
+  guide_climate_effect_body: { zh: "默认折叠。展开后看洞察、每周里程碑、协议和支持规则效果，还有 AI 给你的新视角，底部是完整时间线入口。", en: "Collapsed by default. Open for insights, weekly milestones, protocol & support rule effectiveness, AI perspectives, and the full timeline entry at the bottom." },
 
   // Review 引导
   guide_review_filter_title: { zh: "按类型筛选", en: "Filter by type" },

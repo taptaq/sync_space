@@ -461,6 +461,7 @@ export default function Connection() {
 
                   <button
                     type="button"
+                    data-tour-id="connection-ai-self"
                     onClick={handleAiSelfUnderstanding}
                     disabled={aiLoading}
                     className="flex min-h-10 w-full items-center justify-center gap-1.5 rounded-full border border-primary/25 bg-primary-mist/20 px-3 text-xs font-medium text-primary transition-all duration-250 hover:bg-primary-mist/30 active:scale-[0.98] disabled:opacity-50"
@@ -571,6 +572,7 @@ export default function Connection() {
                     <span className="block text-xs font-medium text-ink-muted">{tr("connection_literal_draft")}</span>
                     <button
                       type="button"
+                      data-tour-id="connection-ai-other"
                       onClick={handleAiOtherDraft}
                       disabled={aiOtherLoading}
                       className="flex items-center gap-1 rounded-full bg-primary-mist/30 px-2.5 py-1 text-xs font-medium text-primary transition-all duration-250 hover:bg-primary-mist/50 active:scale-[0.98] disabled:opacity-50"
@@ -633,7 +635,7 @@ export default function Connection() {
 
               {/* 「看见自己」累积链 · 每次完成 self-connection 后 +1，最多显示 12 个点 */}
               {selfCount > 0 && (
-                <div className="mt-4 rounded-lg bg-white/40 px-3 py-2.5">
+                <div data-tour-id="connection-self-dots" className="mt-4 rounded-lg bg-white/40 px-3 py-2.5">
                   <p className="text-xs text-ink-muted">
                     {tr("connection_self_count", { n: selfCount })}
                   </p>
