@@ -1,6 +1,9 @@
 // 纯 Web Audio API 音景生成器
 // 零音频文件 · 零网络请求 · 零版权风险
 // 所有声音通过数学算法实时合成
+//
+// 移动端兼容：用 AudioBufferSourceNode 替代已废弃的 ScriptProcessorNode
+// iOS Safari 要求 AudioContext 在用户交互的同步上下文里创建/resume
 
 export type SoundType =
   | "brown_noise"
@@ -135,10 +138,9 @@ export function getPhaseSound(
   return PHASE_SOUND_RECOMMENDATION[phase]?.[type] ?? null;
 }
 
-// source 可能是 ScriptProcessorNode / GainNode / OscillatorNode
-// OscillatorNode 等可调度源有 stop()，其他节点没有 → 用可选方法表达
+// 可停止的源节点（AudioBufferSourceNode / OscillatorNode 都有 stop）
 interface StoppableSource extends AudioNode {
-  stop?: (when?: number) => void;
+  stop: (when?: number) => void;
 }
 
 interface ActiveSound {
@@ -154,8 +156,11 @@ class SoundScapeEngine {
   private active: ActiveSound | null = null;
   private currentType: SoundType | null = null;
   private fadeTimer: number | null = null;
+  // 缓存预生成的噪音 buffer（同类型复用，避免重复计算）
+  private bufferCache: Map<string, AudioBuffer> = new Map();
 
   // 懒初始化 AudioContext（浏览器要求用户交互后才能创建）
+  // 必须在用户点击的同步调用栈里调用，iOS 才允许 resume
   private ensureContext(): AudioContext {
     if (!this.ctx) {
       const Ctor: typeof AudioContext =
@@ -166,8 +171,12 @@ class SoundScapeEngine {
       this.masterGain.gain.value = 0;
       this.masterGain.connect(this.ctx.destination);
     }
+    // 移动端：AudioContext 可能处于 suspended 状态，需要 resume
+    // resume() 是异步的，但不 await 也能工作 —— AudioContext 会自己恢复
     if (this.ctx.state === "suspended") {
-      this.ctx.resume();
+      this.ctx.resume().catch(() => {
+        // 忽略：某些浏览器在非用户交互调用时会拒绝
+      });
     }
     return this.ctx;
   }
@@ -178,6 +187,49 @@ class SoundScapeEngine {
 
   getCurrentType(): SoundType | null {
     return this.currentType;
+  }
+
+  // 预生成噪音 buffer（2 秒循环）
+  // 用 AudioBufferSourceNode 替代 ScriptProcessorNode，移动端兼容性更好
+  private getNoiseBuffer(ctx: AudioContext, type: "white" | "brown" | "pink"): AudioBuffer {
+    const cacheKey = `${type}:${ctx.sampleRate}`;
+    const cached = this.bufferCache.get(cacheKey);
+    if (cached) return cached;
+
+    const durationSec = 2;
+    const length = ctx.sampleRate * durationSec;
+    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    if (type === "white") {
+      for (let i = 0; i < length; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+    } else if (type === "brown") {
+      let lastOut = 0;
+      for (let i = 0; i < length; i++) {
+        const white = Math.random() * 2 - 1;
+        lastOut = (lastOut + 0.02 * white) / 1.02;
+        data[i] = lastOut * 3.5;
+      }
+    } else {
+      // pink
+      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+      for (let i = 0; i < length; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.96900 * b2 + white * 0.1538520;
+        b3 = 0.86650 * b3 + white * 0.3104856;
+        b4 = 0.55000 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.0168980;
+        data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+        b6 = white * 0.115926;
+      }
+    }
+
+    this.bufferCache.set(cacheKey, buffer);
+    return buffer;
   }
 
   // 播放指定音景（渐入 0.5s）
@@ -235,9 +287,9 @@ class SoundScapeEngine {
       if (this.fadeTimer) clearTimeout(this.fadeTimer);
       this.fadeTimer = window.setTimeout(() => {
         try {
-          active.source.stop?.();
+          active.source.stop();
         } catch {
-          // 某些 source 可能没有 stop 方法
+          // 忽略：可能已经停止
         }
         active.cleanup();
         this.active = null;
@@ -245,7 +297,7 @@ class SoundScapeEngine {
       }, 600);
     } else {
       try {
-        active.source.stop?.();
+        active.source.stop();
       } catch {
         // 忽略
       }
@@ -287,34 +339,28 @@ class SoundScapeEngine {
   }
 
   // 棕噪音：低频增强的白噪音
-  // 算法：白噪音 → 低通滤波（每步累积前一步的值 × 0.997 + 随机 × 0.05）
+  // 用预生成 buffer + AudioBufferSourceNode（循环播放）
   private createBrownNoise(ctx: AudioContext): ActiveSound {
-    const bufferSize = 4096;
-    const node = ctx.createScriptProcessor(bufferSize, 1, 1);
-    let lastOut = 0;
-
-    node.onaudioprocess = (e) => {
-      const out = e.outputBuffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        const white = Math.random() * 2 - 1;
-        lastOut = (lastOut + 0.02 * white) / 1.02;
-        out[i] = lastOut * 3.5;
-      }
-    };
+    const buffer = this.getNoiseBuffer(ctx, "brown");
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
 
     const gain = ctx.createGain();
     const filter = ctx.createBiquadFilter();
     filter.type = "lowpass";
     filter.frequency.value = 800;
 
-    node.connect(filter);
+    source.connect(filter);
     filter.connect(gain);
+    source.start();
 
     return {
-      source: node,
+      source,
       gain,
       cleanup: () => {
-        node.disconnect();
+        try { source.stop(); } catch { /* 已停止 */ }
+        source.disconnect();
         filter.disconnect();
       },
     };
@@ -322,60 +368,47 @@ class SoundScapeEngine {
 
   // 粉噪音：中频增强
   private createPinkNoise(ctx: AudioContext): ActiveSound {
-    const bufferSize = 4096;
-    const node = ctx.createScriptProcessor(bufferSize, 1, 1);
-    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-
-    node.onaudioprocess = (e) => {
-      const out = e.outputBuffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        const white = Math.random() * 2 - 1;
-        b0 = 0.99886 * b0 + white * 0.0555179;
-        b1 = 0.99332 * b1 + white * 0.0750759;
-        b2 = 0.96900 * b2 + white * 0.1538520;
-        b3 = 0.86650 * b3 + white * 0.3104856;
-        b4 = 0.55000 * b4 + white * 0.5329522;
-        b5 = -0.7616 * b5 - white * 0.0168980;
-        out[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
-        b6 = white * 0.115926;
-      }
-    };
+    const buffer = this.getNoiseBuffer(ctx, "pink");
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
 
     const gain = ctx.createGain();
-    node.connect(gain);
+    source.connect(gain);
+    source.start();
 
     return {
-      source: node,
+      source,
       gain,
-      cleanup: () => node.disconnect(),
+      cleanup: () => {
+        try { source.stop(); } catch { /* 已停止 */ }
+        source.disconnect();
+      },
     };
   }
 
   // 白噪音
   private createWhiteNoise(ctx: AudioContext): ActiveSound {
-    const bufferSize = 4096;
-    const node = ctx.createScriptProcessor(bufferSize, 1, 1);
-
-    node.onaudioprocess = (e) => {
-      const out = e.outputBuffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        out[i] = Math.random() * 2 - 1;
-      }
-    };
+    const buffer = this.getNoiseBuffer(ctx, "white");
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
 
     const gain = ctx.createGain();
     const filter = ctx.createBiquadFilter();
     filter.type = "lowpass";
     filter.frequency.value = 4000;
 
-    node.connect(filter);
+    source.connect(filter);
     filter.connect(gain);
+    source.start();
 
     return {
-      source: node,
+      source,
       gain,
       cleanup: () => {
-        node.disconnect();
+        try { source.stop(); } catch { /* 已停止 */ }
+        source.disconnect();
         filter.disconnect();
       },
     };
@@ -455,7 +488,7 @@ class SoundScapeEngine {
       source: brown.source,
       gain: oceanGain,
       cleanup: () => {
-        lfo.stop();
+        try { lfo.stop(); } catch { /* 已停止 */ }
         lfo.disconnect();
         lfoGain.disconnect();
         brown.cleanup();
@@ -496,20 +529,21 @@ class SoundScapeEngine {
     };
   }
 
-  // 单个爆裂声
+  // 单个爆裂声（用 buffer source 替代 ScriptProcessor）
   private playCrackle(ctx: AudioContext, dest: AudioNode) {
     const bufferSize = 256;
-    const node = ctx.createScriptProcessor(bufferSize, 1, 1);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * 0.5;
+    }
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+
     const gain = ctx.createGain();
     const now = ctx.currentTime;
     const duration = 0.03 + Math.random() * 0.05;
-
-    node.onaudioprocess = (e) => {
-      const out = e.outputBuffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        out[i] = (Math.random() * 2 - 1) * 0.5;
-      }
-    };
 
     const filter = ctx.createBiquadFilter();
     filter.type = "bandpass";
@@ -520,15 +554,11 @@ class SoundScapeEngine {
     gain.gain.linearRampToValueAtTime(0.15 + Math.random() * 0.2, now + 0.005);
     gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
-    node.connect(filter);
+    source.connect(filter);
     filter.connect(gain);
     gain.connect(dest);
-
-    setTimeout(() => {
-      node.disconnect();
-      filter.disconnect();
-      gain.disconnect();
-    }, duration * 1000 + 100);
+    source.start(now);
+    source.stop(now + duration + 0.1);
   }
 
   // Lo-fi 节拍：低频鼓点 + 柔和和弦
@@ -556,11 +586,23 @@ class SoundScapeEngine {
     };
     scheduleBeat();
 
+    // 用一个占位 oscillator 作为 source（Lo-fi 的实际声音由定时器触发的 kick/chord 产生）
+    // 这样 stop() 时能正确停止
+    const placeholder = ctx.createOscillator();
+    placeholder.frequency.value = 0; // 无声
+    const placeholderGain = ctx.createGain();
+    placeholderGain.gain.value = 0;
+    placeholder.connect(placeholderGain);
+    placeholder.start();
+
     return {
-      source: lofiGain, // GainNode 本身作为 source 占位
+      source: placeholder,
       gain: lofiGain,
       cleanup: () => {
         if (beatTimer) clearTimeout(beatTimer);
+        try { placeholder.stop(); } catch { /* 已停止 */ }
+        placeholder.disconnect();
+        placeholderGain.disconnect();
         lofiGain.disconnect();
       },
     };
