@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Volume2, VolumeX, X } from "lucide-react";
+import { Volume2, VolumeX, Music, X } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { soundScape, SOUND_OPTIONS, type SoundType } from "@/lib/soundEngine";
 import { cn } from "@/lib/utils";
@@ -98,22 +98,27 @@ export default function SoundScape() {
   };
 
   const currentOption = SOUND_OPTIONS.find((o) => o.type === soundScapeType);
-
-  // 不播放时不占用核心界面；音景可由具体支持动作开启，开启后才显示控制器。
-  if (!soundScapeEnabled || soundScapeType === "silence") return null;
+  // 入口默认常驻左下角：未播放时显示柔和的"待启动"状态，播放时显示高亮+脉冲
+  const isPlaying = soundScapeEnabled && soundScapeType !== "silence";
 
   return (
     <>
-      {/* 底栏悬浮入口 */}
+      {/* 底栏悬浮入口 · 常驻（未播放也可见，点击进入面板选择） */}
       <button
         onClick={() => setShowPanel(true)}
         className={cn(
-          "fixed bottom-24 left-3 z-40 flex h-10 w-10 items-center justify-center rounded-full shadow-soft transition-all duration-250",
-          "bg-primary text-white",
+          "fixed bottom-24 left-3 z-40 flex h-10 w-10 items-center justify-center rounded-full shadow-soft transition-all duration-250 active:scale-95",
+          isPlaying
+            ? "bg-primary text-white"
+            : "bg-white/70 text-primary hover:bg-white/90",
         )}
         aria-label={tr("soundscape_aria_control")}
       >
-        <Volume2 size={16} className="animate-pulse-slow" />
+        {isPlaying ? (
+          <Volume2 size={16} className="animate-pulse-slow" />
+        ) : (
+          <Music size={15} />
+        )}
       </button>
 
       {/* 音景选择面板 */}
@@ -149,8 +154,8 @@ export default function SoundScape() {
                 </button>
               </div>
 
-              {/* 当前播放状态 */}
-              {soundScapeEnabled && currentOption && (
+              {/* 当前播放状态 · 未播放时显示提示，引导用户点选 */}
+              {isPlaying && currentOption ? (
                 <div className="mb-4 rounded-card bg-primary-mist/30 px-4 py-3">
                   <div className="flex items-center gap-2">
                     <span className="text-lg">{currentOption.icon}</span>
@@ -175,6 +180,10 @@ export default function SoundScape() {
                       ))}
                     </div>
                   </div>
+                </div>
+              ) : (
+                <div className="mb-4 rounded-card bg-white/40 px-4 py-3">
+                  <p className="text-xs text-ink-muted">{tr("soundscape_not_playing")}</p>
                 </div>
               )}
 
@@ -208,8 +217,8 @@ export default function SoundScape() {
                 })}
               </div>
 
-              {/* 音量滑块 */}
-              {soundScapeEnabled && (
+              {/* 音量滑块 · 仅在播放时显示 */}
+              {isPlaying && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
@@ -235,8 +244,8 @@ export default function SoundScape() {
                 </motion.div>
               )}
 
-              {/* 停止按钮 */}
-              {soundScapeEnabled && (
+              {/* 停止按钮 · 仅在播放时显示 */}
+              {isPlaying && (
                 <button
                   onClick={() => {
                     soundScape.stop();

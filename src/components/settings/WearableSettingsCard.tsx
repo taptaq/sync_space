@@ -56,7 +56,7 @@ export default function WearableSettingsCard() {
   };
 
   return (
-    <section className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
+    <section data-tour-id="settings-wearable" className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
       <div className="flex items-start gap-3">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-mist/50">
           <Watch size={15} className="text-primary" />

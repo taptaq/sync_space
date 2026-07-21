@@ -160,7 +160,7 @@ export default function Settings() {
       </section>
 
       {/* 语言切换 */}
-      <section className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
+      <section data-tour-id="settings-language" className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
         <div className="mb-4 flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-mist/50">
             <Globe size={15} className="text-primary" />
@@ -194,7 +194,7 @@ export default function Settings() {
       </section>
 
       {/* 神经特质 */}
-      <section className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
+      <section data-tour-id="settings-neurotype" className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
         <div className="mb-4 flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-mist/50">
             <RotateCcw size={15} className="text-primary" />
@@ -260,7 +260,7 @@ export default function Settings() {
       </section>
 
       {/* 低感官模式 */}
-      <section className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
+      <section data-tour-id="settings-low-sensory" className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-mist/50">
@@ -279,7 +279,7 @@ export default function Settings() {
       </section>
 
       {/* 阅读减负：可选，不默认套用实验性的半词加粗 */}
-      <section className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
+      <section data-tour-id="settings-reading-aid" className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-mist/50">
@@ -300,7 +300,7 @@ export default function Settings() {
       <WearableSettingsCard />
 
       {/* 每日锚点提醒（PWA · ASD 友好：解决"后知后觉"） */}
-      <section className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
+      <section data-tour-id="settings-reminder" className="rounded-card border border-edge bg-white/60 p-5 shadow-soft">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-mist/50">
@@ -386,9 +386,39 @@ export default function Settings() {
             bodyKey: "guide_settings_role_body",
           },
           {
+            targetId: "settings-language",
+            titleKey: "guide_settings_language_title",
+            bodyKey: "guide_settings_language_body",
+          },
+          {
+            targetId: "settings-neurotype",
+            titleKey: "guide_settings_neurotype_title",
+            bodyKey: "guide_settings_neurotype_body",
+          },
+          {
             targetId: "settings-ai",
             titleKey: "guide_settings_ai_title",
             bodyKey: "guide_settings_ai_body",
+          },
+          {
+            targetId: "settings-low-sensory",
+            titleKey: "guide_settings_low_sensory_title",
+            bodyKey: "guide_settings_low_sensory_body",
+          },
+          {
+            targetId: "settings-reading-aid",
+            titleKey: "guide_settings_reading_aid_title",
+            bodyKey: "guide_settings_reading_aid_body",
+          },
+          {
+            targetId: "settings-wearable",
+            titleKey: "guide_settings_wearable_title",
+            bodyKey: "guide_settings_wearable_body",
+          },
+          {
+            targetId: "settings-reminder",
+            titleKey: "guide_settings_reminder_title",
+            bodyKey: "guide_settings_reminder_body",
           },
         ]}
       />
